@@ -1,19 +1,37 @@
 import {Tabs} from "expo-router";
 import {icons} from "@/constants/icons";
-import {Image} from "react-native";
+import {Image, View} from "react-native";
 
-function TabIcon({focused, icon}: { focused: boolean; icon: any }) {
+function TabIcon({icon, focused}: { icon: any; focused: boolean }) {
   return (
-    <Image
-      source={icon}
+    <View className={`p-2 ${focused ? 'bg-gray-200 rounded-xl' : ''}`}>
+      <Image
+        source={icon}
+        className="size-8"
+      />
+    </View>
+  );
+}
+
+function CameraTabIcon() {
+  return (
+    <View
       style={{
-        width: 24,
-        height: 24,
-        tintColor: focused ? "#FF5A16" : "#000000",
+        shadowColor: '#000',
+        shadowOffset: {width: 0, height: 10},
+        shadowOpacity: 0.15,
+        shadowRadius: 10,
+        elevation: 10, // For Android
       }}
-      className="size-8"
-    />
-  )
+      className="absolute -top-10 bg-primary-100 p-3 rounded-2xl"
+    >
+      <Image
+        source={icons.camera}
+        className="size-12"
+        style={{tintColor: '#FFFFFF'}}
+      />
+    </View>
+  );
 }
 
 export default function TabsLayout() {
@@ -21,11 +39,21 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         tabBarShowLabel: false,
+        tabBarStyle: {
+          backgroundColor: '#FFFFFF',
+          borderTopWidth: 0,
+          height: 65,
+          paddingBottom: 5,
+          paddingTop: 10,
+          elevation: 0,
+          shadowOpacity: 0.1,
+          shadowOffset: {width: 0, height: -2},
+          shadowRadius: 10,
+        },
         tabBarItemStyle: {
-          width: "100%",
-          height: "100%",
-          justifyContent: "center",
-          alignItems: "center",
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: 60,
         },
       }}
     >
@@ -34,8 +62,8 @@ export default function TabsLayout() {
         options={{
           title: "Home",
           headerShown: false,
-          tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={icons.home} />
+          tabBarIcon: ({focused}) => (
+            <TabIcon icon={focused ? icons.homeActive : icons.home} focused={focused}/>
           ),
         }}
       />
@@ -44,8 +72,8 @@ export default function TabsLayout() {
         options={{
           title: "Nutritor AI",
           headerShown: true,
-          tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={icons.chatbot} />
+          tabBarIcon: ({focused}) => (
+            <TabIcon icon={focused ? icons.chatbotActive : icons.chatbot} focused={focused}/>
           ),
         }}
       />
@@ -54,9 +82,7 @@ export default function TabsLayout() {
         options={{
           title: "AI Camera",
           headerShown: true,
-          tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={icons.camera} />
-          ),
+          tabBarIcon: () => <CameraTabIcon/>,
         }}
       />
       <Tabs.Screen
@@ -64,8 +90,8 @@ export default function TabsLayout() {
         options={{
           title: "Diet",
           headerShown: true,
-          tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={icons.diet} />
+          tabBarIcon: ({focused}) => (
+            <TabIcon icon={focused ? icons.dietActive : icons.diet} focused={focused}/>
           ),
         }}
       />
@@ -74,11 +100,11 @@ export default function TabsLayout() {
         options={{
           title: "Analytics",
           headerShown: true,
-          tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={icons.analytics} />
+          tabBarIcon: ({focused}) => (
+            <TabIcon icon={focused ? icons.analyticsActive : icons.analytics} focused={focused}/>
           ),
         }}
       />
     </Tabs>
-  )
+  );
 }

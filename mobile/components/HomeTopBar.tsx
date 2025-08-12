@@ -1,9 +1,8 @@
-// components/HomeTopBar.tsx
-import { View, Text, TouchableOpacity, Image } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { View, Text, Image } from "react-native";
 import { useRouter } from "expo-router";
-import {images} from "@/constants/images";
-import {icons} from "@/constants/icons";
+import { images } from "@/constants/images";
+import { icons } from "@/constants/icons";
+import IconButton from "./IconButton";
 
 export default function HomeTopBar({ name }: { name: string }) {
   const router = useRouter();
@@ -24,15 +23,15 @@ export default function HomeTopBar({ name }: { name: string }) {
 
       {/* Right side: Notification + Settings */}
       <View className="flex-row items-center space-x-4">
-        {/* Notification button with dot */}
-        <TouchableOpacity onPress={() => router.push("/notifications")}>
-            <Image source={icons.notifications} className="size-8 mr-3"/>
-        </TouchableOpacity>
-
-        {/* Settings button */}
-        <TouchableOpacity onPress={() => router.push("/settings")}>
-          <Image source={icons.settings} className="size-8" />
-        </TouchableOpacity>
+        <IconButton
+          icon={icons.notifications}
+          onPress={() => router.push("/notifications")}
+          className="mr-3"
+        />
+        <IconButton
+          icon={icons.settings}
+          onPress={() => router.push("/settings")}
+        />
       </View>
     </View>
   );

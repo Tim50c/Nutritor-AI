@@ -1,5 +1,4 @@
 import {Text, View} from "react-native";
-import CustomHeader from "@/components/CustomHeader";
 
 const Notifications = () => {
   return (

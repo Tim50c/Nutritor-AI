@@ -1,7 +1,5 @@
-// app/settings/_layout.tsx
 import { Stack } from "expo-router";
 import CustomHeader from "@/components/CustomHeader";
-
 
 export default function SettingsLayout() {
   return (

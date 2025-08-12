@@ -5,6 +5,11 @@ import diet from "@/assets/icons/diet.png";
 import analytics from "@/assets/icons/analytics.png";
 import notifications from "@/assets/icons/notifications.png";
 import settings from "@/assets/icons/settings.png";
+import homeActive from "@/assets/icons/home-active.png";
+import chatbotActive from "@/assets/icons/chatbot-active.png";
+import dietActive from "@/assets/icons/diet-active.png";
+import analyticsActive from "@/assets/icons/analytics-active.png";
+import heart from "@/assets/icons/heart.png";
 
 export const icons = {
   home,
@@ -14,4 +19,9 @@ export const icons = {
   analytics,
   notifications,
   settings,
+  homeActive,
+  chatbotActive,
+  dietActive,
+  analyticsActive,
+  heart
 };
