@@ -1,30 +1,27 @@
-// src/models/calorieLogModel.js
-const { db } = require('../config/firebase');
+class Notification {
+  constructor(id, title, body, type, read, createdAt) {
+    this.id = id;
+    this.title = title;
+    this.body = body;
+    this.type = type;
+    this.read = read;
+    this.createdAt = createdAt;
+  }
 
-const collectionForUser = (userId) => db.collection('users').doc(userId).collection('calorieLogs');
+  static fromFirestore(doc) {
+    const data = doc.data();
+    return new Notification(doc.id, data.title, data.body, data.type, data.read, data.createdAt);
+  }
 
-exports.addLog = async (userId, log) => {
-  const docRef = await collectionForUser(userId).add(log);
-  const snap = await docRef.get();
-  return { id: docRef.id, ...snap.data() };
-};
+  toFirestore() {
+    return {
+      title: this.title,
+      body: this.body,
+      type: this.type,
+      read: this.read,
+      createdAt: this.createdAt
+    };
+  }
+}
 
-exports.getLogs = async (userId) => {
-  const snapshot = await collectionForUser(userId).orderBy('date', 'desc').get();
-  return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-};
-
-exports.getLogById = async (userId, id) => {
-  const doc = await collectionForUser(userId).doc(id).get();
-  return doc.exists ? { id: doc.id, ...doc.data() } : null;
-};
-
-exports.updateLog = async (userId, id, data) => {
-  await collectionForUser(userId).doc(id).update(data);
-  return exports.getLogById(userId, id);
-};
-
-exports.deleteLog = async (userId, id) => {
-  await collectionForUser(userId).doc(id).delete();
-  return true;
-};
+module.exports = Notification;

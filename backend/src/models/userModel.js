@@ -1,30 +1,37 @@
-// src/models/calorieLogModel.js
-const { db } = require('../config/firebase');
+class User {
+  constructor(id, name, email, dob, gender, height, weightCurrent, weightGoal, targetNutrition, fcmToken, notificationPreferences) {
+    this.id = id;
+    this.name = name;
+    this.email = email;
+    this.dob = dob;
+    this.gender = gender;
+    this.height = height;
+    this.weightCurrent = weightCurrent;
+    this.weightGoal = weightGoal;
+    this.targetNutrition = targetNutrition;
+    this.fcmToken = fcmToken;
+    this.notificationPreferences = notificationPreferences;
+  }
 
-const collectionForUser = (userId) => db.collection('users').doc(userId).collection('calorieLogs');
+  static fromFirestore(doc) {
+    const data = doc.data();
+    return new User(doc.id, data.name, data.email, data.dob, data.gender, data.height, data.weightCurrent, data.weightGoal, data.targetNutrition, data.fcmToken, data.notificationPreferences);
+  }
 
-exports.addLog = async (userId, log) => {
-  const docRef = await collectionForUser(userId).add(log);
-  const snap = await docRef.get();
-  return { id: docRef.id, ...snap.data() };
-};
+  toFirestore() {
+    return {
+      name: this.name,
+      email: this.email,
+      dob: this.dob,
+      gender: this.gender,
+      height: this.height,
+      weightCurrent: this.weightCurrent,
+      weightGoal: this.weightGoal,
+      targetNutrition: this.targetNutrition,
+      fcmToken: this.fcmToken,
+      notificationPreferences: this.notificationPreferences
+    };
+  }
+}
 
-exports.getLogs = async (userId) => {
-  const snapshot = await collectionForUser(userId).orderBy('date', 'desc').get();
-  return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-};
-
-exports.getLogById = async (userId, id) => {
-  const doc = await collectionForUser(userId).doc(id).get();
-  return doc.exists ? { id: doc.id, ...doc.data() } : null;
-};
-
-exports.updateLog = async (userId, id, data) => {
-  await collectionForUser(userId).doc(id).update(data);
-  return exports.getLogById(userId, id);
-};
-
-exports.deleteLog = async (userId, id) => {
-  await collectionForUser(userId).doc(id).delete();
-  return true;
-};
+module.exports = User;

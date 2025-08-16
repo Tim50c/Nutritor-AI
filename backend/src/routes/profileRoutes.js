@@ -1,13 +1,10 @@
-// src/routes/calorieRoutes.js
 const express = require('express');
 const router = express.Router();
-const auth = require('../middleware/authMiddleware');
-const C = require('../controllers/calorieController');
+const { getUserProfile, createUserProfile, updateUserProfile } = require('../controllers/profileController');
+const authMiddleware = require('../middleware/authMiddleware');
 
-router.post('/log', auth, C.logCalories);
-router.get('/', auth, C.getLogs);
-router.get('/:id', auth, C.getLog);
-router.put('/:id', auth, C.updateLog);
-router.delete('/:id', auth, C.deleteLog);
+router.get('/', authMiddleware, getUserProfile);
+router.post('/', authMiddleware, createUserProfile);
+router.patch('/', authMiddleware, updateUserProfile);
 
 module.exports = router;

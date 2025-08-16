@@ -1,17 +1,27 @@
-// src/middleware/authMiddleware.js
 const { admin } = require('../config/firebase');
 
-module.exports = async (req, res, next) => {
-  const authHeader = req.headers.authorization || '';
-  const token = authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
-  if (!token) return res.status(401).json({ error: 'No token provided' });
+const authMiddleware = async (req, res, next) => {
+  const { authorization } = req.headers;
+
+  if (!authorization || !authorization.startsWith('Bearer ')) {
+    return res.status(401).send({ message: 'Unauthorized' });
+  }
+
+  const split = authorization.split('Bearer ');
+  if (split.length !== 2) {
+    return res.status(401).send({ message: 'Unauthorized' });
+  }
+
+  const token = split[1];
 
   try {
-    const decoded = await admin.auth().verifyIdToken(token);
-    req.user = decoded; // contains uid and other claims
-    next();
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    res.locals = { ...res.locals, uid: decodedToken.uid };
+    return next();
   } catch (err) {
-    console.error('Token verification failed', err);
-    res.status(401).json({ error: 'Unauthorized' });
+    console.error(`${err.code} -  ${err.message}`);
+    return res.status(401).send({ message: 'Unauthorized' });
   }
 };
+
+module.exports = authMiddleware;

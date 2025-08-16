@@ -1,13 +1,11 @@
-// src/routes/calorieRoutes.js
 const express = require('express');
 const router = express.Router();
-const auth = require('../middleware/authMiddleware');
-const C = require('../controllers/calorieController');
+const { getNotifications, sendNotification, updatePreferences, deleteNotification } = require('../controllers/notificationController');
+const authMiddleware = require('../middleware/authMiddleware');
 
-router.post('/log', auth, C.logCalories);
-router.get('/', auth, C.getLogs);
-router.get('/:id', auth, C.getLog);
-router.put('/:id', auth, C.updateLog);
-router.delete('/:id', auth, C.deleteLog);
+router.get('/', authMiddleware, getNotifications);
+router.post('/send', authMiddleware, sendNotification);
+router.patch('/preferences', authMiddleware, updatePreferences);
+router.delete('/:id', authMiddleware, deleteNotification);
 
 module.exports = router;
