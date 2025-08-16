@@ -1,9 +1,18 @@
 const express = require('express');
-const router = express.Router();
-const { recognizeImage, recognizeBarcode } = require('../controllers/cameraController');
+const { 
+  recognizeFoodDetails,
+  recognizeBarcode,
+  addFood
+} = require('../controllers/cameraController');
 const authMiddleware = require('../middleware/authMiddleware');
 
-router.post('/recognize', authMiddleware, recognizeImage);
-router.post('/barcode', authMiddleware, recognizeBarcode);
+const router = express.Router();
+
+// Protect all routes in this file
+router.use(authMiddleware);
+
+router.post('/recognize-details', recognizeFoodDetails);
+router.post('/barcode', recognizeBarcode);
+router.post('/add-food', addFood);
 
 module.exports = router;

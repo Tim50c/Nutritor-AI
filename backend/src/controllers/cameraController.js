@@ -1,93 +1,201 @@
 const { db } = require('../config/firebase');
 const model = require('../config/gemini');
 const openfoodfacts = require('openfoodfacts-nodejs');
+const { SchemaType } = require("@google/generative-ai");
 const Food = require('../models/foodModel');
 
-// @desc    Recognize food from image
-// @route   POST /api/v1/camera/recognize
+const cleanBase64 = (base64String) => {
+  // Remove data URL prefix and any whitespace/newlines
+  return base64String
+    .replace(/^data:image\/[a-zA-Z]*;base64,/, "")
+    .replace(/\s/g, "")
+    .replace(/\n/g, "")
+    .trim(); // Remove any trailing whitespace
+};
+
+// Add validation function
+const isValidBase64 = (str) => {
+  if (typeof str !== 'string' || str.length === 0) return false;
+
+  // Base64 strings must have length divisible by 4
+  if (str.length % 4 !== 0) return false;
+
+  // Regex to strictly match valid Base64 (with optional padding)
+  const base64Regex = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+
+  return base64Regex.test(str);
+};
+
+// @desc    Recognize food details from an image
+// @route   POST /api/v1/camera/recognize-details
 // @access  Private
-exports.recognizeImage = async (req, res, next) => {
+exports.recognizeFoodDetails = async (req, res) => {
   try {
     const { image } = req.body;
     const { uid } = res.locals;
 
-    const result = await model.generateContent([
-      'What food is this? Provide only the name of the food.',
-      { inlineData: { data: image, mimeType: 'image/jpeg' } }
-    ]);
+    const cleanedImage = cleanBase64(image);
 
-    const foodName = result.response.text();
+    // Validate base64 string
+    if (!isValidBase64(cleanedImage)) {
+      console.log('Invalid base64. First 100 chars:', cleanedImage.substring(0, 100));
+      console.log('Last 20 chars:', cleanedImage.slice(-20));
+      return res.status(400).json({ success: false, error: 'Invalid base64 image data' });
+    }
+
+    const nameResult = await model.generateContent({
+      model: "gemini-2.5-flash",
+      contents: [
+        {
+          role: "user",
+          parts: [
+            { text: "What food is this? Provide only the name of the food." },
+            {
+              inline_data: {
+                mime_type: "image/jpeg",
+                data: cleanedImage, // raw base64 string, no prefix
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const foodName = nameResult.response.text().trim();
 
     const foodsRef = db.collection('foods');
-    const querySnapshot = await foodsRef.where('name', '==', foodName).get();
+    const userFoodQuery = await foodsRef.where('name', '==', foodName).where('userId', '==', uid).get();
+    const genericFoodQuery = await foodsRef.where('name', '==', foodName).where('userId', '==', null).get();
 
-    if (!querySnapshot.empty) {
-      const foodDoc = querySnapshot.docs[0];
-      res.status(200).json({ success: true, data: { foodId: foodDoc.id } });
-    } else {
-      const nutritionResult = await model.generateContent([
-        `Provide nutrition facts for ${foodName} in JSON format with the following keys: cal, protein, carbs, fat.`,
-        { inlineData: { data: image, mimeType: 'image/jpeg' } }
-      ]);
-
-      const nutritionResponseText = nutritionResult.response.text();
-      const nutritionData = JSON.parse(nutritionResponseText.replace(/```json|```/g, ''));
-
-      const newFood = new Food(
-        null,
-        foodName,
-        null,
-        null,
-        null,
-        nutritionData,
-        'gemini',
-        uid
-      );
-
-      const foodRef = await foodsRef.add(newFood.toFirestore());
-
-      res.status(200).json({ success: true, data: { foodId: foodRef.id } });
+    if (!userFoodQuery.empty) {
+      const foodDoc = userFoodQuery.docs[0];
+      const existingFood = Food.fromFirestore(foodDoc);
+      return res.status(200).json({ success: true, data: existingFood });
+    } else if (!genericFoodQuery.empty) {
+      const foodDoc = genericFoodQuery.docs[0];
+      const existingFood = Food.fromFirestore(foodDoc);
+      return res.status(200).json({ success: true, data: existingFood });
     }
+
+    const generationConfig = {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: "object",
+        properties: {
+          nutrition: {
+            type: "object",
+            properties: {
+              cal: { type: "number" },
+              protein: { type: "number" },
+              carbs: { type: "number" },
+              fat: { type: "number" },
+            },
+            required: ["cal", "protein", "carbs", "fat"],
+          },
+          description: { type: "string" },
+        },
+        required: ["nutrition", "description"],
+      },
+    };
+
+    const response = await model.generateContent(
+      `Provide nutrition facts and a brief description for ${foodName} in format { "nutrition": { "cal": number, "protein": number, "carbs": number, "fat": number }, "description": string }`
+    );
+
+    const detailsData = JSON.parse(response.response.text().replace(/```json|```/g, ''));
+
+    const generatedFood = new Food(
+      null,
+      foodName,
+      detailsData.description,
+      null,
+      null,
+      detailsData.nutrition,
+      'gemini',
+      null
+    );
+
+    res.status(200).json({ success: true, data: generatedFood });
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, error: 'Server error' });
   }
 };
 
-// @desc    Recognize food from barcode
+// @desc    Adds a food to the database
+// @route   POST /api/v1/camera/add-food
+// @access  Private
+exports.addFood = async (req, res) => {
+  try {
+    const { name, description, barcode, imageUrl, nutrition, source } = req.body;
+    const { uid } = res.locals;
+
+    const newFood = new Food(
+      null, // ID will be generated by Firestore
+      name,
+      description,
+      barcode,
+      imageUrl,
+      nutrition,
+      source,
+      uid // Associate with the current user
+    );
+
+    const foodRef = await db.collection('foods').add(newFood.toFirestore());
+
+    res.status(201).json({ success: true, data: { foodId: foodRef.id } });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+};
+
+// @desc    Recognize food details from barcode
 // @route   POST /api/v1/camera/barcode
 // @access  Private
 exports.recognizeBarcode = async (req, res, next) => {
   try {
     const { barcode } = req.body;
+    const { uid } = res.locals;
 
+    const foodsRef = db.collection('foods');
+    const userFoodQuery = await foodsRef.where('barcode', '==', barcode).where('userId', '==', uid).get();
+    const genericFoodQuery = await foodsRef.where('barcode', '==', barcode).where('userId', '==', null).get();
+
+    if (!userFoodQuery.empty) {
+      const foodDoc = userFoodQuery.docs[0];
+      const existingFood = Food.fromFirestore(foodDoc);
+      return res.status(200).json({ success: true, data: existingFood });
+    } else if (!genericFoodQuery.empty) {
+      const foodDoc = genericFoodQuery.docs[0];
+      const existingFood = Food.fromFirestore(foodDoc);
+      return res.status(200).json({ success: true, data: existingFood });
+    }
+    
     const client = new openfoodfacts();
     const product = await client.getProduct(barcode);
 
-    if (product) {
-      const foodId = product.code;
-      const foodRef = db.collection('foods').doc(foodId);
-      const foodDoc = await foodRef.get();
+    console.log('Product details:', product.product_name);
 
-      if (!foodDoc.exists) {
-        const newFood = new Food(
-          foodId,
-          product.product_name,
-          product.generic_name,
-          barcode,
-          product.image_url,
-          {
-            cal: product.nutriments.energy_value,
-            protein: product.nutriments.proteins_value,
-            carbs: product.nutriments.carbohydrates_value,
-            fat: product.nutriments.fat_value
-          },
-          'original',
-          null
-        );
-        await foodRef.set(newFood.toFirestore());
-      }
-      res.status(200).json({ success: true, data: { foodId } });
+
+    if (product) {
+      const generatedFood = new Food(
+        null, // Use barcode as ID for potential saving
+        product.product_name,
+        product.generic_name,
+        product.code,
+        product.image_url,
+        {
+          cal: product.product.nutriments.energy_serving || 0,
+          protein: product.product.nutriments.proteins_serving || 0,
+          carbs: product.product.nutriments.carbohydrates_serving || 0,
+          fat: product.product.nutriments.fat_serving || 0
+        },
+        'openfoodfacts',
+        null
+      );
+      res.status(200).json({ success: true, data: generatedFood });
     } else {
       res.status(404).json({ success: false, error: 'Food not found' });
     }
