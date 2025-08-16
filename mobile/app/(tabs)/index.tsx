@@ -50,7 +50,7 @@ export default function HomeScreen() {
 
   return (
     <View className="flex-1 bg-gray-50 pt-8">
-      <HomeTopBar name="Ronaldo de Lima" />
+      <HomeTopBar />
       <ScrollView showsVerticalScrollIndicator={false}>
         <View className="pt-6">
           <TodaySummary />

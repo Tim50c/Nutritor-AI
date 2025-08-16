@@ -1,11 +1,21 @@
-import {Text, View} from "react-native";
+import React from "react";
+import { View, Text } from "react-native";
+import DietCalendar from "@/components/DietCalendar";
+import DietSummary from "@/components/DietSummary";
+import DietFoodList from "@/components/DietFoodList";
+import { DietProvider } from "@/context/DietContext";
 
-const Diet = () => {
+const DietScreen = () => {
   return (
-    <View className="flex-1 items-center justify-center bg-white">
-      <Text>Diet Screen</Text>
-    </View>
-  )
-}
+    <DietProvider>
+      <View className="flex-1 bg-white pt-8">
+        <DietCalendar />
+        <Text className="text-xl font-bold text-center mb-4">Today&#39;s Diet</Text>
+        <DietSummary />
+        <DietFoodList />
+      </View>
+    </DietProvider>
+  );
+};
 
-export default Diet;
+export default DietScreen;

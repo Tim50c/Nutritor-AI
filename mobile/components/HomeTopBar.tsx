@@ -1,9 +1,9 @@
 import { View, Text, Image, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
-import { images } from "@/constants/images";
 import { icons } from "@/constants/icons";
 import IconButton from "./IconButton";
 import { useNotificationContext } from "@/context/NotificationContext";
+import { useUser } from "@/context/UserContext";
 
 function NotificationIcon({ hasUnread }: { hasUnread: boolean }) {
   return (
@@ -19,21 +19,22 @@ function NotificationIcon({ hasUnread }: { hasUnread: boolean }) {
   );
 }
 
-export default function HomeTopBar({ name }: { name: string }) {
+export default function HomeTopBar() {
   const router = useRouter();
   const { hasUnread } = useNotificationContext();
+  const { user } = useUser();
 
   return (
     <View className="flex-row items-center justify-between px-4 py-3 bg-white">
       {/* Left side: Avatar + Welcome */}
       <View className="flex-row items-center">
         <Image
-          source={images.placeholder}
+          source={user.avatar}
           className="w-10 h-10 rounded-full mr-2"
         />
         <View>
           <Text className="text-sm text-gray-500">Welcome</Text>
-          <Text className="text-base font-semibold">{name}</Text>
+          <Text className="text-base font-semibold">{user.name}</Text>
         </View>
       </View>
 
