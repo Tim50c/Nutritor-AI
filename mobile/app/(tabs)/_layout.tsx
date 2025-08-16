@@ -23,7 +23,7 @@ function CameraTabIcon() {
         shadowRadius: 10,
         elevation: 10, // For Android
       }}
-      className="absolute -top-10 bg-primary-100 p-3 rounded-2xl"
+      className="absolute -top-10 bg-primary-200 p-3 rounded-2xl border-4 border-white"
     >
       <Image
         source={icons.camera}
@@ -41,7 +41,8 @@ export default function TabsLayout() {
         tabBarShowLabel: false,
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
-          borderTopWidth: 0,
+          borderTopWidth: 1,
+          borderTopColor: '#E5E7EB',
           height: 65,
           paddingBottom: 5,
           paddingTop: 10,

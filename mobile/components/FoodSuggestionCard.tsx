@@ -17,11 +17,14 @@ interface FoodSuggestionCardProps {
 }
 
 export default function FoodSuggestionCard({
-                                             food,
-                                             onAddPress
-                                           }: FoodSuggestionCardProps) {
+  food,
+  onAddPress
+}: FoodSuggestionCardProps) {
+  // Format calories with comma and unit
+  const formattedCalories = `${food.calories.toLocaleString()} kcal`;
+
   return (
-    <View className="bg-white rounded-2xl p-4 mb-3 flex-row items-center">
+    <View className="bg-white rounded-2xl p-4 mb-3 flex-row items-center border border-gray-200 shadow-sm">
       {/* Food Image */}
       <Image
         source={food.image}
@@ -37,7 +40,7 @@ export default function FoodSuggestionCard({
 
         <View className="flex-row items-center mb-2">
           <Text className="text-sm text-gray-600 mr-4">
-            {food.calories} kcal
+            {formattedCalories}
           </Text>
           <Text className="text-sm text-gray-600">
             Carbs: {food.carbs}g

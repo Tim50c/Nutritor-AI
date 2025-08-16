@@ -33,8 +33,9 @@ interface CircularProgressProps {
 }
 
 function CircularProgress({ current, target }: CircularProgressProps) {
+  // Use 600/1000 for demo to match screenshot
   const percentage = Math.min((current / target) * 100, 100);
-  const strokeWidth = 8;
+  const strokeWidth = 12; // Thicker stroke for better visibility
   const radius = 60;
   const centerX = 70;
   const centerY = 70;
@@ -55,30 +56,32 @@ function CircularProgress({ current, target }: CircularProgressProps) {
 
   return (
     <View className="items-center justify-center">
-      <Svg width={width} height={height}>
-        {/* Background semicircle */}
-        <Path
-          d={describeArc(centerX, centerY, radius)}
-          stroke="#E5E7EB"
-          strokeWidth={strokeWidth}
-          fill="none"
-        />
-        {/* Progress semicircle */}
-        <Path
-          d={describeArc(centerX, centerY, radius)}
-          stroke="#FF6B35"
-          strokeWidth={strokeWidth}
-          fill="none"
-          strokeDasharray={semicircleCircumference}
-          strokeDashoffset={semicircleCircumference - progressLength}
-          strokeLinecap="round"
-        />
-      </Svg>
-      <View className="items-center -mt-6"> {/* Move up to center in semicircle */}
-        <Text className="text-lg font-semibold mb-1">Calories</Text>
-        <Text className="text-2xl font-bold text-gray-700">
-          {current}/{target}
-        </Text>
+      <View className="rounded-2xl border border-gray-200 shadow-sm bg-white p-2">
+        <Svg width={width} height={height}>
+          {/* Background semicircle */}
+          <Path
+            d={describeArc(centerX, centerY, radius)}
+            stroke="#D9D9D9"
+            strokeWidth={strokeWidth}
+            fill="none"
+          />
+          {/* Progress semicircle */}
+          <Path
+            d={describeArc(centerX, centerY, radius)}
+            stroke="#FF5A16"
+            strokeWidth={strokeWidth}
+            fill="none"
+            strokeDasharray={semicircleCircumference}
+            strokeDashoffset={semicircleCircumference - progressLength}
+            strokeLinecap="round"
+          />
+        </Svg>
+        <View className="items-center -mt-6">
+          <Text className="text-lg font-semibold mb-1">Calories</Text>
+          <Text className="text-2xl font-bold text-gray-700">
+            {current}/{target}
+          </Text>
+        </View>
       </View>
     </View>
   );
@@ -86,18 +89,18 @@ function CircularProgress({ current, target }: CircularProgressProps) {
 
 export default function TodaySummary() {
   const calorieData = {
-    current: 450,
+    current: 600,
     target: 1000,
   };
 
   const macroData = [
-    { label: "Protein", current: 78, target: 90, color: "bg-green-500" },
-    { label: "Fats", current: 45, target: 70, color: "bg-orange-500" },
-    { label: "Carbs", current: 95, target: 110, color: "bg-yellow-500" },
+    { label: "Protein", current: 78, target: 90, color: "bg-protein-100" },
+    { label: "Fats", current: 45, target: 70, color: "bg-fats-100" },
+    { label: "Carbs", current: 95, target: 110, color: "bg-carbs-300" },
   ];
 
   return (
-    <View className="bg-white mx-4 rounded-2xl p-6 mb-6">
+    <View className="bg-white mx-4 rounded-2xl p-6 mb-6 border border-gray-200 shadow-sm">
       <Text className="text-lg font-semibold mb-6">Today Summary</Text>
 
       {/* Circular Progress */}

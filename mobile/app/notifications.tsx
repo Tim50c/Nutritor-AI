@@ -1,11 +1,50 @@
-import {Text, View} from "react-native";
+import React, { useEffect } from "react";
+import { Text, View, Image, ScrollView } from "react-native";
+import { useNotificationContext } from "@/context/NotificationContext";
+import { images } from "@/constants/images";
+import { icons } from "@/constants/icons";
+
+function NotificationCard({ message }: { message: string }) {
+  return (
+    <View className="flex-row items-center bg-orange-500 rounded-2xl px-4 py-3 mb-4 mx-4" style={{ backgroundColor: '#FF6B1A' }}>
+      <View className="mr-4">
+        <Image source={icons.notifications} className="w-8 h-8" style={{ tintColor: '#fff', opacity: 0.8 }} />
+      </View>
+      <Text className="text-white text-base flex-1">{message}</Text>
+    </View>
+  );
+}
 
 const Notifications = () => {
+  const { notifications, markAllAsRead } = useNotificationContext();
+
+  useEffect(() => {
+    markAllAsRead();
+  }, []);
+
+  const hasNotifications = notifications.length > 0;
+
   return (
-    <View className="flex-1 items-center justify-center bg-white">
-      <Text>Notifications Screen</Text>
+    <View className="flex-1 bg-white pt-8">
+      <View className="flex-row items-center justify-between px-4 pb-4">
+        <Text className="text-xl font-bold">Notifications</Text>
+        {/* You can add a close button here if needed */}
+      </View>
+      {hasNotifications ? (
+        <ScrollView showsVerticalScrollIndicator={false}>
+          {notifications.map((n) => (
+            <NotificationCard key={n.id} message={n.message} />
+          ))}
+        </ScrollView>
+      ) : (
+        <View className="flex-1 items-center justify-center">
+          <Image source={images.emptyScreen} className="w-64 h-64 mb-6" resizeMode="contain" />
+          <Text className="text-lg font-semibold mb-2">No notifications yet.</Text>
+          <Text className="text-base text-gray-500 text-center">Your healthy habits are on track—keep it up!</Text>
+        </View>
+      )}
     </View>
-  )
-}
+  );
+};
 
 export default Notifications;
