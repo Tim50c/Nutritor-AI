@@ -13,6 +13,12 @@ app.use(express.json());
 // Enable CORS
 app.use(cors());
 
+// Health check route
+app.get("/", (req, res) => {
+  res.json({ status: "ok", message: "Nutritor-AI backend is running 🚀" });
+});
+
+
 // Mount routers
 app.use('/api/v1/home', require('./routes/homeRoutes'));
 app.use('/api/v1/favorites', require('./routes/favoritesRoutes'));
