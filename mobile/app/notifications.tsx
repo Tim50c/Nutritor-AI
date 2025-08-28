@@ -1,22 +1,26 @@
 import React, { useEffect } from "react";
-import { Text, View, Image, ScrollView } from "react-native";
+import {Text, View, Image, ScrollView, TouchableOpacity} from "react-native";
 import { useNotificationContext } from "@/context/NotificationContext";
 import { images } from "@/constants/images";
 import { icons } from "@/constants/icons";
 
-function NotificationCard({ message }: { message: string }) {
+function NotificationCard({ message, onPress }: { message: string, onPress: () => void }) {
   return (
-    <View className="flex-row items-center bg-orange-500 rounded-2xl px-4 py-3 mb-4 mx-4" style={{ backgroundColor: '#FF6B1A' }}>
+    <TouchableOpacity
+      className="flex-row items-center bg-orange-500 rounded-2xl px-4 py-3 mb-4 mx-4" style={{ backgroundColor: '#FF6B1A' }}
+      activeOpacity={0.8}
+      onPress={onPress}
+    >
       <View className="mr-4">
         <Image source={icons.notifications} className="w-8 h-8" style={{ tintColor: '#fff', opacity: 0.8 }} />
       </View>
       <Text className="text-white text-base flex-1">{message}</Text>
-    </View>
+    </TouchableOpacity>
   );
 }
 
 const Notifications = () => {
-  const { notifications, markAllAsRead } = useNotificationContext();
+  const { notifications, markAllAsRead, removeNotification } = useNotificationContext();
 
   useEffect(() => {
     markAllAsRead();
@@ -26,14 +30,10 @@ const Notifications = () => {
 
   return (
     <View className="flex-1 bg-white pt-8">
-      <View className="flex-row items-center justify-between px-4 pb-4">
-        <Text className="text-xl font-bold">Notifications</Text>
-        {/* You can add a close button here if needed */}
-      </View>
       {hasNotifications ? (
         <ScrollView showsVerticalScrollIndicator={false}>
           {notifications.map((n) => (
-            <NotificationCard key={n.id} message={n.message} />
+            <NotificationCard key={n.id} message={n.message} onPress={() => removeNotification(n.id)} />
           ))}
         </ScrollView>
       ) : (

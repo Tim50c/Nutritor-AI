@@ -47,10 +47,10 @@ const Settings = () => {
           />
         </View>
         <View className="bg-primary-200 rounded-2xl p-0 mb-4 border border-black">
-          <SettingsNavButton label="More" route="/settings/more" style="mb-0" />
+          <SettingsNavButton label="More" route="/settings/more" />
         </View>
         <View className="bg-primary-200 rounded-2xl p-0 border border-black">
-          <SettingsNavButton label="Log Out" route="/logout" style="mb-0" />
+          <SettingsNavButton label="Log Out" route="/logout" />
         </View>
       </View>
     </View>

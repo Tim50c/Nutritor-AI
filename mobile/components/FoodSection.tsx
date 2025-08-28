@@ -21,9 +21,11 @@ interface FoodSectionProps {
 export default function FoodSection({ title, foods, isFavorite, onToggleFavorite }: FoodSectionProps) {
   return (
     <View className="mb-6">
-      <Text className="text-lg font-semibold text-gray-800 mb-4 px-4">
-        {title}
-      </Text>
+      {title && (
+        <Text className="text-lg font-semibold text-gray-800 mb-4 px-4">
+          {title}
+        </Text>
+      )}
       <View className="px-4">
         {foods.map((food) => (
           <FoodSuggestionCard

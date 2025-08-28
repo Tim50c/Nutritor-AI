@@ -16,6 +16,7 @@ interface NotificationContextType {
   notifications: Notification[];
   hasUnread: boolean;
   markAllAsRead: () => void;
+  removeNotification: (id: string) => void;
   addNotification: (message: string) => void;
   preferences: NotificationPreferences;
   setPreference: (key: keyof NotificationPreferences, value: boolean) => void;
@@ -76,6 +77,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   }
 
+  function removeNotification(id: string) {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  }
+
   function addNotification(message: string) {
     setNotifications((prev) => [
       ...prev,
@@ -88,7 +93,16 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <NotificationContext.Provider value={{ notifications, hasUnread, markAllAsRead, addNotification, preferences, setPreference }}>
+    <NotificationContext.Provider
+      value={{
+        notifications,
+        hasUnread,
+        markAllAsRead,
+        addNotification,
+        removeNotification,
+        preferences,
+        setPreference
+    }}>
       {children}
     </NotificationContext.Provider>
   );

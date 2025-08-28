@@ -1,9 +1,9 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { useDietContext } from "@/context/DietContext";
 
-function getMonthName(month: number) {
-  return new Date(2021, month, 1).toLocaleString('default', { month: 'long' });
+function getMonthName(year: number, month: number) {
+  return new Date(year, month, 1).toLocaleString("default", { month: "long" });
 }
 
 function getDaysInMonth(year: number, month: number) {
@@ -11,79 +11,93 @@ function getDaysInMonth(year: number, month: number) {
 }
 
 function getFirstDayOfWeek(year: number, month: number) {
+  // JS getDay(): 0 (Sun) - 6 (Sat)
   return new Date(year, month, 1).getDay();
+}
+
+function isSameDate(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
 export default function DietCalendar() {
   const { selectedDate, setSelectedDate } = useDietContext();
+
+  // Ensure the calendar shows the current month and selects today on first mount
+  const today = new Date();
+  useEffect(() => {
+    // normalize time portion to avoid accidental differences
+    setSelectedDate(new Date(today.getFullYear(), today.getMonth(), today.getDate()));
+    // run once on mount
+  }, []);
+
+  // Use the selected date from context as the view date
   const year = selectedDate.getFullYear();
   const month = selectedDate.getMonth();
-  const today = new Date();
 
-  // Month navigation
-  function handlePrevMonth() {
-    setSelectedDate(new Date(year, month - 1, 1));
-  }
-  function handleNextMonth() {
-    setSelectedDate(new Date(year, month + 1, 1));
-  }
+  // Monday-first week: map JS getDay (Sun=0..Sat=6) to Mon=0..Sun=6
+  const firstDayRaw = getFirstDayOfWeek(year, month);
+  const firstDayIndex = (firstDayRaw + 6) % 7; // Monday-first index
 
   const daysInMonth = getDaysInMonth(year, month);
-  const firstDayOfWeek = getFirstDayOfWeek(year, month);
 
-  // Build calendar grid
+  // Build calendar grid with leading nulls for the first week
   const days: (number | null)[] = [];
-  for (let i = 0; i < firstDayOfWeek; i++) days.push(null);
+  for (let i = 0; i < firstDayIndex; i++) days.push(null);
   for (let d = 1; d <= daysInMonth; d++) days.push(d);
 
+  const weekDays = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
+
   return (
-    <View className="bg-orange-500 rounded-2xl mx-4 mt-2 mb-6 p-4 shadow-lg">
+    <View className="bg-orange-500 rounded-2xl mx-4 mt-2 mb-6 p-3 shadow-lg">
       {/* Month navigation */}
       <View className="flex-row items-center justify-between mb-2">
-        <TouchableOpacity onPress={handlePrevMonth}>
+        <TouchableOpacity onPress={() => setSelectedDate(new Date(year, month - 1, 1))}>
           <Text className="text-white text-lg">{'<'}</Text>
         </TouchableOpacity>
-        <Text className="text-white text-lg font-semibold">
-          {getMonthName(month)} {year}
+
+        <Text className="text-white text-lg font-semibold flex-1 text-center mx-2 truncate">
+          {getMonthName(year, month)} {year}
         </Text>
-        <TouchableOpacity onPress={handleNextMonth}>
+
+        <TouchableOpacity onPress={() => setSelectedDate(new Date(year, month + 1, 1))}>
           <Text className="text-white text-lg">{'>'}</Text>
         </TouchableOpacity>
       </View>
-      {/* Days of week */}
-      <View className="flex-row justify-between mb-2">
-        {['SUN','MON','TUE','WED','THU','FRI','SAT'].map((d) => (
-          <Text key={d} className="text-white text-xs font-bold w-6 text-center">{d}</Text>
+
+      {/* Weekday headers (Monday-first) */}
+      <View className="flex-row mb-1">
+        {weekDays.map((d) => (
+          <Text key={d} className="w-[14.2857%] text-center text-white text-xs font-bold">
+            {d}
+          </Text>
         ))}
       </View>
+
       {/* Calendar grid */}
       <View className="flex-row flex-wrap">
         {days.map((d, i) => {
-          const isToday = d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
-          const isSelected = d === selectedDate.getDate();
+          const cellDate = d ? new Date(year, month, d) : null;
+          const isToday = cellDate ? isSameDate(cellDate, today) : false;
+          const isSelected = cellDate ? isSameDate(cellDate, selectedDate) : false;
+
           return (
             <TouchableOpacity
               key={i}
               disabled={!d}
               onPress={() => d && setSelectedDate(new Date(year, month, d))}
-              className="w-6 h-6 items-center justify-center mb-2"
+              className="w-[14.2%] h-10 items-center justify-center mb-1"
+              accessibilityLabel={d ? `Day ${d}` : `Empty`}
             >
               {d ? (
                 <View
-                  className={
-                    isToday
-                      ? "bg-white/40 rounded-full w-6 h-6 items-center justify-center"
-                      : isSelected
-                      ? "bg-white/80 rounded-full w-6 h-6 items-center justify-center"
-                      : ""
-                  }
+                  className={`w-8 h-8 rounded-full items-center justify-center ${isToday ? 'bg-white/40' : isSelected ? 'bg-white/80' : ''}`}
                 >
-                  <Text className="text-white text-sm font-semibold">
+                  <Text className={`${isToday || isSelected ? 'text-black' : 'text-white'} text-sm font-semibold`}>
                     {d}
                   </Text>
                 </View>
               ) : (
-                <View className="w-6 h-6" />
+                <View className="w-8 h-8" />
               )}
             </TouchableOpacity>
           );
@@ -92,4 +106,3 @@ export default function DietCalendar() {
     </View>
   );
 }
-
