@@ -7,6 +7,7 @@ module.exports = {
     extend: {
       colors:{
         primary: {
+          40: '#FFBDA2',
           50: '#FF9C73',
           100: '#F47551',
           200: '#FF5A16'
@@ -31,6 +32,12 @@ module.exports = {
         favorite: {
           100: '#FF4D67',
         },
+        bmi: {
+          under: "#009FFA",
+          healthy: "#23D154",
+          over: "#DCF805",
+          obese: "#FF0000"
+        }
       }
     },
   },
