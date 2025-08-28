@@ -6,11 +6,19 @@ export type Notification = {
   read: boolean;
 };
 
+export type NotificationPreferences = {
+  mealReminders: boolean;
+  goalMilestones: boolean;
+  planRecommendations: boolean;
+};
+
 interface NotificationContextType {
   notifications: Notification[];
   hasUnread: boolean;
   markAllAsRead: () => void;
   addNotification: (message: string) => void;
+  preferences: NotificationPreferences;
+  setPreference: (key: keyof NotificationPreferences, value: boolean) => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -56,6 +64,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     },
   ]);
 
+  const [preferences, setPreferences] = useState<NotificationPreferences>({
+    mealReminders: true,
+    goalMilestones: false,
+    planRecommendations: true,
+  });
+
   const hasUnread = notifications.some((n) => !n.read);
 
   function markAllAsRead() {
@@ -69,10 +83,13 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     ]);
   }
 
+  function setPreference(key: keyof NotificationPreferences, value: boolean) {
+    setPreferences((prev) => ({ ...prev, [key]: value }));
+  }
+
   return (
-    <NotificationContext.Provider value={{ notifications, hasUnread, markAllAsRead, addNotification }}>
+    <NotificationContext.Provider value={{ notifications, hasUnread, markAllAsRead, addNotification, preferences, setPreference }}>
       {children}
     </NotificationContext.Provider>
   );
 }
-

@@ -14,14 +14,11 @@ interface FoodItem {
 interface FoodSectionProps {
   title: string;
   foods: FoodItem[];
+  isFavorite?: (foodId: string) => boolean;
+  onToggleFavorite?: (foodId: string) => void;
 }
 
-export default function FoodSection({ title, foods }: FoodSectionProps) {
-  const handleAddFood = (foodId: string) => {
-    // Handle adding food to meal plan
-    console.log(`Adding food ${foodId} to meal plan`);
-  };
-
+export default function FoodSection({ title, foods, isFavorite, onToggleFavorite }: FoodSectionProps) {
   return (
     <View className="mb-6">
       <Text className="text-lg font-semibold text-gray-800 mb-4 px-4">
@@ -32,7 +29,8 @@ export default function FoodSection({ title, foods }: FoodSectionProps) {
           <FoodSuggestionCard
             key={food.id}
             food={food}
-            onAddPress={() => handleAddFood(food.id)}
+            isFavorite={isFavorite ? isFavorite(food.id) : false}
+            onToggleFavorite={onToggleFavorite ? () => onToggleFavorite(food.id) : undefined}
           />
         ))}
       </View>
