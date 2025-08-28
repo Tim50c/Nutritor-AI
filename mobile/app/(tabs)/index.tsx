@@ -3,8 +3,10 @@ import HomeTopBar from "../../components/HomeTopBar";
 import TodaySummary from "../../components/TodaySummary";
 import FoodSection from "../../components/FoodSection";
 import { images } from "@/constants/images";
+import { useDietContext } from "@/context/DietContext";
 
 export default function HomeScreen() {
+  const { isFavorite, toggleFavorite } = useDietContext();
   // Sample food data
   const suggestedFoods = [
     {
@@ -54,8 +56,18 @@ export default function HomeScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         <View className="pt-6">
           <TodaySummary />
-          <FoodSection title="Suggesting Food" foods={suggestedFoods} />
-          <FoodSection title="History Food" foods={historyFoods} />
+          <FoodSection
+            title="Suggesting Food"
+            foods={suggestedFoods}
+            isFavorite={isFavorite}
+            onToggleFavorite={toggleFavorite}
+          />
+          <FoodSection
+            title="History Food"
+            foods={historyFoods}
+            isFavorite={isFavorite}
+            onToggleFavorite={toggleFavorite}
+          />
         </View>
       </ScrollView>
     </View>

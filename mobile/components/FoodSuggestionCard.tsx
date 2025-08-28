@@ -13,12 +13,14 @@ interface FoodItem {
 
 interface FoodSuggestionCardProps {
   food: FoodItem;
-  onAddPress?: () => void;
+  isFavorite?: boolean;
+  onToggleFavorite?: () => void;
 }
 
 export default function FoodSuggestionCard({
   food,
-  onAddPress
+  isFavorite = false,
+  onToggleFavorite,
 }: FoodSuggestionCardProps) {
   // Format calories with comma and unit
   const formattedCalories = `${food.calories.toLocaleString()} kcal`;
@@ -59,10 +61,10 @@ export default function FoodSuggestionCard({
 
       {/* Heart button */}
       <TouchableOpacity
-        onPress={onAddPress}
+        onPress={onToggleFavorite}
         className="w-8 h-8 bg-gray-100 rounded-full items-center justify-center"
       >
-        <Image source={icons.heart} className="w-4 h-4" />
+        <Image source={isFavorite ? icons.heartFill : icons.heart} className="w-4 h-4" />
       </TouchableOpacity>
     </View>
   );

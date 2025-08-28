@@ -8,6 +8,7 @@ export type User = {
   gender: "Male" | "Female" | "Other";
   height: string;
   weight: string;
+  password?: string; // hashed password
 };
 
 const defaultUser: User = {
@@ -18,6 +19,7 @@ const defaultUser: User = {
   gender: "Male",
   height: "1.70m",
   weight: "56kg",
+  password: "", // default empty
 };
 
 const UserContext = createContext<{
@@ -38,4 +40,3 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     </UserContext.Provider>
   );
 };
-

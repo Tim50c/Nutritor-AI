@@ -28,6 +28,9 @@ module.exports = {
           100: '#DDC0FF',
           500: '#A45CF8',
         },
+        favorite: {
+          100: '#FF4D67',
+        },
       }
     },
   },

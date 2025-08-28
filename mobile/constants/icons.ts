@@ -10,6 +10,7 @@ import chatbotActive from "@/assets/icons/chatbot-active.png";
 import dietActive from "@/assets/icons/diet-active.png";
 import analyticsActive from "@/assets/icons/analytics-active.png";
 import heart from "@/assets/icons/heart.png";
+import heartFill from "@/assets/icons/heart-fill.png";
 
 export const icons = {
   home,
@@ -23,5 +24,6 @@ export const icons = {
   chatbotActive,
   dietActive,
   analyticsActive,
-  heart
+  heart,
+  heartFill,
 };
