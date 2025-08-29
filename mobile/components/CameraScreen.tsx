@@ -13,6 +13,7 @@ import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { useRouter } from "expo-router";
+import { icons } from "@/constants/icons";
 
 const CameraScreen = () => {
   const [mode, setMode] = useState("camera"); // "camera" | "barcode" | "gallery"
@@ -194,37 +195,48 @@ const CameraScreen = () => {
             {/* Mode Switch Buttons */}
             <View className="flex-row justify-around mb-8">
               <TouchableOpacity
-                className={`flex-1 items-center py-5 mx-2 rounded-xl ${
-                  mode === "camera" ? "bg-orange-500" : "bg-gray-600/50"
+                className={`flex-1 items-center py-5 mx-2 rounded-xl border border-black ${
+                  mode === "camera" ? "bg-orange-500/90" : "bg-orange-500/60"
                 }`}
                 onPress={() => handleModeChange("camera")}
               >
-                <View className="w-6 h-6 bg-white rounded mb-2" />
-                <Text className="text-white text-sm font-medium">
+                <icons.CameraModeIcon width={24} height={24} stroke="white" />
+                <Text
+                  className="text-black text-sm font-medium"
+                  style={{ marginTop: 8 }}
+                >
                   AI Camera
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                className={`flex-1 items-center py-5 mx-2 rounded-xl ${
-                  mode === "barcode" ? "bg-orange-500" : "bg-gray-600/50"
+                className={`flex-1 items-center py-5 mx-2 rounded-xl border border-black ${
+                  mode === "barcode" ? "bg-orange-500/90" : "bg-orange-500/60"
                 }`}
                 onPress={() => handleModeChange("barcode")}
               >
-                <View className="w-6 h-6 bg-white rounded mb-2" />
-                <Text className="text-white text-sm font-medium">
+                <icons.BarcodeModeIcon width={24} height={24} stroke="white" />
+                <Text
+                  className="text-black text-sm font-medium"
+                  style={{ marginTop: 8 }}
+                >
                   AI Barcode
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                className={`flex-1 items-center py-5 mx-2 rounded-xl ${
-                  mode === "gallery" ? "bg-orange-500" : "bg-gray-600/50"
+                className={`flex-1 items-center py-5 mx-2 rounded-xl border border-black ${
+                  mode === "gallery" ? "bg-orange-500/90" : "bg-orange-500/60"
                 }`}
                 onPress={() => handleModeChange("gallery")}
               >
-                <View className="w-6 h-6 bg-white rounded mb-2" />
-                <Text className="text-white text-sm font-medium">Gallery</Text>
+                <icons.GalleryModeIcon width={24} height={24} stroke="white" />
+                <Text
+                  className="text-black text-sm font-medium"
+                  style={{ marginTop: 8 }}
+                >
+                  Gallery
+                </Text>
               </TouchableOpacity>
             </View>
 

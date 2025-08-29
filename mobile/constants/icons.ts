@@ -12,6 +12,9 @@ import analyticsActive from "@/assets/icons/analytics-active.png";
 import heart from "@/assets/icons/heart.png";
 import heartFill from "@/assets/icons/heart-fill.png";
 import search from "@/assets/icons/search.png";
+import CameraModeIcon from "@/assets/icons/camera-mode-icon.svg";
+import BarcodeModeIcon from "@/assets/icons/barcode-mode-icon.svg";
+import GalleryModeIcon from "@/assets/icons/gallery-mode-icon.svg";
 
 export const icons = {
   home,
@@ -28,4 +31,7 @@ export const icons = {
   heart,
   heartFill,
   search,
+  CameraModeIcon,
+  BarcodeModeIcon,
+  GalleryModeIcon
 };
