@@ -22,9 +22,7 @@ export default function RootLayout() {
             <Stack.Screen
               name="food/[id]"
               options={{
-                header: ({options}) => (
-                  <CustomHeader title={options.title || ""}/>
-                ),
+                headerShown: false,
               }}
             />
             <Stack.Screen
