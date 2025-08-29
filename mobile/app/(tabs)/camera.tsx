@@ -1,11 +1,8 @@
-import {Text, View} from "react-native";
+import { Text, View } from "react-native";
+import CameraScreen from "@/components/CameraScreen";
 
 const Camera = () => {
-  return (
-    <View className="flex-1 items-center justify-center bg-white">
-      <Text>Camera Screen</Text>
-    </View>
-  )
-}
+  return <CameraScreen />;
+};
 
 export default Camera;

@@ -4,7 +4,7 @@ import { useNotificationContext } from "@/context/NotificationContext";
 import Toggle from "@/components/Toggle";
 
 const NotificationSettings = () => {
-  const { preferences, setPreference } = useNotificationContext();
+  const { preferences, updatePreferences } = useNotificationContext();
 
   return (
     <View className="flex-1 bg-white px-6 pt-8">
@@ -14,15 +14,17 @@ const NotificationSettings = () => {
           <Text className="text-base text-black">Meal Reminders</Text>
           <Toggle
             value={preferences.mealReminders}
-            onValueChange={(val) => setPreference("mealReminders", val)}
+            onValueChange={(val) => updatePreferences({ mealReminders: val })}
           />
         </View>
         {/* Goal Milestone Notifications */}
         <View className="flex-row items-center justify-between py-4 px-2 border-b border-gray-200">
-          <Text className="text-base text-black">Goal Milestone Notifications</Text>
+          <Text className="text-base text-black">
+            Goal Milestone Notifications
+          </Text>
           <Toggle
             value={preferences.goalMilestones}
-            onValueChange={(val) => setPreference("goalMilestones", val)}
+            onValueChange={(val) => updatePreferences({ goalMilestones: val })}
           />
         </View>
         {/* New Plan Recommendations */}
@@ -30,7 +32,9 @@ const NotificationSettings = () => {
           <Text className="text-base text-black">New Plan Recommendations</Text>
           <Toggle
             value={preferences.planRecommendations}
-            onValueChange={(val) => setPreference("planRecommendations", val)}
+            onValueChange={(val) =>
+              updatePreferences({ planRecommendations: val })
+            }
           />
         </View>
       </View>

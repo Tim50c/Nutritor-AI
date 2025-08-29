@@ -1,14 +1,11 @@
-import {Tabs} from "expo-router";
-import {icons} from "@/constants/icons";
-import {Image, View} from "react-native";
+import { Tabs } from "expo-router";
+import { icons } from "@/constants/icons";
+import { Image, View } from "react-native";
 
-function TabIcon({icon, focused}: { icon: any; focused: boolean }) {
+function TabIcon({ icon, focused }: { icon: any; focused: boolean }) {
   return (
-    <View className={`p-2 ${focused ? 'bg-gray-200 rounded-xl' : ''}`}>
-      <Image
-        source={icon}
-        className="size-8"
-      />
+    <View className={`p-2 ${focused ? "bg-gray-200 rounded-xl" : ""}`}>
+      <Image source={icon} className="size-8" />
     </View>
   );
 }
@@ -17,8 +14,8 @@ function CameraTabIcon() {
   return (
     <View
       style={{
-        shadowColor: '#000',
-        shadowOffset: {width: 0, height: 10},
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 10 },
         shadowOpacity: 0.15,
         shadowRadius: 10,
         elevation: 10, // For Android
@@ -28,7 +25,7 @@ function CameraTabIcon() {
       <Image
         source={icons.camera}
         className="size-12"
-        style={{tintColor: '#FFFFFF'}}
+        style={{ tintColor: "#FFFFFF" }}
       />
     </View>
   );
@@ -40,20 +37,20 @@ export default function TabsLayout() {
       screenOptions={{
         tabBarShowLabel: false,
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
+          backgroundColor: "#FFFFFF",
           borderTopWidth: 1,
-          borderTopColor: '#E5E7EB',
+          borderTopColor: "#E5E7EB",
           height: 65,
           paddingBottom: 5,
           paddingTop: 10,
           elevation: 0,
           shadowOpacity: 0.1,
-          shadowOffset: {width: 0, height: -2},
+          shadowOffset: { width: 0, height: -2 },
           shadowRadius: 10,
         },
         tabBarItemStyle: {
-          justifyContent: 'center',
-          alignItems: 'center',
+          justifyContent: "center",
+          alignItems: "center",
           height: 60,
         },
       }}
@@ -63,8 +60,11 @@ export default function TabsLayout() {
         options={{
           title: "Home",
           headerShown: false,
-          tabBarIcon: ({focused}) => (
-            <TabIcon icon={focused ? icons.homeActive : icons.home} focused={focused}/>
+          tabBarIcon: ({ focused }) => (
+            <TabIcon
+              icon={focused ? icons.homeActive : icons.home}
+              focused={focused}
+            />
           ),
         }}
       />
@@ -73,8 +73,11 @@ export default function TabsLayout() {
         options={{
           title: "Nutritor AI",
           headerShown: true,
-          tabBarIcon: ({focused}) => (
-            <TabIcon icon={focused ? icons.chatbotActive : icons.chatbot} focused={focused}/>
+          tabBarIcon: ({ focused }) => (
+            <TabIcon
+              icon={focused ? icons.chatbotActive : icons.chatbot}
+              focused={focused}
+            />
           ),
         }}
       />
@@ -82,8 +85,9 @@ export default function TabsLayout() {
         name="camera"
         options={{
           title: "AI Camera",
-          headerShown: true,
-          tabBarIcon: () => <CameraTabIcon/>,
+          headerShown: false,
+          tabBarStyle: { display: "none" },
+          tabBarIcon: () => <CameraTabIcon />,
         }}
       />
       <Tabs.Screen
@@ -91,8 +95,11 @@ export default function TabsLayout() {
         options={{
           title: "Diet",
           headerShown: true,
-          tabBarIcon: ({focused}) => (
-            <TabIcon icon={focused ? icons.dietActive : icons.diet} focused={focused}/>
+          tabBarIcon: ({ focused }) => (
+            <TabIcon
+              icon={focused ? icons.dietActive : icons.diet}
+              focused={focused}
+            />
           ),
         }}
       />
@@ -101,8 +108,11 @@ export default function TabsLayout() {
         options={{
           title: "Analytics",
           headerShown: true,
-          tabBarIcon: ({focused}) => (
-            <TabIcon icon={focused ? icons.analyticsActive : icons.analytics} focused={focused}/>
+          tabBarIcon: ({ focused }) => (
+            <TabIcon
+              icon={focused ? icons.analyticsActive : icons.analytics}
+              focused={focused}
+            />
           ),
         }}
       />

@@ -17,7 +17,7 @@ import {
   DocumentChange,
 } from "firebase/firestore";
 
-// Configure notification behavior
+// Configure local notification behavior
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -81,18 +81,36 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const hasUnread = notifications.some((n) => !n.read);
 
-  // Request notification permissions
+  // Request notification permissions (local only)
   useEffect(() => {
     const requestPermissions = async () => {
-      const { status } = await Notifications.requestPermissionsAsync();
-      if (status !== "granted") {
-        console.warn("Notification permissions not granted");
+      try {
+        const { status } = await Notifications.getPermissionsAsync();
+        if (status !== "granted") {
+          const { status: newStatus } =
+            await Notifications.requestPermissionsAsync({
+              ios: {
+                allowAlert: true,
+                allowBadge: true,
+                allowSound: true,
+              },
+            });
+          if (newStatus !== "granted") {
+            console.warn("Local notification permissions not granted");
+          } else {
+            console.log("✅ Local notification permissions granted");
+          }
+        } else {
+          console.log("✅ Local notification permissions already granted");
+        }
+      } catch (error) {
+        console.error("❌ Error requesting notification permissions:", error);
       }
     };
     requestPermissions();
   }, []);
 
-  // Trigger local notification
+  // Trigger local notification only (no push notifications)
   const triggerLocalNotification = useCallback(async (notification: any) => {
     try {
       await Notifications.scheduleNotificationAsync({
