@@ -1,11 +1,13 @@
 import { Tabs } from "expo-router";
 import { icons } from "@/constants/icons";
 import { Image, View } from "react-native";
+import React from "react";
+import {SvgProps} from "react-native-svg";
 
-function TabIcon({ icon, focused }: { icon: any; focused: boolean }) {
+function TabIcon({ Icon, focused }: { Icon: React.FC<SvgProps>; focused: boolean }) {
   return (
     <View className={`p-2 ${focused ? "bg-gray-200 rounded-xl" : ""}`}>
-      <Image source={icon} className="size-8" />
+      <Icon width={32} height={32} />
     </View>
   );
 }
@@ -20,13 +22,9 @@ function CameraTabIcon() {
         shadowRadius: 10,
         elevation: 10, // For Android
       }}
-      className="absolute -top-10 bg-primary-200 p-3 rounded-2xl border-4 border-white"
+      className="absolute -top-10 bg-primary-200 rounded-2xl border-2 border-white"
     >
-      <Image
-        source={icons.camera}
-        className="size-12"
-        style={{ tintColor: "#FFFFFF" }}
-      />
+      <icons.camera width={64} height={64} />
     </View>
   );
 }
@@ -62,7 +60,7 @@ export default function TabsLayout() {
           headerShown: false,
           tabBarIcon: ({ focused }) => (
             <TabIcon
-              icon={focused ? icons.homeActive : icons.home}
+              Icon={focused ? icons.homeActive : icons.home}
               focused={focused}
             />
           ),
@@ -75,7 +73,7 @@ export default function TabsLayout() {
           headerShown: true,
           tabBarIcon: ({ focused }) => (
             <TabIcon
-              icon={focused ? icons.chatbotActive : icons.chatbot}
+              Icon={focused ? icons.chatbotActive : icons.chatbot}
               focused={focused}
             />
           ),
@@ -97,7 +95,7 @@ export default function TabsLayout() {
           headerShown: true,
           tabBarIcon: ({ focused }) => (
             <TabIcon
-              icon={focused ? icons.dietActive : icons.diet}
+              Icon={focused ? icons.dietActive : icons.diet}
               focused={focused}
             />
           ),
@@ -110,7 +108,7 @@ export default function TabsLayout() {
           headerShown: true,
           tabBarIcon: ({ focused }) => (
             <TabIcon
-              icon={focused ? icons.analyticsActive : icons.analytics}
+              Icon={focused ? icons.analyticsActive : icons.analytics}
               focused={focused}
             />
           ),

@@ -19,11 +19,7 @@ function NotificationCard({
       onPress={onPress}
     >
       <View className="mr-4">
-        <Image
-          source={icons.notifications}
-          className="w-8 h-8"
-          style={{ tintColor: "#fff", opacity: 0.8 }}
-        />
+        <icons.notifications width={32} height={32} />
       </View>
       <Text className="text-white text-base flex-1">{message}</Text>
     </TouchableOpacity>

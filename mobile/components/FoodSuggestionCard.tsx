@@ -1,5 +1,6 @@
 import { View, Text, Image, TouchableOpacity } from "react-native";
 import { icons } from "@/constants/icons";
+import React from "react";
 
 interface FoodItem {
   id: string;
@@ -64,7 +65,7 @@ export default function FoodSuggestionCard({
         onPress={onToggleFavorite}
         className="w-8 h-8 bg-gray-100 rounded-full items-center justify-center"
       >
-        <Image source={isFavorite ? icons.heartFill : icons.heart} className="w-4 h-4" />
+        {isFavorite ? <icons.heartFill width={16} height={16} /> : <icons.heart width={16} height={16} />}
       </TouchableOpacity>
     </View>
   );

@@ -1,5 +1,5 @@
 import React from "react";
-import { Text, TouchableOpacity, Image } from "react-native";
+import { Text, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
 import { icons } from "@/constants/icons";
 
@@ -18,7 +18,7 @@ const SettingsNavButton: React.FC<SettingsNavButtonProps> = ({ label, route, sty
       onPress={() => router.push(route)}
     >
       <Text className="text-white text-base font-medium">{label}</Text>
-      <Image source={icons.settings} className="w-5 h-5 tint-white" style={{ tintColor: '#fff', transform: [{ rotate: '270deg' }] }} />
+      <icons.arrow width={20} height={20} />
     </TouchableOpacity>
   );
 };

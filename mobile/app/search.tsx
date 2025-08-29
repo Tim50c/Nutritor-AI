@@ -62,7 +62,9 @@ const Search = () => {
         {/* Search input bar with filter button */}
         <View className="flex-row items-center mb-4">
           <View className="flex-1 flex-row items-center bg-gray-100 rounded-xl px-3 py-2 mr-3">
-            <Image source={icons.search} className="w-5 h-5 mr-2" />
+            <View className="mr-2">
+              <icons.search width={24} height={24} />
+            </View>
             <TextInput
               className="flex-1 text-base"
               placeholder="Search for different food"

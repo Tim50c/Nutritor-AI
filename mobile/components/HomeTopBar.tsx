@@ -4,11 +4,14 @@ import { icons } from "@/constants/icons";
 import IconButton from "./IconButton";
 import { useNotificationContext } from "@/context/NotificationContext";
 import { useUser } from "@/context/UserContext";
+import React from "react";
 
 function NotificationIcon({ hasUnread }: { hasUnread: boolean }) {
   return (
     <View>
-      <Image source={icons.notifications} className="w-6 h-6 m-2" />
+      <View className="m-2">
+        <icons.notifications width={24} height={24} />
+      </View>
       {hasUnread && (
         <View
           style={{ position: "absolute", top: 2, right: 2 }}
@@ -41,7 +44,7 @@ export default function HomeTopBar() {
       {/* Right side: Notification + Settings */}
       <View className="flex-row items-center space-x-4">
         <IconButton
-          icon={icons.search}
+          Icon={icons.search}
           onPress={() => router.push("/search")}
         />
         <TouchableOpacity
@@ -50,7 +53,7 @@ export default function HomeTopBar() {
           <NotificationIcon hasUnread={hasUnread} />
         </TouchableOpacity>
         <IconButton
-          icon={icons.settings}
+          Icon={icons.settings}
           onPress={() => router.push("/settings")}
         />
       </View>
