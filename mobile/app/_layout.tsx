@@ -20,6 +20,14 @@ export default function RootLayout() {
               }}
             />
             <Stack.Screen
+              name="food/[id]"
+              options={{
+                header: ({options}) => (
+                  <CustomHeader title={options.title || ""}/>
+                ),
+              }}
+            />
+            <Stack.Screen
               name="settings"
               options={{
                 title: "Settings",
