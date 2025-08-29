@@ -2,53 +2,15 @@ import { View, ScrollView } from "react-native";
 import HomeTopBar from "../../components/HomeTopBar";
 import TodaySummary from "../../components/TodaySummary";
 import FoodSection from "../../components/FoodSection";
-import { images } from "@/constants/images";
 import { useDietContext } from "@/context/DietContext";
+import {FOODS} from "@/data/mockData";
 
 export default function HomeScreen() {
   const { isFavorite, toggleFavorite } = useDietContext();
   // Sample food data
-  const suggestedFoods = [
-    {
-      id: "1",
-      name: "Beef Noodle Soup - 400g",
-      image: images.pho,
-      calories: 2000,
-      protein: 180,
-      fat: 80,
-      carbs: 150,
-    },
-    {
-      id: "2",
-      name: "Beef Noodle Soup - 400g",
-      image: images.pho,
-      calories: 2000,
-      protein: 180,
-      fat: 80,
-      carbs: 150,
-    },
-    {
-      id: "3",
-      name: "Beef Noodle Soup - 400g",
-      image: images.pho,
-      calories: 2000,
-      protein: 180,
-      fat: 80,
-      carbs: 150,
-    },
-  ];
+  const suggestedFoods = FOODS.filter(food => parseInt(food.id) < 4);
 
-  const historyFoods = [
-    {
-      id: "4",
-      name: "Beef Noodle Soup - 400g",
-      image: images.pho,
-      calories: 2000,
-      protein: 180,
-      fat: 80,
-      carbs: 150,
-    },
-  ];
+  const historyFoods = FOODS.filter(food => parseInt(food.id) === 4);
 
   return (
     <View className="flex-1 bg-gray-50 pt-8">

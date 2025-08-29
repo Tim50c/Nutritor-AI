@@ -11,7 +11,7 @@ export default function IconButton({
                                      icon,
                                      onPress,
                                      className = "",
-                                     size = "size-8"
+                                     size = "size-6 m-2"
                                    }: IconButtonProps) {
   return (
     <TouchableOpacity onPress={onPress} className={className}>
