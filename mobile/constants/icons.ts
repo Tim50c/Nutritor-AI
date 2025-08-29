@@ -11,6 +11,7 @@ import dietActive from "@/assets/icons/diet-active.png";
 import analyticsActive from "@/assets/icons/analytics-active.png";
 import heart from "@/assets/icons/heart.png";
 import heartFill from "@/assets/icons/heart-fill.png";
+import search from "@/assets/icons/search.png";
 
 export const icons = {
   home,
@@ -26,4 +27,5 @@ export const icons = {
   analyticsActive,
   heart,
   heartFill,
+  search,
 };

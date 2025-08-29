@@ -35,6 +35,15 @@ export default function RootLayout() {
                 ),
               }}
             />
+            <Stack.Screen
+              name="search"
+              options={{
+                title: "Search",
+                header: ({options}) => (
+                  <CustomHeader title={options.title || ""}/>
+                )
+              }}
+            />
           </Stack>
         </NotificationProvider>
       </DietProvider>

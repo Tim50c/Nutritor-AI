@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from "react";
+import {FOODS} from "@/data/mockData";
 
 export type DietFood = {
   id: string;
@@ -8,6 +9,7 @@ export type DietFood = {
   carbs: number;
   protein: number;
   fat: number;
+  description: string;
 };
 
 export type DietSummary = {
@@ -48,26 +50,7 @@ export function DietProvider({ children }: { children: ReactNode }) {
     fat: 0.35,
   };
 
-  const foods: DietFood[] = [
-    {
-      id: "1",
-      name: "Beef Noodle Soup - 400g",
-      image: require("@/assets/images/pho.png"),
-      calories: 2000,
-      carbs: 150,
-      protein: 180,
-      fat: 80,
-    },
-    {
-      id: "2",
-      name: "Beef Noodle Soup - 400g",
-      image: require("@/assets/images/pho.png"),
-      calories: 2000,
-      carbs: 150,
-      protein: 180,
-      fat: 80,
-    },
-  ];
+  const foods: DietFood[] = FOODS;
 
   // Favorite logic
   const toggleFavorite = (foodId: string) => {
