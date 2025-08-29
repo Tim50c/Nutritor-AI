@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useCallback,
+} from "react";
 
 export type Notification = {
   id: string;
@@ -22,11 +28,16 @@ interface NotificationContextType {
   setPreference: (key: keyof NotificationPreferences, value: boolean) => void;
 }
 
-const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
+const NotificationContext = createContext<NotificationContextType | undefined>(
+  undefined
+);
 
 export function useNotificationContext() {
   const ctx = useContext(NotificationContext);
-  if (!ctx) throw new Error("useNotificationContext must be used within NotificationProvider");
+  if (!ctx)
+    throw new Error(
+      "useNotificationContext must be used within NotificationProvider"
+    );
   return ctx;
 }
 
@@ -73,24 +84,27 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const hasUnread = notifications.some((n) => !n.read);
 
-  function markAllAsRead() {
+  const markAllAsRead = useCallback(() => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-  }
+  }, []);
 
-  function removeNotification(id: string) {
+  const removeNotification = useCallback((id: string) => {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
-  }
+  }, []);
 
-  function addNotification(message: string) {
+  const addNotification = useCallback((message: string) => {
     setNotifications((prev) => [
       ...prev,
       { id: String(Date.now()), message, read: false },
     ]);
-  }
+  }, []);
 
-  function setPreference(key: keyof NotificationPreferences, value: boolean) {
-    setPreferences((prev) => ({ ...prev, [key]: value }));
-  }
+  const setPreference = useCallback(
+    (key: keyof NotificationPreferences, value: boolean) => {
+      setPreferences((prev) => ({ ...prev, [key]: value }));
+    },
+    []
+  );
 
   return (
     <NotificationContext.Provider
@@ -101,8 +115,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         addNotification,
         removeNotification,
         preferences,
-        setPreference
-    }}>
+        setPreference,
+      }}
+    >
       {children}
     </NotificationContext.Provider>
   );
