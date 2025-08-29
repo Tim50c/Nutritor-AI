@@ -103,9 +103,9 @@ exports.createNotification = async (req, res, next) => {
       null, // id will be auto-generated
       notificationContent.title,
       notificationContent.body,
-      notificationContent.data,
-      new Date(),
-      false // unread by default
+      notificationContent.data, // type parameter
+      false, // read status (unread by default)
+      new Date() // createdAt
     );
 
     // Store in Firestore

@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { Text, View, Image, ScrollView, TouchableOpacity } from "react-native";
 import { useNotificationContext } from "@/context/NotificationContext";
 import { images } from "@/constants/images";
@@ -31,13 +31,12 @@ function NotificationCard({
 }
 
 const NotificationsScreen = () => {
-  const { notifications, markAllAsRead, removeNotification } =
+  const { notifications, markAsRead, refreshNotifications } =
     useNotificationContext();
 
-  useEffect(() => {
-    // Mark all notifications as read when screen opens
-    markAllAsRead();
-  }, [markAllAsRead]);
+  const handleRefresh = async () => {
+    await refreshNotifications();
+  };
 
   const hasNotifications = notifications.length > 0;
 
@@ -50,7 +49,7 @@ const NotificationsScreen = () => {
             <NotificationCard
               key={n.id}
               message={n.message}
-              onPress={() => removeNotification(n.id)}
+              onPress={() => markAsRead(n.id)}
             />
           ))}
         </ScrollView>
