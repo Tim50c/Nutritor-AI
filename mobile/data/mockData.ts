@@ -34,6 +34,7 @@ export const FOODS = [
     protein: 180,
     fat: 80,
     carbs: 150,
+    description: "A hearty bowl of beef noodle soup with tender slices of beef, fresh herbs, and a flavorful broth."
   },
   {
     id: "2",
@@ -43,6 +44,7 @@ export const FOODS = [
     protein: 70,
     fat: 30,
     carbs: 50,
+    description: "A fresh and healthy chicken salad with mixed greens, cherry tomatoes, cucumbers, and a light vinaigrette dressing."
   },
   {
     id: "3",
@@ -52,6 +54,7 @@ export const FOODS = [
     protein: 20,
     fat: 40,
     carbs: 50,
+    description: "A delicious avocado toast topped with sliced avocado, cherry tomatoes, and a sprinkle of chili flakes on whole grain bread."
   },
   {
     id: "4",
@@ -61,6 +64,7 @@ export const FOODS = [
     protein: 10,
     fat: 5,
     carbs: 100,
+    description: "A refreshing fruit smoothie made with a blend of fresh fruits, yogurt, and a touch of honey."
   },
   {
     id: "5",
@@ -70,6 +74,7 @@ export const FOODS = [
     protein: 60,
     fat: 40,
     carbs: 20,
+    description: "A perfectly grilled salmon fillet served with a side of steamed vegetables and a lemon wedge."
   },
   {
     id: "6",
@@ -79,6 +84,7 @@ export const FOODS = [
     protein: 25,
     fat: 15,
     carbs: 80,
+    description: "A colorful veggie stir-fry with a mix of fresh vegetables, tofu, and a savory soy sauce glaze."
   },
   {
     id: "7",
@@ -88,6 +94,7 @@ export const FOODS = [
     protein: 15,
     fat: 5,
     carbs: 40,
+    description: "A creamy yogurt parfait layered with fresh berries, granola, and a drizzle of honey."
   },
   {
     id: "8",
@@ -97,6 +104,7 @@ export const FOODS = [
     protein: 30,
     fat: 20,
     carbs: 70,
+    description: "A nutritious quinoa bowl with mixed greens, roasted vegetables, chickpeas, and a tahini dressing."
   },
   {
     id: "9",
@@ -106,6 +114,7 @@ export const FOODS = [
     protein: 20,
     fat: 25,
     carbs: 150,
+    description: "Fluffy pancakes served with a generous drizzle of maple syrup and a side of fresh fruit."
   },
   {
     id: "10",
@@ -115,5 +124,6 @@ export const FOODS = [
     protein: 50,
     fat: 20,
     carbs: 60,
+    description: "A classic turkey sandwich with sliced turkey breast, lettuce, tomato, and mustard on whole grain bread."
   }
 ];

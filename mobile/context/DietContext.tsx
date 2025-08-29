@@ -9,6 +9,7 @@ export type DietFood = {
   carbs: number;
   protein: number;
   fat: number;
+  description: string;
 };
 
 export type DietSummary = {
@@ -49,7 +50,7 @@ export function DietProvider({ children }: { children: ReactNode }) {
     fat: 0.35,
   };
 
-  const foods: DietFood[] = FOODS.filter(food => parseInt(food.id) < 8 && parseInt(food.id) > 5);
+  const foods: DietFood[] = FOODS;
 
   // Favorite logic
   const toggleFavorite = (foodId: string) => {
