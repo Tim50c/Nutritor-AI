@@ -16,6 +16,15 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker'; // <-- Import DocumentPicker
 
+// icon defined here
+const backArrowIcon = require('../assets/icons/back-arrow.png');
+const chatIcon = require('../assets/icons/chat-icon.png');
+const fileIcon = require('../assets/icons/file-icon.png');
+const screenshotIcon = require('../assets/icons/screenshot-icon.png');
+const attachmentIcon = require('../assets/icons/attachment-icon.png');
+const sendIcon = require('../assets/icons/send-icon.png');
+
+
 interface Message {
   id: string;
   text: string;
@@ -33,7 +42,7 @@ interface PickerAsset {
   mimeType: string;
 }
 
-const API_URL = `http://192.168.1.212:5000/api/v1/chat`;
+const API_URL = `http://nutritor-ai.onrender.com/api/v1/chat`;
 
 
 const ChatScreen = () => {
@@ -149,7 +158,7 @@ const ChatScreen = () => {
       const asset = pickerResult.assets[0];
       const pickerAsset: PickerAsset = { uri: asset.uri, fileName: asset.name, mimeType: asset.mimeType || 'application/octet-stream' };
       // Send the file with a default prompt
-      sendData(`Please summarize this document: ${asset.name}`, pickerAsset);
+      sendData(`Please analyze this document: ${asset.name}`, pickerAsset);
     }
   };
 
@@ -183,13 +192,13 @@ const ChatScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backArrowContainer}><Image source={require('../assets/images/back-arrow.png')} style={styles.backArrow} /></TouchableOpacity>
+        <TouchableOpacity style={styles.backArrowContainer}><Image source={backArrowIcon} style={styles.backArrow} /></TouchableOpacity>
         <Text style={styles.headerTitle}>Nutritor AI</Text>
       </View>
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 50 : 0}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={(Platform.OS === 'ios' || Platform.OS === 'android') ? 50 : 0}>
         {!isChatStarted ? (
-          <View style={styles.startContainer}><View style={styles.startBox}><Image source={require('../assets/images/chat-icon.png')} style={styles.startIcon} /><Text style={styles.startTitle}>Hello Nice to see you here!</Text><Text style={styles.startSubtitle}>By pressing the "Start chat" button you agree to have your personal data processed as described in our{' '}<Text style={styles.privacyLink} onPress={() => Linking.openURL('https://ik.imagekit.io/ltdsword/suss.jpg?updatedAt=1756314071583')}>Privacy Policy</Text></Text><TouchableOpacity style={styles.startButton} onPress={handleStartChat}><Text style={styles.startButtonText}>Start chat</Text></TouchableOpacity></View></View>
+          <View style={styles.startContainer}><View style={styles.startBox}><Image source={chatIcon} style={styles.startIcon} /><Text style={styles.startTitle}>Hello Nice to see you here!</Text><Text style={styles.startSubtitle}>By pressing the "Start chat" button you agree to have your personal data processed as described in our{' '}<Text style={styles.privacyLink} onPress={() => Linking.openURL('https://ik.imagekit.io/ltdsword/suss.jpg?updatedAt=1756314071583')}>Privacy Policy</Text></Text><TouchableOpacity style={styles.startButton} onPress={handleStartChat}><Text style={styles.startButtonText}>Start chat</Text></TouchableOpacity></View></View>
         ) : (
           <View style={{ flex: 1, justifyContent: 'flex-end' }}>
             <FlatList
@@ -207,11 +216,11 @@ const ChatScreen = () => {
                   <View style={styles.attachmentMenu}>
                     {/* --- (CHANGE 5) - WIRED UP FILE PICKER --- */}
                     <TouchableOpacity style={styles.menuOption} onPress={handleAttachFile}>
-                      <Image source={require('../assets/images/file-icon.png')} style={styles.menuIcon} />
+                      <Image source={fileIcon} style={styles.menuIcon} />
                       <Text style={styles.menuOptionText}>Send File</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.menuOption} onPress={handleAttachImage}>
-                      <Image source={require('../assets/images/screenshot-icon.png')} style={styles.menuIcon} />
+                      <Image source={screenshotIcon} style={styles.menuIcon} />
                       <Text style={styles.menuOptionText}>Attach a screenshot</Text>
                     </TouchableOpacity>
                   </View>
@@ -220,9 +229,9 @@ const ChatScreen = () => {
               )}
               <View style={styles.inputContainer}>
                 <TextInput style={styles.input} value={input} onChangeText={setInput} placeholder="Write a message" placeholderTextColor="#888" onFocus={() => setAttachmentMenuVisible(false)} />
-                <TouchableOpacity onPress={() => setAttachmentMenuVisible(prev => !prev)}><Image source={require('../assets/images/attachment-icon.png')} style={styles.icon} /></TouchableOpacity>
+                <TouchableOpacity onPress={() => setAttachmentMenuVisible(prev => !prev)}><Image source={attachmentIcon} style={styles.icon} /></TouchableOpacity>
                 {/* Send button now calls the unified `sendData` function */}
-                <TouchableOpacity onPress={() => sendData(input)}><Image source={require('../assets/images/send-icon.png')} style={styles.icon} /></TouchableOpacity>
+                <TouchableOpacity onPress={() => sendData(input)}><Image source={sendIcon} style={styles.icon} /></TouchableOpacity>
               </View>
             </View>
           </View>
@@ -277,7 +286,7 @@ const styles = StyleSheet.create({
   menuOptionText: { fontSize: 16, color: '#333' },
   inputContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 8, borderTopWidth: 1, borderTopColor: '#f0f0f0' },
   input: { flex: 1, height: 40, fontSize: 16, paddingHorizontal: 10 },
-  icon: { width: 28, height: 28, marginHorizontal: 5, tintColor: '#888' },
+  icon: { width: 24, height: 24, marginHorizontal: 8, tintColor: '#888' },
 });
 
 export default ChatScreen;

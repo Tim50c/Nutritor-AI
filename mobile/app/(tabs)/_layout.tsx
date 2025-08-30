@@ -70,12 +70,9 @@ export default function TabsLayout() {
         name="chatbot"
         options={{
           title: "Nutritor AI",
-          headerShown: true,
+          headerShown: false,
           tabBarIcon: ({ focused }) => (
-            <TabIcon
-              Icon={focused ? icons.chatbotActive : icons.chatbot}
-              focused={focused}
-            />
+            <TabIcon Icon={focused ? icons.chatbotActive : icons.chatbot} focused={focused} />
           ),
         }}
       />

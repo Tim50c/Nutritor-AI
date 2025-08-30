@@ -31,6 +31,7 @@ app.use('/api/v1/foods', require('./routes/foodRoutes'));
 app.use('/api/v1/profile', require('./routes/profileRoutes'));
 app.use('/api/v1/password', require('./routes/passwordRoutes'));
 app.use('/api/v1/chat', require('./routes/chatbotRoutes'));
+app.use('/api/v1/auth', require('./routes/authRoutes'));
 
 const PORT = process.env.PORT || 5000;
 
