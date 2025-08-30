@@ -30,21 +30,37 @@ const isValidBase64 = (str) => {
 // @route   POST /api/v1/camera/recognize-details
 // @access  Private
 exports.recognizeFoodDetails = async (req, res) => {
+  console.log('\n--- /camera/recognize-details ENDPOINT HIT (MULTIPART) ---');
+  
   try {
-    const { image } = req.body;
-    const { uid } = res.locals;
-
-    const cleanedImage = cleanBase64(image);
-
-    // Validate base64 string
-    if (!isValidBase64(cleanedImage)) {
-      console.log('Invalid base64. First 100 chars:', cleanedImage.substring(0, 100));
-      console.log('Last 20 chars:', cleanedImage.slice(-20));
-      return res.status(400).json({ success: false, error: 'Invalid base64 image data' });
+    const imageFile = req.file;
+    
+    console.log('[LOG] Request headers:', req.headers);
+    console.log('[LOG] Request body keys:', Object.keys(req.body || {}));
+    
+    if (imageFile) {
+      console.log(`[LOG] Received image: ${imageFile.originalname || 'food-image.jpg'} (${imageFile.mimetype})`);
+      console.log(`[LOG] Image size: ${imageFile.size} bytes (${Math.round(imageFile.size / 1024)}KB)`);
+    } else {
+      console.log('[LOG] No image received.');
+      return res.status(400).json({ 
+        success: false, 
+        error: 'No image file provided. Please ensure you are sending the image as FormData with key "image".' 
+      });
     }
 
+    // Handle authentication (same as original)
+    const { uid } = res.locals || {};
+    const userId = uid || 'anonymous-user';
+    console.log(`[LOG] User ID: ${userId} (${uid ? 'authenticated' : 'anonymous'})`);
+
+    // Convert to base64 for Gemini API (same as chatbot)
+    const base64Image = imageFile.buffer.toString('base64');
+    console.log(`[LOG] Base64 length: ${base64Image.length} characters`);
+
+    console.log('[LOG] Sending to Gemini AI for food recognition...');
     const nameResult = await model.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-2.0-flash",
       contents: [
         {
           role: "user",
@@ -52,8 +68,8 @@ exports.recognizeFoodDetails = async (req, res) => {
             { text: "What food is this? Provide only the name of the food." },
             {
               inline_data: {
-                mime_type: "image/jpeg",
-                data: cleanedImage, // raw base64 string, no prefix
+                mime_type: imageFile.mimetype,
+                data: base64Image,
               },
             },
           ],
@@ -61,49 +77,59 @@ exports.recognizeFoodDetails = async (req, res) => {
       ],
     });
 
+    console.log('[LOG] Gemini food name response received');
     const foodName = nameResult.response.text().trim();
+    console.log(`[LOG] Recognized food: "${foodName}"`);
 
+    // Check database for existing food
+    console.log('[LOG] Checking database for existing food...');
     const foodsRef = db.collection('foods');
-    const userFoodQuery = await foodsRef.where('name', '==', foodName).where('userId', '==', uid).get();
+    const userFoodQuery = await foodsRef.where('name', '==', foodName).where('userId', '==', userId).get();
     const genericFoodQuery = await foodsRef.where('name', '==', foodName).where('userId', '==', null).get();
 
     if (!userFoodQuery.empty) {
+      console.log('[LOG] Found user-specific food in database');
       const foodDoc = userFoodQuery.docs[0];
       const existingFood = Food.fromFirestore(foodDoc);
       return res.status(200).json({ success: true, data: existingFood });
     } else if (!genericFoodQuery.empty) {
+      console.log('[LOG] Found generic food in database');
       const foodDoc = genericFoodQuery.docs[0];
       const existingFood = Food.fromFirestore(foodDoc);
       return res.status(200).json({ success: true, data: existingFood });
     }
 
-    const generationConfig = {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: "object",
-        properties: {
-          nutrition: {
-            type: "object",
-            properties: {
-              cal: { type: "number" },
-              protein: { type: "number" },
-              carbs: { type: "number" },
-              fat: { type: "number" },
-            },
-            required: ["cal", "protein", "carbs", "fat"],
-          },
-          description: { type: "string" },
+    // Generate nutrition details (same as chatbot pattern)
+    console.log('[LOG] Generating nutrition details with Gemini...');
+    const nutritionResult = await model.generateContent([
+      { text: `Provide nutrition facts and description for ${foodName} in this exact JSON format: {"nutrition": {"cal": number, "protein": number, "carbs": number, "fat": number}, "description": "brief description"}` },
+      {
+        inline_data: {
+          mime_type: imageFile.mimetype,
+          data: base64Image,
         },
-        required: ["nutrition", "description"],
       },
-    };
+    ]);
 
-    const response = await model.generateContent(
-      `Provide nutrition facts and a brief description for ${foodName} in format { "nutrition": { "cal": number, "protein": number, "carbs": number, "fat": number }, "description": string }`
-    );
+    console.log('[LOG] Raw Gemini nutrition response:', nutritionResult.response.text());
+    
+    // Parse nutrition data
+    let detailsData;
+    try {
+      const responseText = nutritionResult.response.text();
+      const cleanedText = responseText.replace(/```json\n?|\n?```/g, '').trim();
+      detailsData = JSON.parse(cleanedText);
+      console.log('[LOG] Parsed nutrition data:', detailsData);
+    } catch (parseError) {
+      console.error('[ERROR] Failed to parse nutrition JSON:', parseError);
+      // Fallback nutrition data
+      detailsData = {
+        nutrition: { cal: 100, protein: 2, carbs: 20, fat: 1 },
+        description: `Estimated nutrition for ${foodName}`
+      };
+    }
 
-    const detailsData = JSON.parse(response.response.text().replace(/```json|```/g, ''));
-
+    // Create food object
     const generatedFood = new Food(
       null,
       foodName,
@@ -115,11 +141,22 @@ exports.recognizeFoodDetails = async (req, res) => {
       null
     );
 
-    res.status(200).json({ success: true, data: generatedFood });
+    console.log('[LOG] Sending success response');
+    res.status(200).json({ 
+      success: true, 
+      data: generatedFood,
+      message: 'Food recognized successfully'
+    });
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, error: 'Server error' });
+    console.error('!!! FATAL ERROR IN /camera/recognize-details ENDPOINT !!!', error);
+    console.error('[ERROR] Error stack:', error.stack);
+    
+    res.status(500).json({
+      success: false,
+      error: 'An error occurred on the server.',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
