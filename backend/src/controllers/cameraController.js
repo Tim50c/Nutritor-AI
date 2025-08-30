@@ -243,6 +243,3 @@ exports.recognizeBarcode = async (req, res, next) => {
     res.status(500).json({ success: false, error: 'Server error' });
   }
 };
-
-// Export the uploadImage middleware for use in routes
-module.exports.uploadImage = uploadImage;
