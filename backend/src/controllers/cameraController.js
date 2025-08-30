@@ -59,10 +59,8 @@ exports.recognizeFoodDetails = async (req, res) => {
     console.log(`[LOG] Base64 length: ${base64Image.length} characters`);
 
     console.log('[LOG] Sending to Gemini AI for food recognition...');
-    
-    // First request: Get food name (same pattern as chatbot)
     const nameResult = await model.generateContent({
-      model: "gemini-2.0-flash-exp",
+      model: "gemini-2.0-flash",
       contents: [
         {
           role: "user",

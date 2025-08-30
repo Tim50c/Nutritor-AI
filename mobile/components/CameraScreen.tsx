@@ -218,12 +218,7 @@ const CameraScreen = () => {
       console.error("💥 Error sending image to backend:", error);
 
       // More specific error handling
-      if (error instanceof Error && error.name === "AbortError") {
-        Alert.alert(
-          "Request Timeout",
-          "The server is taking too long to respond. Please try again."
-        );
-      } else if (
+      if (
         error instanceof TypeError &&
         error.message.includes("Network request failed")
       ) {
