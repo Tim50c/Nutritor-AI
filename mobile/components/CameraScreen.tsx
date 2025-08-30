@@ -7,6 +7,7 @@ import {
   StyleSheet,
   SafeAreaView,
   Animated,
+  Alert,
 } from "react-native";
 import { CameraView, Camera } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
@@ -14,13 +15,58 @@ import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { useRouter } from "expo-router";
 import { icons } from "@/constants/icons";
+import { getAuth } from "firebase/auth";
+import app from "@/config/firebase";
 
 const CameraScreen = () => {
   const [mode, setMode] = useState("camera"); // "camera" | "barcode" | "gallery"
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [cameraRef, setCameraRef] = useState<CameraView | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const router = useRouter();
+
+  // Base URL for your backend
+  const BASE_URL = "https://nutritor-ai.onrender.com";
+  const auth = getAuth(app);
+
+  // Function to get Firebase ID token for authentication
+  const getAuthToken = async (): Promise<string | null> => {
+    try {
+      const user = auth.currentUser;
+      if (user) {
+        const token = await user.getIdToken();
+        return token;
+      } else {
+        // For development, you might want to sign in a test user
+        // For now, we'll return null and handle the unauthenticated case
+        console.warn("No authenticated user found");
+        return null;
+      }
+    } catch (error) {
+      console.error("Error getting auth token:", error);
+      return null;
+    }
+  };
+
+  // Test server connectivity
+  const testServerConnection = async () => {
+    try {
+      console.log("🧪 Testing server connection...");
+      const response = await fetch(`${BASE_URL}/health`);
+      const text = await response.text();
+      console.log("✅ Server response:", text);
+      Alert.alert(
+        "Server Test",
+        `Status: ${response.status}\nResponse: ${text.substring(0, 100)}`
+      );
+    } catch (error) {
+      console.error("❌ Server test failed:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      Alert.alert("Server Test Failed", errorMessage);
+    }
+  };
 
   // Animation for scanning line
   const scanLinePosition = useRef(new Animated.Value(0)).current;
@@ -53,6 +99,160 @@ const CameraScreen = () => {
     }
   }, [mode, scanLinePosition]);
 
+  // Function to send image to backend for food recognition
+  const sendImageToBackend = async (imageUri: string, endpoint: string) => {
+    try {
+      setIsProcessing(true);
+
+      if (endpoint === "barcode") {
+        // For barcode scanning, we need to extract barcode from image first
+        // This is a simplified approach - in reality you'd use a barcode scanning library
+        Alert.alert(
+          "Barcode Feature",
+          "Barcode scanning from image is not yet implemented. Please use a barcode scanning library like expo-barcode-scanner.",
+          [{ text: "OK" }]
+        );
+        return null;
+      }
+
+      // Convert image to FormData for efficient upload
+      const formData = new FormData();
+      formData.append("image", {
+        uri: imageUri,
+        type: "image/jpeg",
+        name: "food-image.jpg",
+      } as any);
+
+      // Send as FormData with optional authentication
+      const authToken = await getAuthToken();
+
+      // Create headers with optional authentication
+      const headers: Record<string, string> = {
+        "Content-Type": "multipart/form-data",
+      };
+
+      if (authToken) {
+        headers["Authorization"] = `Bearer ${authToken}`;
+      } else {
+        console.warn(
+          "No auth token available - proceeding without authentication"
+        );
+      }
+
+      console.log("🚀 About to send API request...");
+      console.log(`📍 URL: ${BASE_URL}/api/v1/camera/${endpoint}`);
+      console.log(`� Sending as FormData (much smaller than base64)`);
+
+      // Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        console.log("⏰ Request timeout - aborting...");
+        controller.abort();
+      }, 30000); // 30 second timeout
+
+      const apiResponse = await fetch(`${BASE_URL}/api/v1/camera/${endpoint}`, {
+        method: "POST",
+        headers,
+        body: formData,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+      console.log("🎯 API request completed!");
+      console.log(`📡 Response status: ${apiResponse.status}`);
+      console.log(
+        `📋 Response content type:`,
+        apiResponse.headers.get("content-type")
+      );
+
+      // Get the raw response text first
+      const responseText = await apiResponse.text();
+      console.log(
+        `📄 Raw response (first 200 chars):`,
+        responseText.substring(0, 200)
+      );
+
+      // Try to parse as JSON
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error("❌ JSON Parse Error - Response is not valid JSON:");
+        console.error("Full response:", responseText);
+
+        Alert.alert(
+          "Server Error",
+          `The server returned an invalid response. Status: ${apiResponse.status}\n\nResponse preview: ${responseText.substring(0, 100)}...`
+        );
+        return null;
+      }
+
+      if (apiResponse.ok) {
+        console.log("Backend response:", result);
+
+        // Show success alert with result
+        Alert.alert(
+          "Analysis Complete",
+          `${result.data?.name || "Food recognized successfully!"}`,
+          [
+            {
+              text: "OK",
+              onPress: () => {
+                // Navigate to results screen or add to diet
+                // router.push({ pathname: '/food-results', params: { data: JSON.stringify(result) } });
+              },
+            },
+          ]
+        );
+
+        return result;
+      } else {
+        console.error("Backend error:", result);
+        Alert.alert(
+          "Error",
+          `Analysis failed: ${result.message || "Unknown error"}`
+        );
+        return null;
+      }
+    } catch (error) {
+      console.error("💥 Error sending image to backend:", error);
+
+      // More specific error handling
+      if (error instanceof Error && error.name === "AbortError") {
+        Alert.alert(
+          "Request Timeout",
+          "The server is taking too long to respond. Please try again."
+        );
+      } else if (
+        error instanceof TypeError &&
+        error.message.includes("Network request failed")
+      ) {
+        Alert.alert(
+          "Network Error",
+          "Cannot reach the server. Please check your internet connection."
+        );
+      } else if (
+        error instanceof SyntaxError &&
+        error.message.includes("JSON Parse error")
+      ) {
+        Alert.alert(
+          "Server Error",
+          "The server returned an invalid response. The service might be temporarily unavailable."
+        );
+      } else {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
+        Alert.alert(
+          "Connection Error",
+          `Failed to connect to server: ${errorMessage}`
+        );
+      }
+      return null;
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   if (hasPermission === null) {
     return (
       <View className="flex-1 bg-white items-center justify-center">
@@ -70,13 +270,39 @@ const CameraScreen = () => {
   }
 
   const handleCapture = async () => {
-    if (cameraRef) {
-      const photo = await cameraRef.takePictureAsync();
-      console.log("Captured Photo:", photo.uri);
+    if (cameraRef && !isProcessing) {
+      try {
+        const photo = await cameraRef.takePictureAsync();
+        console.log("Captured Photo:", photo.uri);
+
+        // Send to backend based on current mode
+        if (mode === "camera") {
+          // Send for food recognition
+          const result = await sendImageToBackend(
+            photo.uri,
+            "recognize-details"
+          );
+          if (result) {
+            console.log("Food recognition result:", result);
+            // Handle the food recognition result
+          }
+        } else if (mode === "barcode") {
+          // Send for barcode recognition
+          const result = await sendImageToBackend(photo.uri, "barcode");
+          if (result) {
+            console.log("Barcode recognition result:", result);
+            // Handle the barcode recognition result
+          }
+        }
+      } catch (error) {
+        console.error("Error capturing photo:", error);
+      }
     }
   };
 
   const pickImage = async () => {
+    if (isProcessing) return;
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -87,6 +313,16 @@ const CameraScreen = () => {
     if (!result.canceled) {
       setSelectedImage(result.assets[0].uri);
       console.log("Selected Image:", result.assets[0].uri);
+
+      // Send selected image to backend for food recognition
+      const apiResult = await sendImageToBackend(
+        result.assets[0].uri,
+        "recognize-details"
+      );
+      if (apiResult) {
+        console.log("Gallery image recognition result:", apiResult);
+        // Handle the food recognition result
+      }
     }
   };
 
@@ -244,11 +480,37 @@ const CameraScreen = () => {
             <View className="items-center mb-4">
               <TouchableOpacity
                 onPress={handleCapture}
-                className="w-24 h-24 rounded-full bg-orange-500 items-center justify-center border-4 border-white"
+                disabled={isProcessing}
+                className={`w-24 h-24 rounded-full items-center justify-center border-4 border-white ${
+                  isProcessing ? "bg-gray-400" : "bg-orange-500"
+                }`}
               >
-                <View className="w-20 h-20 rounded-full bg-orange-600 items-center justify-center">
-                  <View className="w-5 h-5 bg-white rounded" />
+                <View
+                  className={`w-20 h-20 rounded-full items-center justify-center ${
+                    isProcessing ? "bg-gray-500" : "bg-orange-600"
+                  }`}
+                >
+                  {isProcessing ? (
+                    <Text className="text-white text-xs font-bold">...</Text>
+                  ) : (
+                    <View className="w-5 h-5 bg-white rounded" />
+                  )}
                 </View>
+              </TouchableOpacity>
+              {isProcessing && (
+                <Text className="text-gray-600 text-sm mt-2">
+                  Processing...
+                </Text>
+              )}
+            </View>
+
+            {/* Debug: Test Server Button */}
+            <View className="items-center">
+              <TouchableOpacity
+                onPress={testServerConnection}
+                className="bg-blue-500 px-4 py-2 rounded-lg"
+              >
+                <Text className="text-white text-sm">Test Server</Text>
               </TouchableOpacity>
             </View>
           </View>
