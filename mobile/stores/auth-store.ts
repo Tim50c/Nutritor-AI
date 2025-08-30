@@ -1,0 +1,34 @@
+﻿import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const AuthStore = {
+  getAccessToken: async () => {
+    try {
+      return await AsyncStorage.getItem('access_token');
+    } catch (e) {
+      console.log(e);
+    }
+  },
+  StoreAccessToken: async (value: string) => {
+    try {
+      await AsyncStorage.setItem('access_token', value);
+    } catch (e) {
+      console.log(e);
+    }
+  },
+  getRefreshToken: async () => {
+    try {
+      await AsyncStorage.getItem('refresh_token');
+    } catch (e) {
+      console.log(e);
+    }
+  },
+  StoreRefreshToken: async (value: string) => {
+    try {
+      await AsyncStorage.setItem('refresh_token', value);
+    } catch (e) {
+      console.log(e);
+    }
+  }
+}
+
+export default AuthStore;
