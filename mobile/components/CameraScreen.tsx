@@ -24,6 +24,7 @@ const CameraScreen = () => {
   const [cameraRef, setCameraRef] = useState<CameraView | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [scannedBarcode, setScannedBarcode] = useState<string | null>(null);
   const router = useRouter();
 
   // Base URL for your backend
@@ -49,27 +50,89 @@ const CameraScreen = () => {
     }
   };
 
-  // Test server connectivity
-  const testServerConnection = async () => {
+  // Get auth headers for API requests
+  const getAuthHeaders = async (): Promise<Record<string, string>> => {
+    const token = await getAuthToken();
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    return headers;
+  };
+
+  // Handle barcode scanning
+  const handleBarcodeScanned = async (result: any) => {
+    if (scannedBarcode === result.data || isProcessing) {
+      return; // Prevent duplicate scans
+    }
+
+    setScannedBarcode(result.data);
+    setIsProcessing(true);
+
     try {
-      console.log("🧪 Testing server connection...");
-      const response = await fetch(`${BASE_URL}/health`);
-      const text = await response.text();
-      console.log("✅ Server response:", text);
-      Alert.alert(
-        "Server Test",
-        `Status: ${response.status}\nResponse: ${text.substring(0, 100)}`
-      );
+      console.log("🔍 Barcode scanned:", result.data);
+
+      // Send barcode to backend for food lookup
+      const headers = await getAuthHeaders();
+      const response = await fetch(`${BASE_URL}/api/v1/camera/barcode`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ barcode: result.data }),
+      });
+
+      const apiResult = await response.json();
+      console.log("📦 Barcode lookup result:", apiResult);
+
+      if (apiResult.success && apiResult.data) {
+        // Navigate to food detail screen
+        const tempId = `barcode_${Date.now()}`;
+
+        router.push({
+          pathname: "/food/[id]",
+          params: {
+            id: tempId,
+            foodData: JSON.stringify(apiResult.data),
+          },
+        });
+      } else {
+        Alert.alert(
+          "Product Not Found",
+          `Barcode ${result.data} was not found in our database. You can try taking a photo instead.`,
+          [
+            { text: "OK", onPress: () => setMode("camera") },
+            { text: "Try Again", onPress: () => setScannedBarcode(null) },
+          ]
+        );
+      }
     } catch (error) {
-      console.error("❌ Server test failed:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
-      Alert.alert("Server Test Failed", errorMessage);
+      console.error("💥 Barcode lookup error:", error);
+      Alert.alert(
+        "Lookup Failed",
+        "Could not look up this barcode. Please try again or use the camera instead.",
+        [
+          { text: "OK", onPress: () => setMode("camera") },
+          { text: "Retry", onPress: () => setScannedBarcode(null) },
+        ]
+      );
+    } finally {
+      setIsProcessing(false);
     }
   };
 
+  // Reset barcode when switching modes
+  React.useEffect(() => {
+    if (mode !== "barcode") {
+      setScannedBarcode(null);
+    }
+  }, [mode]);
+
   // Animation for scanning line
   const scanLinePosition = useRef(new Animated.Value(0)).current;
+
+  // Animation for loading spinner
+  const spinValue = useRef(new Animated.Value(0)).current;
 
   React.useEffect(() => {
     (async () => {
@@ -77,6 +140,30 @@ const CameraScreen = () => {
       setHasPermission(status === "granted");
     })();
   }, []);
+
+  // Animate loading spinner when processing
+  useEffect(() => {
+    if (isProcessing) {
+      const spin = () => {
+        Animated.loop(
+          Animated.timing(spinValue, {
+            toValue: 1,
+            duration: 1000,
+            useNativeDriver: true,
+          })
+        ).start();
+      };
+      spin();
+    } else {
+      spinValue.setValue(0);
+    }
+  }, [isProcessing, spinValue]);
+
+  // Create spinning interpolation
+  const spinInterpolation = spinValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "360deg"],
+  });
 
   // Animate scanning line when in barcode mode
   useEffect(() => {
@@ -103,17 +190,6 @@ const CameraScreen = () => {
   const sendImageToBackend = async (imageUri: string, endpoint: string) => {
     try {
       setIsProcessing(true);
-
-      if (endpoint === "barcode") {
-        // For barcode scanning, we need to extract barcode from image first
-        // This is a simplified approach - in reality you'd use a barcode scanning library
-        Alert.alert(
-          "Barcode Feature",
-          "Barcode scanning from image is not yet implemented. Please use a barcode scanning library like expo-barcode-scanner.",
-          [{ text: "OK" }]
-        );
-        return null;
-      }
 
       // Convert image to FormData for efficient upload
       const formData = new FormData();
@@ -190,20 +266,26 @@ const CameraScreen = () => {
       if (apiResponse.ok) {
         console.log("Backend response:", result);
 
-        // Show success alert with result
-        Alert.alert(
-          "Analysis Complete",
-          `${result.data?.name || "Food recognized successfully!"}`,
-          [
-            {
-              text: "OK",
-              onPress: () => {
-                // Navigate to results screen or add to diet
-                // router.push({ pathname: '/food-results', params: { data: JSON.stringify(result) } });
-              },
+        // Navigate to food detail screen with the recognized food data
+        if (result.data && result.data.name) {
+          // Create a unique temporary ID for navigation
+          const tempId = `temp_${Date.now()}`;
+
+          // Navigate with the food data
+          router.push({
+            pathname: "/food/[id]",
+            params: {
+              id: tempId,
+              foodData: JSON.stringify(result.data),
+              capturedImage: imageUri, // Pass the captured image
             },
-          ]
-        );
+          });
+        } else {
+          // Fallback alert if no food data
+          Alert.alert("Analysis Complete", "Food recognized successfully!", [
+            { text: "OK" },
+          ]);
+        }
 
         return result;
       } else {
@@ -281,14 +363,8 @@ const CameraScreen = () => {
             console.log("Food recognition result:", result);
             // Handle the food recognition result
           }
-        } else if (mode === "barcode") {
-          // Send for barcode recognition
-          const result = await sendImageToBackend(photo.uri, "barcode");
-          if (result) {
-            console.log("Barcode recognition result:", result);
-            // Handle the barcode recognition result
-          }
         }
+        // Note: Barcode mode uses live scanning, not photo capture
       } catch (error) {
         console.error("Error capturing photo:", error);
       }
@@ -356,16 +432,20 @@ const CameraScreen = () => {
             barcodeScannerSettings={
               mode === "barcode"
                 ? {
-                    barcodeTypes: ["qr", "pdf417"],
+                    barcodeTypes: [
+                      "upc_a",
+                      "upc_e",
+                      "ean13",
+                      "ean8",
+                      "code128",
+                      "qr",
+                      "pdf417",
+                    ],
                   }
                 : undefined
             }
             onBarcodeScanned={
-              mode === "barcode"
-                ? (result) => {
-                    console.log("Barcode scanned:", result);
-                  }
-                : undefined
+              mode === "barcode" ? handleBarcodeScanned : undefined
             }
           />
         )}
@@ -412,6 +492,22 @@ const CameraScreen = () => {
               </View>
               <View className="absolute -bottom-2 -right-2">
                 <View className="w-8 h-8 border-r-4 border-b-4 border-white rounded-br-lg" />
+              </View>
+            </View>
+
+            {/* Barcode scanning instructions */}
+            <View className="absolute bottom-12 left-0 right-0 items-center">
+              <View className="bg-black bg-opacity-60 rounded-xl px-6 py-3">
+                <Text className="text-white text-center text-sm font-medium">
+                  {scannedBarcode
+                    ? "Looking up product..."
+                    : "Point camera at barcode"}
+                </Text>
+                {scannedBarcode && (
+                  <Text className="text-gray-300 text-center text-xs mt-1">
+                    Barcode: {scannedBarcode}
+                  </Text>
+                )}
               </View>
             </View>
           </View>
@@ -471,46 +567,76 @@ const CameraScreen = () => {
               </TouchableOpacity>
             </View>
 
-            {/* Capture Button */}
-            <View className="items-center mb-4">
-              <TouchableOpacity
-                onPress={handleCapture}
-                disabled={isProcessing}
-                className={`w-24 h-24 rounded-full items-center justify-center border-4 border-white ${
-                  isProcessing ? "bg-gray-400" : "bg-orange-500"
-                }`}
-              >
-                <View
-                  className={`w-20 h-20 rounded-full items-center justify-center ${
-                    isProcessing ? "bg-gray-500" : "bg-orange-600"
+            {/* Capture Button - Hidden in barcode mode */}
+            {mode !== "barcode" && (
+              <View className="items-center mb-4">
+                <TouchableOpacity
+                  onPress={handleCapture}
+                  disabled={isProcessing}
+                  className={`w-24 h-24 rounded-full items-center justify-center border-4 border-white ${
+                    isProcessing ? "bg-gray-400" : "bg-orange-500"
                   }`}
                 >
-                  {isProcessing ? (
-                    <Text className="text-white text-xs font-bold">...</Text>
-                  ) : (
-                    <View className="w-5 h-5 bg-white rounded" />
-                  )}
-                </View>
-              </TouchableOpacity>
-              {isProcessing && (
-                <Text className="text-gray-600 text-sm mt-2">
-                  Processing...
-                </Text>
-              )}
-            </View>
-
-            {/* Debug: Test Server Button */}
-            <View className="items-center">
-              <TouchableOpacity
-                onPress={testServerConnection}
-                className="bg-blue-500 px-4 py-2 rounded-lg"
-              >
-                <Text className="text-white text-sm">Test Server</Text>
-              </TouchableOpacity>
-            </View>
+                  <View
+                    className={`w-20 h-20 rounded-full items-center justify-center ${
+                      isProcessing ? "bg-gray-500" : "bg-orange-600"
+                    }`}
+                  >
+                    {isProcessing ? (
+                      <Animated.View
+                        style={{
+                          transform: [{ rotate: spinInterpolation }],
+                        }}
+                      >
+                        <View className="w-6 h-6 border-2 border-white border-t-transparent rounded-full" />
+                      </Animated.View>
+                    ) : (
+                      <View className="w-5 h-5 bg-white rounded" />
+                    )}
+                  </View>
+                </TouchableOpacity>
+                {isProcessing && (
+                  <View className="items-center mt-3">
+                    <Text className="text-white text-sm font-medium">
+                      Analyzing food...
+                    </Text>
+                    <Text className="text-gray-300 text-xs mt-1">
+                      Please wait while AI identifies your food
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
           </View>
         </View>
       </View>
+
+      {/* Full-screen loading overlay with blur */}
+      {isProcessing && (
+        <BlurView
+          intensity={20}
+          tint="dark"
+          className="absolute inset-0 flex-1 items-center justify-center"
+        >
+          <View className="bg-black bg-opacity-60 rounded-2xl p-8 items-center">
+            <Animated.View
+              style={{
+                transform: [{ rotate: spinInterpolation }],
+              }}
+              className="mb-4"
+            >
+              <View className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full" />
+            </Animated.View>
+            <Text className="text-white text-lg font-semibold mb-2">
+              Analyzing Food
+            </Text>
+            <Text className="text-gray-300 text-sm text-center">
+              AI is identifying your food and{"\n"}calculating nutrition
+              facts...
+            </Text>
+          </View>
+        </BlurView>
+      )}
     </SafeAreaView>
   );
 };

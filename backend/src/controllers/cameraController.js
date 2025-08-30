@@ -84,15 +84,21 @@ exports.recognizeFoodDetails = async (req, res) => {
     // Check database for existing food
     console.log('[LOG] Checking database for existing food...');
     const foodsRef = db.collection('foods');
-    const userFoodQuery = await foodsRef.where('name', '==', foodName).where('userId', '==', userId).get();
+    
+    // Only query user-specific foods if userId is available and not anonymous
+    if (userId && userId !== 'anonymous-user') {
+      const userFoodQuery = await foodsRef.where('name', '==', foodName).where('userId', '==', userId).get();
+      if (!userFoodQuery.empty) {
+        console.log('[LOG] Found user-specific food in database');
+        const foodDoc = userFoodQuery.docs[0];
+        const existingFood = Food.fromFirestore(foodDoc);
+        return res.status(200).json({ success: true, data: existingFood });
+      }
+    }
+    
+    // Query generic foods (userId is null)
     const genericFoodQuery = await foodsRef.where('name', '==', foodName).where('userId', '==', null).get();
-
-    if (!userFoodQuery.empty) {
-      console.log('[LOG] Found user-specific food in database');
-      const foodDoc = userFoodQuery.docs[0];
-      const existingFood = Food.fromFirestore(foodDoc);
-      return res.status(200).json({ success: true, data: existingFood });
-    } else if (!genericFoodQuery.empty) {
+    if (!genericFoodQuery.empty) {
       console.log('[LOG] Found generic food in database');
       const foodDoc = genericFoodQuery.docs[0];
       const existingFood = Food.fromFirestore(foodDoc);
@@ -192,52 +198,91 @@ exports.addFood = async (req, res) => {
 // @route   POST /api/v1/camera/barcode
 // @access  Private
 exports.recognizeBarcode = async (req, res, next) => {
+  console.log('\n--- /camera/barcode ENDPOINT HIT ---');
+  
   try {
     const { barcode } = req.body;
-    const { uid } = res.locals;
+    const { uid } = res.locals || {};
+    
+    console.log('[LOG] Barcode request:', barcode);
+    console.log('[LOG] User ID:', uid || 'anonymous');
+    
+    if (!barcode) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Barcode is required' 
+      });
+    }
 
     const foodsRef = db.collection('foods');
-    const userFoodQuery = await foodsRef.where('barcode', '==', barcode).where('userId', '==', uid).get();
+    
+    // Only query user-specific foods if uid is available
+    if (uid) {
+      const userFoodQuery = await foodsRef.where('barcode', '==', barcode).where('userId', '==', uid).get();
+      if (!userFoodQuery.empty) {
+        console.log('[LOG] Found user-specific food in database');
+        const foodDoc = userFoodQuery.docs[0];
+        const existingFood = Food.fromFirestore(foodDoc);
+        return res.status(200).json({ success: true, data: existingFood });
+      }
+    }
+    
+    // Query generic foods (userId is null)
     const genericFoodQuery = await foodsRef.where('barcode', '==', barcode).where('userId', '==', null).get();
-
-    if (!userFoodQuery.empty) {
-      const foodDoc = userFoodQuery.docs[0];
-      const existingFood = Food.fromFirestore(foodDoc);
-      return res.status(200).json({ success: true, data: existingFood });
-    } else if (!genericFoodQuery.empty) {
+    if (!genericFoodQuery.empty) {
+      console.log('[LOG] Found generic food in database');
       const foodDoc = genericFoodQuery.docs[0];
       const existingFood = Food.fromFirestore(foodDoc);
       return res.status(200).json({ success: true, data: existingFood });
     }
     
+    console.log('[LOG] Food not found in database, querying OpenFoodFacts...');
     const client = new openfoodfacts();
     const product = await client.getProduct(barcode);
 
-    console.log('Product details:', product.product_name);
+    console.log('[LOG] OpenFoodFacts response:', product?.product_name || 'No product found');
 
-
-    if (product) {
+    if (product && product.product_name) {
+      const nutrition = product.product?.nutriments || {};
+      
       const generatedFood = new Food(
-        null, // Use barcode as ID for potential saving
+        null,
         product.product_name,
-        product.generic_name,
-        product.code,
-        product.image_url,
+        product.generic_name || `Product with barcode ${barcode}`,
+        barcode,
+        product.image_url || null,
         {
-          cal: product.product.nutriments.energy_serving || 0,
-          protein: product.product.nutriments.proteins_serving || 0,
-          carbs: product.product.nutriments.carbohydrates_serving || 0,
-          fat: product.product.nutriments.fat_serving || 0
+          cal: Math.round(nutrition.energy_serving || nutrition['energy-kcal_serving'] || nutrition['energy-kcal'] || 0),
+          protein: Math.round(nutrition.proteins_serving || nutrition.proteins || 0),
+          carbs: Math.round(nutrition.carbohydrates_serving || nutrition.carbohydrates || 0),
+          fat: Math.round(nutrition.fat_serving || nutrition.fat || 0)
         },
         'openfoodfacts',
         null
       );
-      res.status(200).json({ success: true, data: generatedFood });
+      
+      console.log('[LOG] Generated food from OpenFoodFacts:', generatedFood.name);
+      res.status(200).json({ 
+        success: true, 
+        data: generatedFood,
+        message: 'Product found in OpenFoodFacts database'
+      });
     } else {
-      res.status(404).json({ success: false, error: 'Food not found' });
+      console.log('[LOG] Product not found in OpenFoodFacts');
+      res.status(404).json({ 
+        success: false, 
+        error: 'Product not found',
+        message: `Barcode ${barcode} was not found in our database or OpenFoodFacts.`
+      });
     }
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, error: 'Server error' });
+    console.error('!!! FATAL ERROR IN /camera/barcode ENDPOINT !!!', error);
+    console.error('[ERROR] Error stack:', error.stack);
+    
+    res.status(500).json({ 
+      success: false, 
+      error: 'Server error',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
