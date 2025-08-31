@@ -36,7 +36,7 @@ export default function SignUp() {
   const verificationUrl = getDynamicVerificationUrl();
 
   const actionCodeSettings: ActionCodeSettings = {
-    url: `${verificationUrl}/--/verify_email`,
+    url: `${verificationUrl}/verify_email`,
     handleCodeInApp: true,
     iOS: {
       bundleId: IOS_BUNDLE_ID,

@@ -71,7 +71,9 @@ import { NotificationProvider } from "@/context/NotificationContext";
 import { UserProvider } from "@/context/UserContext";
 import { DietProvider } from "@/context/DietContext";
 
-// --- START: Authentication Logic ---
+import { useUser, defaultUser } from '@/context/UserContext'; 
+import apiClient from '@/utils/apiClients'; // Import your api client
+
 
 // 1. Define and Create the Auth Context
 type AuthContextType = {
@@ -109,50 +111,92 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-// --- END: Authentication Logic ---
 
 // This component now contains your original Stack navigator and the redirection logic
 function RootLayoutNav() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const { userProfile, setUserProfile, isLoadingProfile } = useUser();
   const router = useRouter();
   const segments = useSegments();
 
+  // Effect 1: Fetches the user's Firestore profile when they log in
+useEffect(() => {
+    if (user && !userProfile) {
+      const fetchUserProfile = async () => {
+        try {
+          const idToken = await user.getIdToken();
+          const response = await apiClient.get('/api/v1/profile', {
+            headers: { Authorization: `Bearer ${idToken}` },
+          });
+
+          // --- CHANGE START ---
+          if (response.data.success) {
+            // Happy path: Profile found, store it in the context.
+            setUserProfile(response.data.data);
+          } else {
+            // Sad path 1: Backend says profile not found. Use the default.
+            console.warn("User profile not found on backend. Using default profile.");
+            setUserProfile(defaultUser);
+          }
+          // --- CHANGE END ---
+
+        } catch (error) {
+          // --- CHANGE START ---
+          // Sad path 2: Network error or server crash. Use the default.
+          console.error("Layout: Failed to fetch user profile:", error);
+          setUserProfile(defaultUser);
+          // --- CHANGE END ---
+        }
+      };
+      fetchUserProfile();
+    } else if (!user) {
+      // When the user explicitly logs out, clear the profile to null.
+      setUserProfile(null);
+    }
+  }, [user]);
+
+  // Effect 2: Handles all navigation logic based on auth and profile state
   useEffect(() => {
-    if (isLoading) return; // Wait until Firebase check is complete
+    // Wait until BOTH Firebase auth and our profile fetch are finished
+    if (isAuthLoading || isLoadingProfile) {
+      return;
+    }
 
     const inAuthGroup = segments[0] === '(auth)';
 
-    if (user) {
-      // User is logged in
-      if (user.emailVerified) {
-        // --- User's email IS verified ---
-        // If they are on an auth screen, send them to the main app.
+    // Case 1: No user. Must be on an auth screen.
+    if (!user) {
+      if (!inAuthGroup) router.replace('/sign_in');
+      return;
+    }
+
+    // Case 2: User exists but not verified. Must be on an auth screen.
+    if (!user.emailVerified) {
+      if (!inAuthGroup) router.replace('/sign_in');
+      return;
+    }
+
+    // Case 3: User is verified. Now check their profile for onboarding.
+    if (userProfile) {
+      if (userProfile.onboardingComplete) {
+        // ONBOARDING COMPLETE: User belongs in the main app.
         if (inAuthGroup) {
           router.replace('/(tabs)');
         }
       } else {
-        // --- User's email IS NOT verified ---
-        // They should be in the auth flow. If they somehow escape to
-        // a screen outside of the '(auth)' group, force them back to sign_in.
-        // On the sign_in screen, they can be prompted to resend verification.
-        if (!inAuthGroup) {
-          router.replace('/sign_in');
+        // ONBOARDING NOT COMPLETE: Force user to the onboarding flow.
+        // This check prevents an infinite redirect loop to the onboarding screen.
+        const inOnboardingGroup = segments[0] === '(onboarding)';
+        if (!inOnboardingGroup) {
+            router.replace('/(onboarding)/age'); // Or your first onboarding screen
         }
-        // If they are already in the auth group (e.g., on the prompt_verification screen),
-        // we do nothing and let them stay there.
-      }
-    } else {
-      // --- User is NOT logged in ---
-      // If they are not on an auth screen, send them to the sign-in page.
-      if (!inAuthGroup) {
-        router.replace('/sign_in');
       }
     }
-  }, [user, isLoading, segments]);
+  }, [user, userProfile, isAuthLoading, isLoadingProfile, segments]);
 
-  // While loading auth state, you can show a splash screen or null
-  if (isLoading) {
-    return null; 
+  // Show nothing while loading to prevent screen flicker
+  if (isAuthLoading || isLoadingProfile) {
+    return null;
   }
 
   // This is YOUR original Stack navigator, now with the (auth) screen added
@@ -160,7 +204,7 @@ function RootLayoutNav() {
     <Stack>
       {/* THIS IS THE KEY FIX: Declares the auth group to TypeScript */}
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-
+      <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
       {/* Your existing screens */}
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="food/[id]" options={{ headerShown: false }} />

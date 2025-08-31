@@ -21,8 +21,10 @@ export default function PromptVerification() {
         </TouchableOpacity>
       
       <View style={{ flex: 1, paddingHorizontal: 24, justifyContent: 'center', alignItems: 'center' }}>
-          <View style={{ alignItems: 'center' }}>
-            <Text style={{ color: '#1F2937', fontSize: 28, fontWeight: 'bold' }}>
+          
+          {/* This inner View can remain as it was, but the parent now controls its alignment */}
+          <View> 
+            <Text style={{ color: '#1F2937', fontSize: 28, fontWeight: 'bold', textAlign: 'center' }}>
               Verify Your Email
             </Text>
             <Text style={{ color: '#6B7280', fontSize: 16, marginTop: 16, textAlign: 'center', lineHeight: 24 }}>
@@ -37,7 +39,7 @@ export default function PromptVerification() {
           <View style={{ width: '100%', marginTop: 'auto', marginBottom: 40 }}>
             <CustomButtonAuth title="Back to Sign In" onPress={() => router.replace('./sign_in')} />
           </View>
-        </View>
+      </View>
     </SafeAreaView>
   );
 }
