@@ -10,10 +10,10 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yourcompany.nutriai"
+      "bundleIdentifier": "com.app.nutriai"
     },
     "android": {
-      "package": "com.yourcompany.nutriai",
+      "package": "com.app.nutriai",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"

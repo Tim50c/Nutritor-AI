@@ -13,23 +13,23 @@ export default function PromptVerification() {
   const { email } = useLocalSearchParams();
 
   return (
-    <SafeAreaView style={{ backgroundColor: '#121212', flex: 1 }}>
+    <SafeAreaView style={{ backgroundColor: '#FFFFFF', flex: 1 }}>
         <TouchableOpacity 
             onPress={() => router.back()} 
             style={{ position: 'absolute', top: 60, left: 24, zIndex: 10 }}>
-            <Image source={backIcon} style={{ width: 24, height: 24, tintColor: 'white' }} resizeMode='contain' />
+            <Image source={backIcon} style={{ width: 24, height: 24, tintColor: '#1F2937' }} resizeMode='contain' />
         </TouchableOpacity>
       
       <View style={{ flex: 1, paddingHorizontal: 24, justifyContent: 'center', alignItems: 'center' }}>
           <View style={{ alignItems: 'center' }}>
-            <Text style={{ color: 'white', fontSize: 28, fontWeight: 'bold' }}>
+            <Text style={{ color: '#1F2937', fontSize: 28, fontWeight: 'bold' }}>
               Verify Your Email
             </Text>
-            <Text style={{ color: '#A0A0A0', fontSize: 16, marginTop: 16, textAlign: 'center', lineHeight: 24 }}>
+            <Text style={{ color: '#6B7280', fontSize: 16, marginTop: 16, textAlign: 'center', lineHeight: 24 }}>
                 We've sent a verification link to {'\n'}
-                <Text style={{ fontWeight: 'bold', color: 'white' }}>{email}</Text>
+                <Text style={{ fontWeight: 'bold', color: '#1F2937' }}>{email}</Text>
             </Text>
-            <Text style={{ color: '#A0A0A0', fontSize: 16, marginTop: 8, textAlign: 'center', lineHeight: 24 }}>
+            <Text style={{ color: '#6B7280', fontSize: 16, marginTop: 8, textAlign: 'center', lineHeight: 24 }}>
                 Please check your inbox and click the link to continue.
             </Text>
           </View>

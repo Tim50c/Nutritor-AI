@@ -13,7 +13,6 @@ const backIcon = require('../../assets/icons/back-arrow.png');
 
 export default function ResetPassword() {
   const router = useRouter();
-  // The oobCode is the action code from the password reset link
   const { oobCode } = useLocalSearchParams(); 
   
   const [form, setForm] = useState({ newPassword: '', confirmPassword: '' });
@@ -48,22 +47,22 @@ export default function ResetPassword() {
   
   const handleModalClose = () => {
     setShowSuccessModal(false);
-    router.replace('./sign-in');
+    router.replace('./sign_in');
   }
 
   return (
-    <SafeAreaView style={{ backgroundColor: '#121212', flex: 1 }}>
+    <SafeAreaView style={{ backgroundColor: '#FFFFFF', flex: 1 }}>
         <TouchableOpacity 
             onPress={() => router.back()} 
             style={{ position: 'absolute', top: 60, left: 24, zIndex: 10 }}>
-            <Image source={backIcon} style={{ width: 24, height: 24, tintColor: 'white' }} resizeMode='contain' />
+            <Image source={backIcon} style={{ width: 24, height: 24, tintColor: '#1F2937' }} resizeMode='contain' />
         </TouchableOpacity>
       <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'space-between' }}>
         <View style={{ paddingHorizontal: 24, paddingTop: 120 }}>
-          <Text style={{ color: 'white', fontSize: 28, fontWeight: 'bold' }}>
+          <Text style={{ color: '#1F2937', fontSize: 28, fontWeight: 'bold' }}>
             Reset Your Password
           </Text>
-          <Text style={{ color: '#A0A0A0', fontSize: 16, marginTop: 8, lineHeight: 24 }}>
+          <Text style={{ color: '#6B7280', fontSize: 16, marginTop: 8, lineHeight: 24 }}>
             Enter a new password to regain access to your account.
           </Text>
 
@@ -92,21 +91,20 @@ export default function ResetPassword() {
         </View>
 
         <View style={{ paddingHorizontal: 24, paddingBottom: 40 }}>
-          <CustomButtonAuth title="Reset Password" onPress={handleResetPassword} />
+          <CustomButtonAuth title="Reset Password" onPress={handleResetPassword} isLoading={isSubmitting} />
         </View>
       </ScrollView>
 
-      {/* Success Modal */}
       <Modal
         animationType="fade"
         transparent={true}
         visible={showSuccessModal}
         onRequestClose={handleModalClose}
       >
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.7)' }}>
-          <View style={{ backgroundColor: '#2D2D2D', borderRadius: 16, padding: 24, width: '85%', alignItems: 'center' }}>
-            <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold' }}>Password changed</Text>
-            <Text style={{ color: '#A0A0A0', fontSize: 16, textAlign: 'center', marginTop: 12, lineHeight: 22 }}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
+          <View style={{ backgroundColor: '#FFFFFF', borderRadius: 16, padding: 24, width: '85%', alignItems: 'center' }}>
+            <Text style={{ color: '#1F2937', fontSize: 20, fontWeight: 'bold' }}>Password changed</Text>
+            <Text style={{ color: '#6B7280', fontSize: 16, textAlign: 'center', marginTop: 12, lineHeight: 22 }}>
               Your password has been updated! You can now log in with your new credentials.
             </Text>
             <View style={{ width: '100%', marginTop: 24 }}>

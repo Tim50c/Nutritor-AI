@@ -5,6 +5,7 @@ import { Link, useRouter } from 'expo-router';
 import { createUserWithEmailAndPassword, sendEmailVerification, ActionCodeSettings } from 'firebase/auth';
 import { auth } from '../../config/firebase';
 import axios from 'axios';
+import Constants from 'expo-constants';
 
 import FormField from '../../components/FormField';
 import CustomButtonAuth from '../../components/CustomButtonAuth';
@@ -12,25 +13,29 @@ import CustomButtonAuth from '../../components/CustomButtonAuth';
 // icon defined here
 const backIcon = require('../../assets/icons/back-arrow.png');
 
-// define username and project slug:
-const EXPO_USERNAME = 'ltdsword';
-const PROJECT_SLUG = 'nutritorai';
-const IOS_BUNDLE_ID = 'com.you.nutriai';
-const ANDROID_PACKAGE_NAME = 'com.you.nutriai';
+const IOS_BUNDLE_ID = 'com.app.nutriai';
+const ANDROID_PACKAGE_NAME = 'com.app.nutriai';
 
 export default function SignUp() {
   const router = useRouter();
-  const [form, setForm] = useState({ fullName: '', email: '', password: '' });
+  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', password: '' });
   const [activeField, setActiveField] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const verificationUrl = `https://auth.expo.io/${EXPO_USERNAME}/${PROJECT_SLUG}`;
+  const getDynamicVerificationUrl = () => {
+    const slug = Constants.expoConfig?.slug;
+    const owner = Constants.expoConfig?.owner || 'anonymous';
+    
+    if (!slug) {
+      return 'https://yourapp.com/verify_email'; 
+    }
+    
+    return `https://auth.expo.io/@${owner}/${slug}`;
+  };
 
-  // Firebase Action Code Settings for the verification link
+  const verificationUrl = getDynamicVerificationUrl();
+
   const actionCodeSettings: ActionCodeSettings = {
-    // This is the link that will be in the email.
-    // When clicked, Expo's service will open your app using the deep link scheme ('nutriai://').
-    // The path `/verify_email` tells your app which screen to open.
     url: `${verificationUrl}/--/verify_email`,
     handleCodeInApp: true,
     iOS: {
@@ -42,7 +47,7 @@ export default function SignUp() {
   };
 
   const handleSignUp = async () => {
-    if (!form.fullName || !form.email || !form.password) {
+    if (!form.firstName || !form.lastName || !form.email || !form.password) {
       Alert.alert('Error', 'Please fill in all fields.');
       return;
     }
@@ -57,21 +62,21 @@ export default function SignUp() {
       // 2. Send verification email
       await sendEmailVerification(user, actionCodeSettings);
 
-      // 3. Register user profile on your backend
-      const [firstName, ...lastName] = form.fullName.split(' ');
+      // 3. Register user profile on your backend (with minimal info)
       await axios.post(
         `${process.env.EXPO_PUBLIC_API_URL}/api/v1/auth/register`,
         {
           email: form.email,
-          firstname: firstName,
-          lastname: lastName.join(' '),
+          firstname: form.firstName,
+          lastname: form.lastName,
+          // DOB will be updated in the onboarding flow
           dob: '1990-01-01' 
         },
         { headers: { Authorization: `Bearer ${idToken}` } }
       );
       
-      // 4. Navigate to prompt screen
-      router.push({ pathname: './prompt_verification', params: { email: form.email } });
+      // 4. Navigate to the start of the onboarding flow instead of the prompt
+      router.replace({ pathname: './age', params: { email: form.email } });
 
     } catch (error: any) {
       Alert.alert('Sign Up Failed', error.message);
@@ -81,28 +86,40 @@ export default function SignUp() {
   };
 
   return (
-    <SafeAreaView style={{ backgroundColor: '#121212', flex: 1 }}>
+    <SafeAreaView style={{ backgroundColor: '#FFFFFF', flex: 1 }}>
         <TouchableOpacity 
             onPress={() => router.back()} 
             style={{ position: 'absolute', top: 60, left: 24, zIndex: 10 }}>
-            <Image source={backIcon} style={{ width: 24, height: 24, tintColor: 'white' }} resizeMode='contain' />
+            <Image source={backIcon} style={{ width: 24, height: 24, tintColor: '#1F2937' }} resizeMode='contain' />
         </TouchableOpacity>
       <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}>
         <View style={{ paddingHorizontal: 24, paddingVertical: 40 }}>
-          <Text style={{ color: 'white', fontSize: 28, fontWeight: 'bold' }}>
+          <Text style={{ color: '#1F2937', fontSize: 28, fontWeight: 'bold' }}>
             Create Your NutriAI Account
           </Text>
-          <Text style={{ color: '#A0A0A0', fontSize: 16, marginTop: 8 }}>
-            Eat better. Get back on track.
+          <Text style={{ color: '#6B7280', fontSize: 16, marginTop: 8 }}>
+            Start your journey to a healthier you.
           </Text>
 
           <View style={{ marginTop: 32 }}>
-            <FormField
-              label="Full Name" value={form.fullName}
-              onChangeText={(text) => setForm({ ...form, fullName: text })}
-              placeholder="Enter Full Name"
-              onFocus={() => setActiveField('fullName')} onBlur={() => setActiveField('')} isActive={activeField === 'fullName'}
-            />
+            <View style={{ flexDirection: 'row', gap: 16 }}>
+              <View style={{ flex: 1 }}>
+                 <FormField
+                  label="First Name" value={form.firstName}
+                  onChangeText={(text) => setForm({ ...form, firstName: text })}
+                  placeholder="John"
+                  onFocus={() => setActiveField('firstName')} onBlur={() => setActiveField('')} isActive={activeField === 'firstName'}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <FormField
+                  label="Last Name" value={form.lastName}
+                  onChangeText={(text) => setForm({ ...form, lastName: text })}
+                  placeholder="Doe"
+                  onFocus={() => setActiveField('lastName')} onBlur={() => setActiveField('')} isActive={activeField === 'lastName'}
+                />
+              </View>
+            </View>
             <FormField
               label="Email" value={form.email}
               onChangeText={(text) => setForm({ ...form, email: text })}
@@ -118,15 +135,15 @@ export default function SignUp() {
           </View>
 
           <View style={{ marginTop: 40 }}>
-            <CustomButtonAuth title="Sign Up" onPress={handleSignUp} />
+            <CustomButtonAuth title="Sign Up" onPress={handleSignUp} isLoading={isSubmitting} />
           </View>
 
           <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 24 }}>
-            <Text style={{ color: '#A0A0A0', fontSize: 14 }}>
+            <Text style={{ color: '#6B7280', fontSize: 14 }}>
               Already have an account?{' '}
             </Text>
             <Link href="./sign_in">
-              <Text style={{ color: '#F97316', fontSize: 14, fontWeight: 'bold' }}>
+              <Text style={{ color: '#FF5A16', fontSize: 14, fontWeight: 'bold' }}>
                 Log In
               </Text>
             </Link>

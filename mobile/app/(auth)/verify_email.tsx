@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { applyActionCode } from 'firebase/auth';
@@ -9,7 +9,7 @@ import CustomButtonAuth from '../../components/CustomButtonAuth';
 
 export default function VerifyEmailHandler() {
     const router = useRouter();
-    const { oobCode } = useLocalSearchParams(); // oobCode comes from the verification link
+    const { oobCode } = useLocalSearchParams();
     const [status, setStatus] = useState<'verifying' | 'success' | 'error'>('verifying');
     const [errorMessage, setErrorMessage] = useState('');
 
@@ -38,7 +38,7 @@ export default function VerifyEmailHandler() {
                 return (
                     <>
                         <ActivityIndicator size="large" color="#F97316" />
-                        <Text style={{ color: 'white', fontSize: 18, marginTop: 20 }}>
+                        <Text style={{ color: '#1F2937', fontSize: 18, marginTop: 20 }}>
                             Verifying your email...
                         </Text>
                     </>
@@ -46,10 +46,10 @@ export default function VerifyEmailHandler() {
             case 'success':
                 return (
                     <>
-                        <Text style={{ color: 'white', fontSize: 28, fontWeight: 'bold', textAlign: 'center' }}>
+                        <Text style={{ color: '#1F2937', fontSize: 28, fontWeight: 'bold', textAlign: 'center' }}>
                             Email Verified!
                         </Text>
-                        <Text style={{ color: '#A0A0A0', fontSize: 16, marginTop: 16, textAlign: 'center' }}>
+                        <Text style={{ color: '#6B7280', fontSize: 16, marginTop: 16, textAlign: 'center' }}>
                             Your account has been successfully verified.
                         </Text>
                         <View style={{width: '100%', marginTop: 40}}>
@@ -60,10 +60,10 @@ export default function VerifyEmailHandler() {
             case 'error':
                 return (
                     <>
-                        <Text style={{ color: '#C93838', fontSize: 28, fontWeight: 'bold', textAlign: 'center' }}>
+                        <Text style={{ color: '#DC2626', fontSize: 28, fontWeight: 'bold', textAlign: 'center' }}>
                             Verification Failed
                         </Text>
-                        <Text style={{ color: '#A0A0A0', fontSize: 16, marginTop: 16, textAlign: 'center' }}>
+                        <Text style={{ color: '#6B7280', fontSize: 16, marginTop: 16, textAlign: 'center' }}>
                             {errorMessage}
                         </Text>
                         <View style={{width: '100%', marginTop: 40}}>
@@ -75,7 +75,7 @@ export default function VerifyEmailHandler() {
     };
 
     return (
-        <SafeAreaView style={{ backgroundColor: '#121212', flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+        <SafeAreaView style={{ backgroundColor: '#FFFFFF', flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
             {renderContent()}
         </SafeAreaView>
     );

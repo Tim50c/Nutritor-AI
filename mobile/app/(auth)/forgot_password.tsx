@@ -26,7 +26,7 @@ export default function ForgotPassword() {
     try {
       await sendPasswordResetEmail(auth, email);
       Alert.alert('Check Your Email', 'A password reset link has been sent to your email address.');
-      router.push('./sign-in');
+      router.push('./sign_in');
     } catch (error: any) {
       Alert.alert('Error', error.message);
     } finally {
@@ -35,18 +35,18 @@ export default function ForgotPassword() {
   };
 
   return (
-    <SafeAreaView style={{ backgroundColor: '#121212', flex: 1 }}>
+    <SafeAreaView style={{ backgroundColor: '#FFFFFF', flex: 1 }}>
       <TouchableOpacity 
           onPress={() => router.back()} 
           style={{ position: 'absolute', top: 60, left: 24, zIndex: 10 }}>
-          <Image source={backIcon} style={{ width: 24, height: 24, tintColor: 'white' }} resizeMode='contain' />
+          <Image source={backIcon} style={{ width: 24, height: 24, tintColor: '#1F2937' }} resizeMode='contain' />
       </TouchableOpacity>
       <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'space-between' }}>
         <View style={{ paddingHorizontal: 24, paddingTop: 120 }}>
-          <Text style={{ color: 'white', fontSize: 28, fontWeight: 'bold' }}>
+          <Text style={{ color: '#1F2937', fontSize: 28, fontWeight: 'bold' }}>
             Forgot Your Password?
           </Text>
-          <Text style={{ color: '#A0A0A0', fontSize: 16, marginTop: 8, lineHeight: 24 }}>
+          <Text style={{ color: '#6B7280', fontSize: 16, marginTop: 8, lineHeight: 24 }}>
             No worries! Enter your email, and we’ll send you a reset link.
           </Text>
 
@@ -65,8 +65,8 @@ export default function ForgotPassword() {
         </View>
 
         <View style={{ paddingHorizontal: 24, paddingBottom: 40 }}>
-          <CustomButtonAuth title="Send Reset Link" onPress={handleSendResetLink} />
-          <TouchableOpacity onPress={() => router.push('./sign-in')} style={{ marginTop: 24, alignSelf: 'center' }}>
+          <CustomButtonAuth title="Send Reset Link" onPress={handleSendResetLink} isLoading={isSubmitting} />
+          <TouchableOpacity onPress={() => router.push('./sign_in')} style={{ marginTop: 24, alignSelf: 'center' }}>
             <Text style={{ color: '#F97316', fontSize: 14, fontWeight: 'bold' }}>
               Back to Login
             </Text>
