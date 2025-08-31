@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { CameraView, Camera } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { useRouter } from "expo-router";
@@ -167,18 +168,54 @@ const CameraScreen = () => {
     try {
       setIsProcessing(true);
 
-      // Convert image to FormData for efficient upload
+      console.log("📸 Original image URI:", imageUri);
+
+      // ✅ Simple approach: Always try compression, use original on failure
+      let finalImageUri = imageUri;
+      let compressionAttempted = false;
+
+      try {
+        console.log("🔄 Attempting image compression...");
+        const manipulatedImage = await ImageManipulator.manipulateAsync(
+          imageUri,
+          [{ resize: { width: 1024 } }], // Resize to max width 1024px
+          {
+            compress: 0.7, // 70% quality
+            format: ImageManipulator.SaveFormat.JPEG,
+          }
+        );
+
+        finalImageUri = manipulatedImage.uri;
+        compressionAttempted = true;
+        console.log("✅ Image compression successful:", {
+          originalUri: imageUri,
+          compressedUri: manipulatedImage.uri,
+          width: manipulatedImage.width,
+          height: manipulatedImage.height,
+        });
+      } catch (compressionError: any) {
+        console.warn(
+          "⚠️ Image compression failed, using original:",
+          compressionError
+        );
+        finalImageUri = imageUri;
+        compressionAttempted = false;
+      }
+
+      // ✅ Create FormData with the final image URI (no blob conversion needed)
       const formData = new FormData();
       formData.append("image", {
-        uri: imageUri,
+        uri: finalImageUri,
         type: "image/jpeg",
         name: "food-image.jpg",
       } as any);
 
-      // Send as FormData with optional authentication
-      const authToken = await getAuthToken();
+      console.log(
+        `📦 FormData created with ${compressionAttempted ? "compressed" : "original"} image`
+      );
 
-      // Create headers with optional authentication
+      // ✅ Get auth token
+      const authToken = await getAuthToken(); // Create headers with optional authentication
       // ✅ Don't set Content-Type for FormData - let it handle the boundary automatically
       const headers: Record<string, string> = {};
 
@@ -264,9 +301,66 @@ const CameraScreen = () => {
         return null;
       }
     } catch (error: any) {
-      console.error("💥 Error sending image to backend:", error);
+      console.error("💥 Error in optimized image processing:", error);
 
-      // ✅ Better error handling for different scenarios
+      // ✅ Fallback: Try with original method if compression/blob conversion fails
+      if (
+        error?.message?.includes("compression failed") ||
+        error?.message?.includes("Blob conversion failed")
+      ) {
+        console.log("🔄 Falling back to original image upload method...");
+        try {
+          const fallbackFormData = new FormData();
+          fallbackFormData.append("image", {
+            uri: imageUri,
+            type: "image/jpeg",
+            name: "food-image.jpg",
+          } as any);
+
+          const authToken = await getAuthToken();
+          const headers: Record<string, string> = {};
+          if (authToken) {
+            headers["Authorization"] = `Bearer ${authToken}`;
+          }
+
+          console.log("🚀 Sending fallback request...");
+          const apiResponse = await fetch(
+            `${BASE_URL}/api/v1/camera/${endpoint}`,
+            {
+              method: "POST",
+              headers,
+              body: fallbackFormData,
+            }
+          );
+
+          const responseText = await apiResponse.text();
+          console.log("📄 Fallback response received");
+
+          if (apiResponse.ok) {
+            const result = JSON.parse(responseText);
+            console.log("✅ Fallback request successful");
+
+            if (result.data && result.data.name) {
+              const tempId = `temp_${Date.now()}`;
+              router.push({
+                pathname: "/food/[id]",
+                params: {
+                  id: tempId,
+                  foodData: JSON.stringify(result.data),
+                  capturedImage: imageUri,
+                },
+              });
+            }
+            return result;
+          } else {
+            throw new Error(`Fallback request failed: ${apiResponse.status}`);
+          }
+        } catch (fallbackError) {
+          console.error("❌ Fallback method also failed:", fallbackError);
+        }
+      }
+
+      // ✅ Standard error handling for other types of errors
       if (error?.name === "AbortError") {
         Alert.alert(
           "Request Timeout",
