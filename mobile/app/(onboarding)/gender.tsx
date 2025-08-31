@@ -6,7 +6,6 @@ import { useOnboarding } from '../../context/OnboardingContext';
 import CustomButtonAuth from '../../components/CustomButtonAuth';
 import OnboardingHeader from '../../components/OnboardingHeader';
 
-// icon defined here
 const femaleIcon = require('../../assets/icons/female-avatar.png');
 const maleIcon = require('../../assets/icons/male-avatar.png');
 const otherIcon = require('../../assets/icons/other-gender.png');
