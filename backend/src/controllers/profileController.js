@@ -24,6 +24,43 @@ exports.getUserProfile = async (req, res, next) => {
   }
 };
 
+// @desc    Create user profile
+// @route   POST /api/v1/profile
+// @access  Private
+exports.createUserProfile = async (req, res, next) => {
+  try {
+    const { uid } = res.locals;
+    const { firstname, lastname, dob, gender, height, weightCurrent, weightGoal, targetNutrition } = req.body;
+
+    // Check if profile already exists
+    const existingUserDoc = await db.collection('users').doc(uid).get();
+    if (existingUserDoc.exists) {
+      return res.status(409).json({ success: false, error: 'User profile already exists.' });
+    }
+
+    // Create new user profile
+    const userData = {
+      firstname: firstname || '',
+      lastname: lastname || '',
+      dob: dob ? admin.firestore.Timestamp.fromDate(new Date(dob)) : null,
+      gender: gender || '',
+      height: height || 0,
+      weightCurrent: weightCurrent || 0,
+      weightGoal: weightGoal || 0,
+      targetNutrition: targetNutrition || {},
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+
+    await db.collection('users').doc(uid).set(userData);
+
+    res.status(201).json({ success: true, message: 'Profile created successfully.', data: userData });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+};
+
 // @desc    Update user profile
 // @route   PATCH /api/v1/profile
 // @access  Private
