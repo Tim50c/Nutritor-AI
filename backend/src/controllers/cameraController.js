@@ -4,28 +4,6 @@ const openfoodfacts = require('openfoodfacts-nodejs');
 const { SchemaType } = require("@google/generative-ai");
 const Food = require('../models/foodModel');
 
-const cleanBase64 = (base64String) => {
-  // Remove data URL prefix and any whitespace/newlines
-  return base64String
-    .replace(/^data:image\/[a-zA-Z]*;base64,/, "")
-    .replace(/\s/g, "")
-    .replace(/\n/g, "")
-    .trim(); // Remove any trailing whitespace
-};
-
-// Add validation function
-const isValidBase64 = (str) => {
-  if (typeof str !== 'string' || str.length === 0) return false;
-
-  // Base64 strings must have length divisible by 4
-  if (str.length % 4 !== 0) return false;
-
-  // Regex to strictly match valid Base64 (with optional padding)
-  const base64Regex = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
-
-  return base64Regex.test(str);
-};
-
 // @desc    Recognize food details from an image
 // @route   POST /api/v1/camera/recognize-details
 // @access  Private

@@ -30,7 +30,13 @@ const upload = multer({
 // Middleware to log incoming requests
 router.use((req, res, next) => {
   console.log(`📍 Camera Route: ${req.method} ${req.path}`);
-  console.log('📋 Headers:', req.headers);
+  console.log('� Content-Length:', req.headers['content-length'] || 'not set');
+  console.log('📋 Content-Type:', req.headers['content-type'] || 'not set');
+  console.time('upload-handling');
+  
+  // Store start time for later use
+  req.uploadStartTime = Date.now();
+  
   next();
 });
 
@@ -38,12 +44,15 @@ router.use((req, res, next) => {
 router.post('/recognize-details', 
   authMiddleware,           // ✅ Auth required
   upload.single('image'),   // ✅ Handle image upload
-  (req, res, next) => {     // ✅ Log image reception
+  (req, res, next) => {     // ✅ Log image reception and timing
+    console.timeEnd('upload-handling');
     console.log('📷 Image received:', {
       filename: req.file?.originalname,
       mimetype: req.file?.mimetype,
       size: req.file?.size,
-      hasBuffer: !!req.file?.buffer
+      sizeInMB: req.file?.size ? (req.file.size / (1024 * 1024)).toFixed(2) : 'unknown',
+      hasBuffer: !!req.file?.buffer,
+      uploadDuration: `${Date.now() - req.uploadStartTime}ms`
     });
     console.log('👤 User ID:', res.locals.uid);
     next();
@@ -69,7 +78,7 @@ router.use((error, req, res, next) => {
     if (error.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({
         success: false,
-        error: 'File too large. Maximum size is 10MB.'
+        error: 'File too large. Maximum size is 20MB.' // ✅ Fixed to match actual limit
       });
     }
     if (error.code === 'LIMIT_UNEXPECTED_FILE') {
