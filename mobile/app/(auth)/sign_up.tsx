@@ -48,42 +48,69 @@ export default function SignUp() {
 
   const handleSignUp = async () => {
     if (!form.firstName || !form.lastName || !form.email || !form.password) {
-      Alert.alert('Error', 'Please fill in all fields.');
-      return;
+        Alert.alert('Error', 'Please fill in all fields.');
+        return;
     }
     
     setIsSubmitting(true);
     try {
-      // 1. Create user in Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(auth, form.email, form.password);
-      const user = userCredential.user;
-      const idToken = await user.getIdToken();
+        // 1. Create user in Firebase Auth
+        const userCredential = await createUserWithEmailAndPassword(auth, form.email, form.password);
+        const user = userCredential.user;
+        const idToken = await user.getIdToken();
 
-      // 2. Send verification email
-      await sendEmailVerification(user, actionCodeSettings);
+        // 2. Send verification email
+        await sendEmailVerification(user, actionCodeSettings);
 
-      // 3. Register user profile on your backend (with minimal info)
-      await axios.post(
+        // 3. Register user profile on your backend
+        await axios.post(
         `${process.env.EXPO_PUBLIC_API_URL}/api/v1/auth/register`,
         {
-          email: form.email,
-          firstname: form.firstName,
-          lastname: form.lastName,
-          // DOB will be updated in the onboarding flow
-          dob: '1990-01-01' 
+            email: form.email,
+            firstname: form.firstName,
+            lastname: form.lastName,
+            dob: '1990-01-01' 
         },
         { headers: { Authorization: `Bearer ${idToken}` } }
-      );
-      
-      // 4. Navigate to the start of the onboarding flow instead of the prompt
-      router.replace({ pathname: './age', params: { email: form.email } });
+        );
+        
+        // 4. Navigate to a screen telling the user to check their email
+        router.replace({ pathname: './prompt_verification', params: { email: form.email } });
 
     } catch (error: any) {
-      Alert.alert('Sign Up Failed', error.message);
+        // --- MODIFICATION START ---
+        let errorMessage = 'An unexpected error occurred. Please try again.';
+
+        if (axios.isAxiosError(error)) {
+            // This is an error from your backend server
+            console.error("Backend API Error:", error.response?.data || error.message);
+            errorMessage = "We couldn't create your profile at this time. Please try again later.";
+            // IMPORTANT: The Firebase user was created but backend registration failed.
+            // You may want to add logic here to delete the newly created Firebase user to keep things clean.
+        } else if (error.code) {
+            // This is an error from Firebase Auth
+            switch (error.code) {
+                case 'auth/email-already-in-use':
+                    errorMessage = "This email address is already registered. Please use the Log In page.";
+                    break;
+                case 'auth/invalid-email':
+                    errorMessage = "The email address is not valid. Please check and try again.";
+                    break;
+                case 'auth/weak-password':
+                    errorMessage = "The password is too weak. It must be at least 6 characters long.";
+                    break;
+                default:
+                    console.error("Unhandled Firebase Sign-Up Error:", error);
+                    break;
+            }
+        }
+        
+        Alert.alert('Sign Up Failed', errorMessage);
+        // --- MODIFICATION END ---
     } finally {
-      setIsSubmitting(false);
+        setIsSubmitting(false);
     }
-  };
+    };
 
   return (
     <SafeAreaView style={{ backgroundColor: '#FFFFFF', flex: 1 }}>
@@ -95,7 +122,7 @@ export default function SignUp() {
       <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}>
         <View style={{ paddingHorizontal: 24, paddingVertical: 40 }}>
           <Text style={{ color: '#1F2937', fontSize: 28, fontWeight: 'bold' }}>
-            Create Your NutriAI Account
+            Create Your NutritorAI Account
           </Text>
           <Text style={{ color: '#6B7280', fontSize: 16, marginTop: 8 }}>
             Start your journey to a healthier you.
@@ -107,7 +134,7 @@ export default function SignUp() {
                  <FormField
                   label="First Name" value={form.firstName}
                   onChangeText={(text) => setForm({ ...form, firstName: text })}
-                  placeholder="John"
+                  placeholder="Example: John"
                   onFocus={() => setActiveField('firstName')} onBlur={() => setActiveField('')} isActive={activeField === 'firstName'}
                 />
               </View>
@@ -115,7 +142,7 @@ export default function SignUp() {
                 <FormField
                   label="Last Name" value={form.lastName}
                   onChangeText={(text) => setForm({ ...form, lastName: text })}
-                  placeholder="Doe"
+                  placeholder="Example: Doe"
                   onFocus={() => setActiveField('lastName')} onBlur={() => setActiveField('')} isActive={activeField === 'lastName'}
                 />
               </View>

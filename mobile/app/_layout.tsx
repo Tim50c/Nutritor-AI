@@ -122,12 +122,31 @@ function RootLayoutNav() {
 
     const inAuthGroup = segments[0] === '(auth)';
 
-    if (user && inAuthGroup) {
-      // User is logged in but is on an auth screen, redirect to the app
-      router.replace('/(tabs)');
-    } else if (!user && !inAuthGroup) {
-      // User is not logged in and is trying to access the app, redirect to sign-in
-      router.replace('/sign_in');
+    if (user) {
+      // User is logged in
+      if (user.emailVerified) {
+        // --- User's email IS verified ---
+        // If they are on an auth screen, send them to the main app.
+        if (inAuthGroup) {
+          router.replace('/(tabs)');
+        }
+      } else {
+        // --- User's email IS NOT verified ---
+        // They should be in the auth flow. If they somehow escape to
+        // a screen outside of the '(auth)' group, force them back to sign_in.
+        // On the sign_in screen, they can be prompted to resend verification.
+        if (!inAuthGroup) {
+          router.replace('/sign_in');
+        }
+        // If they are already in the auth group (e.g., on the prompt_verification screen),
+        // we do nothing and let them stay there.
+      }
+    } else {
+      // --- User is NOT logged in ---
+      // If they are not on an auth screen, send them to the sign-in page.
+      if (!inAuthGroup) {
+        router.replace('/sign_in');
+      }
     }
   }, [user, isLoading, segments]);
 

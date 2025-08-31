@@ -146,36 +146,57 @@ export default function SignIn() {
     if (!validate()) return;
     setIsSubmitting(true);
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, form.email, form.password);
-      
-      if (!userCredential.user.emailVerified) {
+        const userCredential = await signInWithEmailAndPassword(auth, form.email, form.password);
+        
+        if (!userCredential.user.emailVerified) {
         Alert.alert(
-          "Verify Your Email",
-          "You need to verify your email before you can log in. Would you like us to resend the verification link?",
-          [
+            "Verify Your Email",
+            "You need to verify your email before you can log in. Would you like us to resend the verification link?",
+            [
             { text: "Cancel", style: "cancel" },
             { text: "Resend", onPress: () => sendEmailVerification(userCredential.user) }
-          ]
+            ]
         );
         setIsSubmitting(false);
         return;
-      }
-      
-      router.replace('/'); 
+        }
+        
+        router.replace('/'); 
 
     } catch (error: any) {
-      Alert.alert('Sign In Failed', error.message);
+        // --- MODIFICATION START ---
+        let errorMessage = "An unexpected error occurred. Please try again.";
+        
+        switch (error.code) {
+        case 'auth/user-not-found':
+        case 'auth/wrong-password':
+        case 'auth/invalid-credential': // This new code covers both wrong email and password
+            errorMessage = "Invalid email or password. Please check your credentials and try again.";
+            break;
+        case 'auth/invalid-email':
+            errorMessage = "The email address is badly formatted. Please enter a valid email.";
+            break;
+        case 'auth/user-disabled':
+            errorMessage = "This account has been disabled. Please contact support.";
+            break;
+        default:
+            // Log the original error for debugging purposes
+            console.error("Unhandled Sign-In Error:", error);
+            break;
+        }
+        Alert.alert('Sign In Failed', errorMessage);
+        // --- MODIFICATION END ---
     } finally {
-      setIsSubmitting(false);
+        setIsSubmitting(false);
     }
-  };
+    };
 
   return (
     <SafeAreaView style={{ backgroundColor: '#FFFFFF', flex: 1 }}>
       <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}>
         <View style={{ paddingHorizontal: 24, paddingVertical: 40 }}>
           <Text style={{ color: '#1F2937', fontSize: 28, fontWeight: 'bold' }}>
-            Welcome Back to NutriAI
+            Welcome Back to NutritorAI
           </Text>
           <Text style={{ color: '#6B7280', fontSize: 16, marginTop: 8 }}>
             Eat better. Get back on track.

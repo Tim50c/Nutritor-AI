@@ -15,6 +15,12 @@ exports.registerUserProfile = async (req, res) => {
       return res.status(400).json({ success: false, error: 'Missing required profile information.' });
     }
 
+    const userRef = db.collection('users').doc(uid);
+    const userDoc = await userRef.get();
+    if (userDoc.exists) {
+        return res.status(409).json({ success: false, error: 'User profile already exists.' });
+    }
+
     const newUserProfile = {
       id: uid,
       firstname,
