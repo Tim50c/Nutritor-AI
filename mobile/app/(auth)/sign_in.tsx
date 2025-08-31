@@ -205,7 +205,7 @@ export default function SignIn() {
             <CustomButtonAuth title="Log In" onPress={handleSignIn} isLoading={isSubmitting && !socialAuthType} />
           </View>
 
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 24 }}>
+          {/* <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 24 }}>
             <View style={{ flex: 1, height: 1, backgroundColor: '#E5E7EB' }} />
             <Text style={{ color: '#6B7280', marginHorizontal: 10 }}>Or</Text>
             <View style={{ flex: 1, height: 1, backgroundColor: '#E5E7EB' }} />
@@ -231,7 +231,7 @@ export default function SignIn() {
                     isLoading={isSubmitting && socialAuthType === 'apple'}
                 />
              )}
-          </View>
+          </View> */}
 
           <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 32 }}>
             <Text style={{ color: '#6B7280', fontSize: 14 }}>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TextInput, TextInputProps } from 'react-native';
+import { View, Text, TextInput, TextInputProps, Platform, StyleProp, TextStyle, ViewStyle } from 'react-native';
 
 interface FormFieldProps extends TextInputProps {
   label: string;
@@ -8,32 +8,53 @@ interface FormFieldProps extends TextInputProps {
 }
 
 const FormField: React.FC<FormFieldProps> = ({ label, error, isActive, ...props }) => {
-  // This function determines the border color based on the component's state
   const getBorderColor = () => {
     if (error) {
-      // If there is an error, the border is always orange/red
-      return '#C93838';
+      return '#DC2626';
     }
     if (isActive) {
-      // If the field is active (focused), the border is white
-      return '#FFFFFF';
+      return '#F97316';
     }
-    // The default, inactive border color is gray
-    return '#4B5563'; // Tailwind's gray-600
+    return '#E5E7EB';
   };
+
+  // --- FIX IS HERE: We define the base and platform styles separately ---
+
+  // 1. Define the base styles that are common to both platforms.
+  // We explicitly type this to ensure correctness.
+  const baseStyles: StyleProp<TextStyle> = {
+    backgroundColor: '#F9FAFB',
+    color: '#1F2937',
+    borderWidth: 1,
+    borderColor: getBorderColor(),
+    height: 56,
+  };
+
+  // 2. Define the platform-specific styles. Platform.select might return undefined,
+  // but that's okay because React Native's style array will ignore it.
+  const platformStyles: StyleProp<TextStyle> = Platform.select({
+    ios: {
+      // On iOS, paddingVertical is the best way to center text and prevent clipping.
+      paddingVertical: 16,
+    },
+    android: {
+      // On Android, textAlignVertical works perfectly.
+      textAlignVertical: 'center',
+      paddingVertical: 0, // Explicitly set to 0 to avoid default padding issues.
+    },
+  });
 
   return (
     <View className="w-full mb-4">
-      <Text className="text-gray-400 text-sm font-medium mb-2">{label}</Text>
+      <Text className="text-gray-700 text-sm font-semibold mb-2">{label}</Text>
       <TextInput
-        className="text-white text-base font-normal px-4 py-3 rounded-lg"
-        // The style prop dynamically applies the border color
-        style={{ borderWidth: 1, borderColor: getBorderColor() }}
-        placeholderTextColor="#9CA3AF" // Tailwind's gray-400
+        className="text-base font-regular px-4 rounded-xl"
+        // 3. Pass an array to the style prop. This is the key to the fix.
+        style={[baseStyles, platformStyles]}
+        placeholderTextColor="#9CA3AF"
         {...props}
       />
-      {/* This text only appears if an error message is passed in */}
-      {error && <Text className="text-orange-500 text-sm mt-1">{error}</Text>}
+      {error && <Text className="text-red-600 text-sm mt-1">{error}</Text>}
     </View>
   );
 };

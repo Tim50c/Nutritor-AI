@@ -4,6 +4,7 @@
     "slug": "nutritorai",
     "scheme": "nutriai",
     "version": "1.0.0",
+    "owner": "tduongvn",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "automatic",
