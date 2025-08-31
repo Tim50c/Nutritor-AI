@@ -17,12 +17,14 @@ import { useRouter } from "expo-router";
 import { icons } from "@/constants/icons";
 import { getAuth } from "firebase/auth";
 import app from "@/config/firebase";
+import LoadingSpinner from "./LoadingSpinner";
 
 const CameraScreen = () => {
   const [mode, setMode] = useState("camera"); // "camera" | "barcode" | "gallery"
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [cameraRef, setCameraRef] = useState<CameraView | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [scannedBarcode, setScannedBarcode] = useState<string | null>(null);
   const router = useRouter();
@@ -118,6 +120,7 @@ const CameraScreen = () => {
       );
     } finally {
       setIsProcessing(false);
+      setCapturedImage(null); // Clear captured image when processing ends
     }
   };
 
@@ -131,39 +134,12 @@ const CameraScreen = () => {
   // Animation for scanning line
   const scanLinePosition = useRef(new Animated.Value(0)).current;
 
-  // Animation for loading spinner
-  const spinValue = useRef(new Animated.Value(0)).current;
-
   React.useEffect(() => {
     (async () => {
       const { status } = await Camera.requestCameraPermissionsAsync();
       setHasPermission(status === "granted");
     })();
   }, []);
-
-  // Animate loading spinner when processing
-  useEffect(() => {
-    if (isProcessing) {
-      const spin = () => {
-        Animated.loop(
-          Animated.timing(spinValue, {
-            toValue: 1,
-            duration: 1000,
-            useNativeDriver: true,
-          })
-        ).start();
-      };
-      spin();
-    } else {
-      spinValue.setValue(0);
-    }
-  }, [isProcessing, spinValue]);
-
-  // Create spinning interpolation
-  const spinInterpolation = spinValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["0deg", "360deg"],
-  });
 
   // Animate scanning line when in barcode mode
   useEffect(() => {
@@ -203,9 +179,8 @@ const CameraScreen = () => {
       const authToken = await getAuthToken();
 
       // Create headers with optional authentication
-      const headers: Record<string, string> = {
-        "Content-Type": "multipart/form-data",
-      };
+      // ✅ Don't set Content-Type for FormData - let it handle the boundary automatically
+      const headers: Record<string, string> = {};
 
       if (authToken) {
         headers["Authorization"] = `Bearer ${authToken}`;
@@ -217,23 +192,15 @@ const CameraScreen = () => {
 
       console.log("🚀 About to send API request...");
       console.log(`📍 URL: ${BASE_URL}/api/v1/camera/${endpoint}`);
-      console.log(`� Sending as FormData (much smaller than base64)`);
+      console.log(`🚀 Sending as FormData (much smaller than base64)`);
 
-      // Add timeout to prevent hanging
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
-        console.log("⏰ Request timeout - aborting...");
-        controller.abort();
-      }, 30000); // 30 second timeout
-
+      // ✅ Remove timeout to prevent premature aborts on Render.com cold starts
       const apiResponse = await fetch(`${BASE_URL}/api/v1/camera/${endpoint}`, {
         method: "POST",
         headers,
         body: formData,
-        signal: controller.signal,
       });
 
-      clearTimeout(timeoutId);
       console.log("🎯 API request completed!");
       console.log(`📡 Response status: ${apiResponse.status}`);
       console.log(
@@ -296,25 +263,32 @@ const CameraScreen = () => {
         );
         return null;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("💥 Error sending image to backend:", error);
 
-      // More specific error handling
-      if (
-        error instanceof TypeError &&
-        error.message.includes("Network request failed")
-      ) {
+      // ✅ Better error handling for different scenarios
+      if (error?.name === "AbortError") {
+        Alert.alert(
+          "Request Timeout",
+          "The server is taking too long to respond. Please try again."
+        );
+      } else if (error?.message?.includes("Network request failed")) {
         Alert.alert(
           "Network Error",
-          "Cannot reach the server. Please check your internet connection."
+          "Cannot reach the server. Please check your internet connection and try again."
         );
       } else if (
-        error instanceof SyntaxError &&
-        error.message.includes("JSON Parse error")
+        error?.message?.includes("JSON Parse error") ||
+        error instanceof SyntaxError
       ) {
         Alert.alert(
           "Server Error",
-          "The server returned an invalid response. The service might be temporarily unavailable."
+          "The server returned an invalid response. Please try again later."
+        );
+      } else if (error?.message?.includes("Server error")) {
+        Alert.alert(
+          "Analysis Failed",
+          "The image analysis failed. Please try with a clearer image."
         );
       } else {
         const errorMessage =
@@ -327,6 +301,7 @@ const CameraScreen = () => {
       return null;
     } finally {
       setIsProcessing(false);
+      setCapturedImage(null); // Clear captured image when processing ends
     }
   };
 
@@ -352,6 +327,9 @@ const CameraScreen = () => {
         const photo = await cameraRef.takePictureAsync();
         console.log("Captured Photo:", photo.uri);
 
+        // Store the captured image for display during processing
+        setCapturedImage(photo.uri);
+
         // Send to backend based on current mode
         if (mode === "camera") {
           // Send for food recognition
@@ -367,6 +345,8 @@ const CameraScreen = () => {
         // Note: Barcode mode uses live scanning, not photo capture
       } catch (error) {
         console.error("Error capturing photo:", error);
+        // Clear captured image on error
+        setCapturedImage(null);
       }
     }
   };
@@ -421,6 +401,12 @@ const CameraScreen = () => {
         {mode === "gallery" && selectedImage ? (
           <Image
             source={{ uri: selectedImage }}
+            className="w-full h-full"
+            resizeMode="cover"
+          />
+        ) : isProcessing && capturedImage ? (
+          <Image
+            source={{ uri: capturedImage }}
             className="w-full h-full"
             resizeMode="cover"
           />
@@ -582,17 +568,7 @@ const CameraScreen = () => {
                       isProcessing ? "bg-gray-500" : "bg-orange-600"
                     }`}
                   >
-                    {isProcessing ? (
-                      <Animated.View
-                        style={{
-                          transform: [{ rotate: spinInterpolation }],
-                        }}
-                      >
-                        <View className="w-6 h-6 border-2 border-white border-t-transparent rounded-full" />
-                      </Animated.View>
-                    ) : (
-                      <View className="w-5 h-5 bg-white rounded" />
-                    )}
+                    <View className="w-5 h-5 bg-white rounded" />
                   </View>
                 </TouchableOpacity>
                 {isProcessing && (
@@ -611,7 +587,7 @@ const CameraScreen = () => {
         </View>
       </View>
 
-      {/* Full-screen loading overlay with blur */}
+      {/* Full-screen loading overlay with blur and spinning loader */}
       {isProcessing && (
         <BlurView
           intensity={20}
@@ -619,14 +595,13 @@ const CameraScreen = () => {
           className="absolute inset-0 flex-1 items-center justify-center"
         >
           <View className="bg-black bg-opacity-60 rounded-2xl p-8 items-center">
-            <Animated.View
-              style={{
-                transform: [{ rotate: spinInterpolation }],
-              }}
-              className="mb-4"
-            >
-              <View className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full" />
-            </Animated.View>
+            <View className="mb-6">
+              <LoadingSpinner
+                isProcessing={isProcessing}
+                size={60}
+                color="#FF5A16"
+              />
+            </View>
             <Text className="text-white text-lg font-semibold mb-2">
               Analyzing Food
             </Text>
