@@ -19,7 +19,7 @@ const ChangePassword = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState<'success' | 'error'>("error");
   const router = useRouter();
-  const { user, setUser } = useUser();
+  const { userProfile, setUserProfile } = useUser();
 
   const handleSave = () => {
     if (!passwordStrengthCheck(newPassword) || newPassword !== confirmPassword) {
@@ -29,7 +29,9 @@ const ChangePassword = () => {
     }
     // Hash password and save to context
     const hashedPassword = SHA256(newPassword).toString();
-    setUser({ ...user, password: hashedPassword });
+    if (userProfile) {
+      setUserProfile({ ...userProfile, password: hashedPassword });
+    }
     setModalType("success");
     setModalVisible(true);
   };

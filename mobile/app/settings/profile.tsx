@@ -9,20 +9,20 @@ import { images } from "@/constants/images";
 const genders = ["Male", "Female"]; // Gender options restricted to Male and Female
 
 const Profile = () => {
-  const { user, setUser } = useUser();
+  const { userProfile, setUserProfile } = useUser();
   const router = useRouter();
 
-  // Initialize state with user data or default values if user is null/undefined
-  const [name, setName] = useState(user?.name || "");
-  const [email, setEmail] = useState(user?.email || "");
+  // Initialize state with userProfile data or default values if userProfile is null/undefined
+  const [name, setName] = useState(userProfile ? `${userProfile.firstname} ${userProfile.lastname}` : "");
+  const [email, setEmail] = useState(userProfile?.email || "");
   // For DOB, store as Date object internally for the picker, display as string
-  const [dob, setDob] = useState(user?.dob || ""); // Still string for display
+  const [dob, setDob] = useState(userProfile?.dob || ""); // Still string for display
   const [selectedDate, setSelectedDate] = useState(new Date()); // Date object for DateTimePicker
   const [showDatePicker, setShowDatePicker] = useState(false); // State to control date picker visibility
 
-  const [gender, setGender] = useState(user?.gender || genders[0]);
-  const [height, setHeight] = useState(user?.height || ""); // Changed to TextInput, so default empty
-  const [weight, setWeight] = useState(user?.weight || ""); // Changed to TextInput, so default empty
+  const [gender, setGender] = useState(userProfile?.gender || genders[0]);
+  const [height, setHeight] = useState(userProfile?.height || ""); // Changed to TextInput, so default empty
+  const [weight, setWeight] = useState(userProfile?.weightCurrent || ""); // Changed to TextInput, so default empty
 
   // Function to handle date selection from the calendar
   const onChangeDate = (event: any, selectedDate: Date | undefined) => {
@@ -44,16 +44,23 @@ const Profile = () => {
   };
 
   const handleSave = () => {
-    // Update user context with new profile data
-    setUser({
-      ...user,
-      name,
-      email,
-      dob, // dob is already formatted as DD-MM-YYYY
-      gender,
-      height,
-      weight,
-    });
+    // Update userProfile context with new profile data
+    if (userProfile) {
+      const nameParts = name.split(' ');
+      const firstname = nameParts[0] || '';
+      const lastname = nameParts.slice(1).join(' ') || '';
+      
+      setUserProfile({
+        ...userProfile,
+        firstname,
+        lastname,
+        email,
+        dob, // dob is already formatted as DD-MM-YYYY
+        gender,
+        height,
+        weightCurrent: weight,
+      });
+    }
     // Navigate back to the previous screen
     router.back();
   };

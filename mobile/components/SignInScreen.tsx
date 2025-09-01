@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { Link, router } from 'expo-router';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../firebase'; // Import auth from your config file
+import { auth } from '../config/firebase'; // Import auth from your config file
 
 import FormField from '../components/FormField';
 import CustomButtonLogin from './CustomButtonAuth';

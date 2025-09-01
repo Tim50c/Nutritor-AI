@@ -5,7 +5,16 @@ import SettingsNavButton from "@/components/SettingsNavButton";
 
 const Settings = () => {
   const router = useRouter();
-  const { user } = useUser();
+  const { userProfile } = useUser();
+
+  // If userProfile is not loaded yet, show loading or return null
+  if (!userProfile) {
+    return (
+      <View className="flex-1 bg-white px-4 pt-4 justify-center items-center">
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
 
   return (
     <View className="flex-1 bg-white px-4 pt-4">
@@ -15,10 +24,10 @@ const Settings = () => {
         onPress={() => router.push("/settings/profile")}
         activeOpacity={0.8}
       >
-        <Image source={user.avatar} className="w-14 h-14 rounded-full mr-4" />
+        <Image source={userProfile.avatar} className="w-14 h-14 rounded-full mr-4" />
         <View>
-          <Text className="text-lg font-semibold text-white">{user.name}</Text>
-          <Text className="text-sm text-white mt-1">{user.email}</Text>
+          <Text className="text-lg font-semibold text-white">{userProfile.firstname} {userProfile.lastname}</Text>
+          <Text className="text-sm text-white mt-1">{userProfile.email}</Text>
         </View>
       </TouchableOpacity>
 
