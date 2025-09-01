@@ -1,16 +1,19 @@
 import BaseModel from "@/models/base-model";
+import NutritionModel from "@/models/nutrition-model";
+import NotificationPreferencesModel from "@/models/notification-preferences-model";
 
 interface UserModel extends BaseModel {
-  name: string;
-  email: string;
-  dob: string;
-  gender: string;
-  height: number;
-  weightCurrent: number;
-  weightGoal: number;
-  targetNutrition: any;
+  firstname?: string;
+  lastname?: string;
+  email?: string;
+  dob?: Date | string | number;
+  gender?: string;
+  height?: number;
+  weightCurrent?: number;
+  weightGoal?: number;
+  targetNutrition?: NutritionModel;
   fcmToken?: string;
-  notificationPreferences?: any;
+  notificationPreferences?: NotificationPreferencesModel;
 }
 
 export default UserModel;

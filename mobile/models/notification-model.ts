@@ -5,8 +5,6 @@ interface NotificationModel extends BaseModel {
   body: string;
   type: string;
   read: boolean;
-  createdAt: Date | string | number;
-  userId?: string;
 }
 
 export default NotificationModel;
