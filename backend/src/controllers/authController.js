@@ -36,7 +36,7 @@ exports.registerUserProfile = async (req, res) => {
       notificationPreferences: req.body.notificationPreferences || { mealReminders: true, goalMilestoneNotification: true, newPlanRecommendations: true },
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      onboardingComplete: false,
+      onboardingComplete: true,
     };
 
     await db.collection('users').doc(uid).set(newUserProfile);

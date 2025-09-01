@@ -54,7 +54,7 @@ export type User = {
   firstname: string;
   lastname: string;
   email: string;
-  avatar: any;
+  avatar: any | null;
   dob: string;
   gender: "Male" | "Female" | "Other" | null;
   height: string | null;
