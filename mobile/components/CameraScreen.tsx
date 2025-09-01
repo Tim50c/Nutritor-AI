@@ -42,10 +42,10 @@ const CameraScreen = () => {
         const token = await user.getIdToken();
         return token;
       } else {
-        // TEMPORARY: Use real Firebase token for testing
-        const testToken = "eyJhbGciOiJSUzI1NiIsImtpZCI6ImVmMjQ4ZjQyZjc0YWUwZjk0OTIwYWY5YTlhMDEzMTdlZjJkMzVmZTEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL3NlY3VyZXRva2VuLmdvb2dsZS5jb20vbnV0cml0b3JhaSIsImF1ZCI6Im51dHJpdG9yYWkiLCJhdXRoX3RpbWUiOjE3NTY2OTc1MDMsInVzZXJfaWQiOiJHbUdobnFsbmwzY3dlS1Z4QTFFbERMR3YwYlUyIiwic3ViIjoiR21HaG5xbG5sM2N3ZUtWeEExRWxETEd2MGJVMiIsImlhdCI6MTc1NjY5NzUwMywiZXhwIjoxNzU2NzAxMTAzLCJlbWFpbCI6InR1bmdkdW9uZzA3MDhAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOmZhbHNlLCJmaXJlYmFzZSI6eyJpZGVudGl0aWVzIjp7ImVtYWlsIjpbInR1bmdkdW9uZzA3MDhAZ21haWwuY29tIl19LCJzaWduX2luX3Byb3ZpZGVyIjoicGFzc3dvcmQifX0.lgDfP-NiTjH7dmgHyeqCwq_A2XOmEV65jceWwxA7YnXu7R8x4fcB7wr_kKoyaxsxYswRUhxqKkX1xY1H7vUc29fkHS_1blBmeonseNYopFnHV9vJYgEvqHuDLSJZSV4q1nNB0C7JhFT_y9JPfZSZa6I1UnU4p6TE4VDUJ8KnAEW0-C4OdDBsC8MHdCdr_QYH37XLzUauMUNN6IbU7OcDLT4LEx5rmW7Zyj8Zu0N6KfOVzpfiQnqIZ6Ko6sN8IxOoqKeyiroM4A49eU9koHmrIajMLW-o5uOae7grva66W5SefIcEwKaqk2V13_Ck35AeQx1u6MWtCFA7C25WgPxLiw";
-        console.warn("No authenticated user found - using real test token");
-        return testToken;
+        // For development, you might want to sign in a test user
+        // For now, we'll return null and handle the unauthenticated case
+        console.warn("No authenticated user found");
+        return null;
       }
     } catch (error) {
       console.error("Error getting auth token:", error);
@@ -90,7 +90,8 @@ const CameraScreen = () => {
 
       if (apiResult.success && apiResult.data) {
         // Navigate to food detail screen using the real food ID from backend
-        const foodId = apiResult.foodId || apiResult.data.id || `barcode_${Date.now()}`;
+        const foodId =
+          apiResult.foodId || apiResult.data.id || `barcode_${Date.now()}`;
 
         router.push({
           pathname: "/food/[id]",
@@ -273,7 +274,8 @@ const CameraScreen = () => {
         // Navigate to food detail screen with the recognized food data
         if (result.data && result.data.name) {
           // Use the real food ID from backend response
-          const foodId = result.foodId || result.data.id || `temp_${Date.now()}`;
+          const foodId =
+            result.foodId || result.data.id || `temp_${Date.now()}`;
 
           // Navigate with the food data
           router.push({
@@ -341,7 +343,8 @@ const CameraScreen = () => {
             console.log("✅ Fallback request successful");
 
             if (result.data && result.data.name) {
-              const foodId = result.foodId || result.data.id || `temp_${Date.now()}`;
+              const foodId =
+                result.foodId || result.data.id || `temp_${Date.now()}`;
               router.push({
                 pathname: "/food/[id]",
                 params: {
