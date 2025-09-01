@@ -125,11 +125,29 @@ exports.recognizeFoodDetails = async (req, res) => {
       null
     );
 
-    console.log('[LOG] Sending success response');
+    // Save the food to database and get the ID
+    console.log('[LOG] Saving food to database...');
+    const foodRef = await db.collection('foods').add(generatedFood.toFirestore());
+    const savedFoodId = foodRef.id;
+    
+    // Create the food object with the saved ID
+    const savedFood = new Food(
+      savedFoodId,
+      foodName,
+      detailsData.description,
+      null,
+      null,
+      detailsData.nutrition,
+      'gemini',
+      null
+    );
+
+    console.log('[LOG] Sending success response with food ID:', savedFoodId);
     res.status(200).json({ 
       success: true, 
-      data: generatedFood,
-      message: 'Food recognized successfully'
+      data: savedFood,
+      foodId: savedFoodId,
+      message: 'Food recognized and saved successfully'
     });
 
   } catch (error) {
@@ -239,11 +257,34 @@ exports.recognizeBarcode = async (req, res, next) => {
         null
       );
       
-      console.log('[LOG] Generated food from OpenFoodFacts:', generatedFood.name);
+      // Save the food to database and get the ID
+      console.log('[LOG] Saving barcode food to database...');
+      const foodRef = await db.collection('foods').add(generatedFood.toFirestore());
+      const savedFoodId = foodRef.id;
+      
+      // Create the food object with the saved ID
+      const savedFood = new Food(
+        savedFoodId,
+        product.product_name,
+        product.generic_name || `Product with barcode ${barcode}`,
+        barcode,
+        product.image_url || null,
+        {
+          cal: Math.round(nutrition.energy_serving || nutrition['energy-kcal_serving'] || nutrition['energy-kcal'] || 0),
+          protein: Math.round(nutrition.proteins_serving || nutrition.proteins || 0),
+          carbs: Math.round(nutrition.carbohydrates_serving || nutrition.carbohydrates || 0),
+          fat: Math.round(nutrition.fat_serving || nutrition.fat || 0)
+        },
+        'openfoodfacts',
+        null
+      );
+      
+      console.log('[LOG] Generated food from OpenFoodFacts with ID:', savedFoodId);
       res.status(200).json({ 
         success: true, 
-        data: generatedFood,
-        message: 'Product found in OpenFoodFacts database'
+        data: savedFood,
+        foodId: savedFoodId,
+        message: 'Product found in OpenFoodFacts database and saved'
       });
     } else {
       console.log('[LOG] Product not found in OpenFoodFacts');
