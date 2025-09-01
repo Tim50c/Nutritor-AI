@@ -48,13 +48,12 @@ const HeightSelector: React.FC<HeightSelectorProps> = ({ value, unit, onValueCha
         <Text style={styles.unitText}>{unit}</Text>
       </View>
 
-      <RulerPicker
+       <RulerPicker
         min={unit === 'cm' ? 120 : 4}
         max={unit === 'cm' ? 220 : 8}
         step={unit === 'cm' ? 1 : 0.1}
-        fraction={unit === 'cm' ? 0 : 1}
+        fractionDigits={unit === 'cm' ? 0 : 1} 
         initialValue={value}
-        // Use the new handler function that performs the type conversion.
         onValueChange={handleRulerValueChange} 
         unitTextStyle={styles.rulerUnitText}
         valueTextStyle={styles.rulerValueText}
