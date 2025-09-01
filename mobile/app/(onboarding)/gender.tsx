@@ -84,7 +84,7 @@ export default function GenderScreen() {
           {/* This button will now work correctly without errors */}
           <CustomButtonAuth 
             title="Continue" 
-            onPress={() => router.push('./current_weight')}
+            onPress={() => router.push('./height')}
             disabled={!data.gender} 
           />
         </View>

@@ -1,11 +1,19 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
+// (Assuming TargetNutrition is already defined as in the previous step)
+interface TargetNutrition {
+  calories: number; protein: number; carbs: number; fat: number; fiber: number;
+}
+
 interface OnboardingData {
   age: number;
   gender: 'Female' | 'Male' | 'Other' | null;
   weightCurrent: number;
   weightGoal: number;
   weightUnit: 'Kg' | 'Lbs';
+  height: number; // <-- ADD THIS
+  heightUnit: 'cm' | 'ft'; // <-- ADD THIS
+  targetNutrition: TargetNutrition;
 }
 
 interface OnboardingContextType {
@@ -22,6 +30,9 @@ export const OnboardingProvider = ({ children }: { children: ReactNode }) => {
     weightCurrent: 60,
     weightGoal: 55,
     weightUnit: 'Kg',
+    height: 170, // <-- ADD DEFAULT
+    heightUnit: 'cm', // <-- ADD DEFAULT
+    targetNutrition: { calories: 2000, protein: 200, carbs: 500, fat: 50, fiber: 60 },
   });
 
   const updateData = (updates: Partial<OnboardingData>) => {
