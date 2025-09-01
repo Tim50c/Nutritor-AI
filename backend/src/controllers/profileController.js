@@ -24,6 +24,34 @@ exports.getUserProfile = async (req, res, next) => {
   }
 };
 
+// @desc    Get user target nutrition
+// @route   GET /api/v1/profile/nutrition-target
+// @access  Private
+exports.getUserNutritionTarget = async (req, res, next) => {
+  try {
+    const { uid } = res.locals;
+
+    const userDoc = await db.collection('users').doc(uid).get();
+
+    if (!userDoc.exists) {
+        return res.status(404).json({ success: false, error: 'User profile not found.' });
+    }
+
+    const userData = userDoc.data();
+    const targetNutrition = userData.targetNutrition || {
+      calories: 2000,
+      protein: 150,
+      carbs: 250,
+      fat: 70
+    };
+
+    res.status(200).json({ success: true, data: targetNutrition });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+};
+
 // @desc    Create user profile
 // @route   POST /api/v1/profile
 // @access  Private
