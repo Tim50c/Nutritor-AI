@@ -61,17 +61,17 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth } from '../config/firebase'; // Adjust this path if necessary
+import { auth } from '@/config/firebase'; // Adjust this path if necessary
 
 // Your existing imports
 import "./global.css";
 import { StatusBar } from "expo-status-bar";
 import CustomHeader from "@/components/CustomHeader";
 import { NotificationProvider } from "@/context/NotificationContext";
-import { UserProvider } from "@/context/UserContext";
+import { UserProvider , useUser, defaultUser } from "@/context/UserContext";
 import { DietProvider } from "@/context/DietContext";
 
-import { useUser, defaultUser } from '@/context/UserContext'; 
+ 
 import apiClient from '@/utils/apiClients'; // Import your api client
 
 
@@ -120,7 +120,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
     });
     return () => unsubscribe();
-  }, []);
+  },[user, isLoading, SKIP_AUTH_FOR_TESTING] );
 
   return (
     <AuthContext.Provider value={{ user, isLoading }}>
@@ -181,12 +181,12 @@ useEffect(() => {
           // --- CHANGE END ---
         }
       };
-      fetchUserProfile();
+      await fetchUserProfile();
     } else if (!user) {
       // When the user explicitly logs out, clear the profile to null.
       setUserProfile(null);
     }
-  }, [user]);
+  }, [setUserProfile, user, userProfile]);
 
   // Effect 2: Handles all navigation logic based on auth and profile state
   useEffect(() => {
@@ -225,7 +225,7 @@ useEffect(() => {
         }
       }
     }
-  }, [user, userProfile, isAuthLoading, isLoadingProfile, segments]);
+  }, [user, userProfile, isAuthLoading, isLoadingProfile, segments, router]);
 
   // Show nothing while loading to prevent screen flicker
   if (isAuthLoading || isLoadingProfile) {
