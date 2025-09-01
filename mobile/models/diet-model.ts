@@ -1,8 +1,10 @@
 import BaseModel from "./base-model";
+import NutritionModel from "@/models/nutrition-model";
+import FoodModel from "@/models/food-model";
 
 interface DietModel extends BaseModel {
-  totalNutrition: any;
-  foods: any[];
+  totalNutrition: NutritionModel;
+  foods: FoodModel[];
 }
 
 export default DietModel;
