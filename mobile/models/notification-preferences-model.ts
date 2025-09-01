@@ -1,8 +1,7 @@
 interface NotificationPreferencesModel {
-  goalMilestoneNotification: boolean;
   mealReminders: boolean;
+  goalMilestoneNotification: boolean;
   newPlanRecommendations: boolean;
 }
 
 export default NotificationPreferencesModel;
-

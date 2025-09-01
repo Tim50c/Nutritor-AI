@@ -5,7 +5,6 @@ interface NotificationModel extends BaseModel {
   body: string;
   type: string;
   read: boolean;
-  userId?: string;
 }
 
 export default NotificationModel;
