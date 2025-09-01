@@ -1,15 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert, Image, Modal } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Alert, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { confirmPasswordReset } from 'firebase/auth';
-import { auth } from '../../config/firebase';
+import { auth } from '@/config/firebase';
 
 import FormField from '../../components/FormField';
 import CustomButtonAuth from '../../components/CustomButtonAuth';
-
-// icon defined here
-const backIcon = require('../../assets/icons/back-arrow.png');
+import {Ionicons} from "@expo/vector-icons";
 
 export default function ResetPassword() {
   const router = useRouter();
@@ -55,7 +53,8 @@ export default function ResetPassword() {
         <TouchableOpacity 
             onPress={() => router.back()} 
             style={{ position: 'absolute', top: 60, left: 24, zIndex: 10 }}>
-            <Image source={backIcon} style={{ width: 24, height: 24, tintColor: '#1F2937' }} resizeMode='contain' />
+            {/*<Image source={backIcon} style={{ width: 24, height: 24, tintColor: '#1F2937' }} resizeMode='contain' />*/}
+          <Ionicons name="arrow-back" size={24} color="#1F2937" />
         </TouchableOpacity>
       <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'space-between' }}>
         <View style={{ paddingHorizontal: 24, paddingTop: 120 }}>

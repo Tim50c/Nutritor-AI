@@ -1,10 +1,8 @@
 import React from 'react';
-import { View, TouchableOpacity, Image } from 'react-native';
+import { View, TouchableOpacity } from 'react-native';
 import { useNavigation } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-// Ensure you have a back-arrow icon in your assets
-const backIcon = require('../../assets/images/back-arrow.png'); 
+import {Ionicons} from "@expo/vector-icons";
 
 export default function AuthHeader() {
   const navigation = useNavigation();
@@ -16,10 +14,11 @@ export default function AuthHeader() {
         onPress={() => navigation.goBack()}
         className="w-12 h-12 justify-center items-start -ml-2"
       >
-        <Image
-          source={backIcon}
-          style={{ width: 28, height: 28, tintColor: '#000000' }}
-        />
+        {/*<Image*/}
+        {/*  source={backIcon}*/}
+        {/*  style={{ width: 28, height: 28, tintColor: '#000000' }}*/}
+        {/*/>*/}
+        <Ionicons name="arrow-back" size={28} color="black" />
       </TouchableOpacity>
     </View>
   );

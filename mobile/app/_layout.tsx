@@ -103,7 +103,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
     });
     return () => unsubscribe();
-  },[user, isLoading, SKIP_AUTH_FOR_TESTING] );
+  },[user, isLoading] );
 
   return (
     <AuthContext.Provider value={{ user, isLoading }}>
@@ -150,7 +150,7 @@ useEffect(() => {
           // --- CHANGE END ---
         }
       };
-      await fetchUserProfile();
+      fetchUserProfile();
     } else if (!user) {
       // When the user explicitly logs out, clear the profile to null.
       setUserProfile(null);

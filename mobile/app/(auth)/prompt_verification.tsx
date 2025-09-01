@@ -4,9 +4,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 
 import CustomButtonAuth from '../../components/CustomButtonAuth';
+import {Ionicons} from "@expo/vector-icons";
 
 // icon defined here
-const backIcon = require('../../assets/icons/back-arrow.png');
 
 export default function PromptVerification() {
   const router = useRouter();
@@ -17,7 +17,8 @@ export default function PromptVerification() {
         <TouchableOpacity 
             onPress={() => router.back()} 
             style={{ position: 'absolute', top: 60, left: 24, zIndex: 10 }}>
-            <Image source={backIcon} style={{ width: 24, height: 24, tintColor: '#1F2937' }} resizeMode='contain' />
+            {/*<Image source={backIcon} style={{ width: 24, height: 24, tintColor: '#1F2937' }} resizeMode='contain' />*/}
+          <Ionicons name="arrow-back" size={24} color="#1F2937" />
         </TouchableOpacity>
       
       <View style={{ flex: 1, paddingHorizontal: 24, justifyContent: 'center', alignItems: 'center' }}>
@@ -28,7 +29,7 @@ export default function PromptVerification() {
               Verify Your Email
             </Text>
             <Text style={{ color: '#6B7280', fontSize: 16, marginTop: 16, textAlign: 'center', lineHeight: 24 }}>
-                We've sent a verification link to {'\n'}
+                We&#39;ve sent a verification link to {'\n'}
                 <Text style={{ fontWeight: 'bold', color: '#1F2937' }}>{email}</Text>
             </Text>
             <Text style={{ color: '#6B7280', fontSize: 16, marginTop: 8, textAlign: 'center', lineHeight: 24 }}>

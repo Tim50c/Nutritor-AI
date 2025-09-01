@@ -9,7 +9,7 @@ import FormField from '../../components/FormField';
 import CustomButtonAuth from '../../components/CustomButtonAuth';
 
 // icon defined here
-const backIcon = require('../../assets/icons/back-arrow.png');
+import {Ionicons} from "@expo/vector-icons";
 
 export default function ForgotPassword() {
   const router = useRouter();
@@ -39,7 +39,8 @@ export default function ForgotPassword() {
       <TouchableOpacity 
           onPress={() => router.back()} 
           style={{ position: 'absolute', top: 60, left: 24, zIndex: 10 }}>
-          <Image source={backIcon} style={{ width: 24, height: 24, tintColor: '#1F2937' }} resizeMode='contain' />
+        {/*<Image source={backIcon} style={{ width: 24, height: 24, tintColor: '#1F2937' }} resizeMode='contain' />*/}
+        <Ionicons name="arrow-back" size={24} color="#1F2937" />
       </TouchableOpacity>
       <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'space-between' }}>
         <View style={{ paddingHorizontal: 24, paddingTop: 120 }}>

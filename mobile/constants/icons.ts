@@ -13,6 +13,10 @@ import heart from "@/assets/icons/heart.svg";
 import heartFill from "@/assets/icons/heart-fill.svg";
 import search from "@/assets/icons/search.svg";
 import arrow from "@/assets/icons/arrow.svg";
+import chatIcon from "@/assets/icons/chat-icon.svg";
+import fileIcon from "@/assets/icons/file-icon.svg";
+import screenShotIcon from "@/assets/icons/screen-shot-icon.svg";
+import sendIcon from "@/assets/icons/send-icon.svg";
 import CameraModeIcon from "@/assets/icons/camera-mode-icon.svg";
 import BarcodeModeIcon from "@/assets/icons/barcode-mode-icon.svg";
 import GalleryModeIcon from "@/assets/icons/gallery-mode-icon.svg";
@@ -33,6 +37,10 @@ export const icons = {
   heartFill,
   search,
   arrow,
+  chatIcon,
+  fileIcon,
+  screenShotIcon,
+  sendIcon,
   CameraModeIcon,
   BarcodeModeIcon,
   GalleryModeIcon

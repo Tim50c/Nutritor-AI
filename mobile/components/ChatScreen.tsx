@@ -15,15 +15,11 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
-import * as DocumentPicker from "expo-document-picker"; // <-- Import DocumentPicker
+import * as DocumentPicker from "expo-document-picker";
+import {Ionicons} from "@expo/vector-icons"; // <-- Import DocumentPicker
 
 // icon defined here
-const backArrowIcon = require("../assets/icons/back-arrow.png");
-const chatIcon = require("../assets/icons/chat-icon.png");
-const fileIcon = require("../assets/icons/file-icon.png");
-const screenshotIcon = require("../assets/icons/screenshot-icon.png");
-const attachmentIcon = require("../assets/icons/attachment-icon.png");
-const sendIcon = require("../assets/icons/send-icon.png");
+import { icons } from "@/constants/icons";
 
 interface Message {
   id: string;
@@ -352,7 +348,7 @@ const ChatScreen = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backArrowContainer}>
-          <Image source={backArrowIcon} style={styles.backArrow} />
+          <Ionicons name="arrow-back" size={20} color="black" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Nutritor AI</Text>
       </View>
@@ -367,10 +363,10 @@ const ChatScreen = () => {
         {!isChatStarted ? (
           <View style={styles.startContainer}>
             <View style={styles.startBox}>
-              <Image source={chatIcon} style={styles.startIcon} />
+              <icons.chatIcon width={60} height={60} className="mb-5" />
               <Text style={styles.startTitle}>Hello Nice to see you here!</Text>
               <Text style={styles.startSubtitle}>
-                By pressing the "Start chat" button you agree to have your
+                By pressing the &#34;Start chat&#34; button you agree to have your
                 personal data processed as described in our{" "}
                 <Text
                   style={styles.privacyLink}
@@ -417,14 +413,14 @@ const ChatScreen = () => {
                       style={styles.menuOption}
                       onPress={handleAttachFile}
                     >
-                      <Image source={fileIcon} style={styles.menuIcon} />
+                      <icons.fileIcon width={22} height={22} className="mr-2.5" stroke="#555" />
                       <Text style={styles.menuOptionText}>Send File</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.menuOption}
                       onPress={handleAttachImage}
                     >
-                      <Image source={screenshotIcon} style={styles.menuIcon} />
+                      <icons.screenShotIcon width={22} height={22} className="mr-2.5" stroke="#555" />
                       <Text style={styles.menuOptionText}>
                         Attach a screenshot
                       </Text>
@@ -445,11 +441,11 @@ const ChatScreen = () => {
                 <TouchableOpacity
                   onPress={() => setAttachmentMenuVisible((prev) => !prev)}
                 >
-                  <Image source={attachmentIcon} style={styles.icon} />
+                  <icons.screenShotIcon width={24} height={24} className="mx-2" stroke='#888' />
                 </TouchableOpacity>
                 {/* Send button now calls the unified `sendData` function */}
                 <TouchableOpacity onPress={() => sendData(input)}>
-                  <Image source={sendIcon} style={styles.icon} />
+                  <icons.sendIcon width={24} height={24} className="mx-2" stroke='#888' />
                 </TouchableOpacity>
               </View>
             </View>
@@ -479,7 +475,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginRight: 15,
   },
-  backArrow: { width: 20, height: 20, tintColor: "#fff" },
   headerTitle: { fontSize: 18, fontWeight: "600" },
   startContainer: {
     flex: 1,
@@ -496,7 +491,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#EFEFEF",
   },
-  startIcon: { width: 60, height: 60, marginBottom: 20 },
   startTitle: {
     fontSize: 18,
     fontWeight: "600",
