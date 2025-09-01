@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Stack, useRouter, useSegments } from 'expo-router';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth } from '@/config/firebase';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { Stack, useRouter, useSegments } from "expo-router";
+import { onAuthStateChanged, User } from "firebase/auth";
+import { auth } from "@/config/firebase";
 
 import "./global.css";
 import { StatusBar } from "expo-status-bar";
@@ -9,7 +9,7 @@ import CustomHeader from "@/components/CustomHeader";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { UserProvider, useUser, defaultUser } from "@/context/UserContext";
 import { DietProvider } from "@/context/DietContext";
-import apiClient from '@/utils/apiClients';
+import apiClient from "@/utils/apiClients";
 
 // --- No changes needed in AuthContext, useAuth, or AuthProvider ---
 
@@ -57,6 +57,9 @@ function RootLayoutNav() {
     if (user && !userProfile) {
       const fetchUserProfile = async () => {
         try {
+          // Add a small delay to allow backend registration to complete during sign-up
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+
           const idToken = await user.getIdToken();
           const response = await apiClient.get("/api/v1/profile", {
             headers: { Authorization: `Bearer ${idToken}` },
@@ -65,11 +68,32 @@ function RootLayoutNav() {
           if (response.data.success) {
             setUserProfile(response.data.data);
           } else {
-            console.warn("User profile not found on backend. Using default profile.");
+            console.warn(
+              "User profile not found on backend. Using default profile."
+            );
             setUserProfile(defaultUser);
           }
-        } catch (error) {
-          console.error("Layout: Failed to fetch user profile:", error);
+        } catch (error: any) {
+          // If it's a 404, the profile might not be created yet. Retry once after a longer delay.
+          if (error.response?.status === 404) {
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+
+            try {
+              const idToken = await user.getIdToken();
+              const retryResponse = await apiClient.get("/api/v1/profile", {
+                headers: { Authorization: `Bearer ${idToken}` },
+              });
+
+              if (retryResponse.data.success) {
+                setUserProfile(retryResponse.data.data);
+                return;
+              }
+            } catch (retryError) {
+              // Retry failed, fall through to default
+            }
+          }
+
+          // Use default profile on any error
           setUserProfile(defaultUser);
         }
       };
@@ -77,36 +101,36 @@ function RootLayoutNav() {
     } else if (!user) {
       setUserProfile(null);
     }
-    // FIX 1: The dependency array should ONLY react to the user's auth state changing.
-    // Including `userProfile` can cause unnecessary re-runs and race conditions.
   }, [user, setUserProfile]);
 
   // Effect 2: Handles all navigation logic based on auth and profile state
   useEffect(() => {
+    // Wait until BOTH Firebase auth and our profile fetch are finished
     if (isAuthLoading || isLoadingProfile) {
       return;
     }
 
-    const inAuthGroup = segments[0] === '(auth)';
-    const inOnboardingGroup = segments[0] === '(onboarding)';
+    const inAuthGroup = segments[0] === "(auth)";
+    const inOnboardingGroup = segments[0] === "(onboarding)";
 
+    // Case 1: No user. Must be on an auth screen.
     if (!user) {
       if (!inAuthGroup) router.replace("/(auth)/sign_in");
       return;
     }
 
+    // Case 2: User exists but not verified. Must be on an auth screen.
     if (!user.emailVerified) {
       if (!inAuthGroup) router.replace("/(auth)/sign_in");
       return;
     }
 
+    // Case 3: User is verified. Now check their profile for onboarding.
     if (userProfile) {
       if (userProfile.onboardingComplete) {
         // ONBOARDING COMPLETE: User belongs in the main app.
-        // FIX 2: Redirect if the user is in EITHER the auth OR onboarding group.
-        // This ensures that after completing onboarding, they are correctly moved to the app.
         if (inAuthGroup || inOnboardingGroup) {
-          router.replace('/(tabs)');
+          router.replace("/(tabs)");
         }
       } else {
         // ONBOARDING NOT COMPLETE: Force user to the onboarding flow.
