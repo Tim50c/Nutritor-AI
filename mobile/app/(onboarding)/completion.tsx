@@ -18,11 +18,16 @@ export default function CompletionScreen() {
 
   const handleFinishOnboarding = async () => {
     setIsSubmitting(true);
+    console.log("--- Starting Onboarding Completion ---"); // <-- LOG 1
+
     try {
       const user = auth.currentUser;
-      if (!user) throw new Error("Authentication error. Please sign in again.");
+      if (!user) {
+        throw new Error("Authentication error: No user found.");
+      }
       
       const idToken = await user.getIdToken();
+      console.log("Successfully got user ID token."); // <-- LOG 2
 
       const currentYear = new Date().getFullYear();
       const birthYear = currentYear - data.age;
@@ -37,32 +42,57 @@ export default function CompletionScreen() {
         targetNutrition: data.targetNutrition,
         onboardingComplete: true,
       };
-      
+
+      console.log("Sending PATCH request to /api/v1/profile with payload:", JSON.stringify(profilePayload, null, 2)); // <-- LOG 3
+
+      // Make the first API call to UPDATE the profile
       const response = await apiClient.patch('/api/v1/profile', profilePayload, {
         headers: { Authorization: `Bearer ${idToken}` }
       });
 
-     if (response.data.success) {
-        const updatedProfileResponse = await apiClient.get('/api/v1/profile', {
-            headers: { Authorization: `Bearer ${idToken}` },
-        });
+      console.log("PATCH response received:", response.data); // <-- LOG 4
 
-        if (updatedProfileResponse.data.success) {
-            setUserProfile(updatedProfileResponse.data.data);
-        } else {
-             throw new Error('Failed to retrieve updated profile after setup.');
-        }
+      if (!response.data.success) {
+        // If the backend says the operation failed, throw an error to be caught
+        throw new Error(response.data.error || "Backend returned success: false.");
+      }
+
+      console.log("Profile updated successfully. Now fetching the full updated profile..."); // <-- LOG 5
+
+      // Make the second API call to GET the updated profile
+      const updatedProfileResponse = await apiClient.get('/api/v1/profile', {
+          headers: { Authorization: `Bearer ${idToken}` },
+      });
+
+      console.log("GET response received:", updatedProfileResponse.data); // <-- LOG 6
+
+      if (updatedProfileResponse.data.success) {
+          console.log("Updating UserContext with new profile. Navigation should happen now."); // <-- LOG 7
+          setUserProfile(updatedProfileResponse.data.data);
       } else {
-        throw new Error(response.data.error || "An unknown error occurred while saving your profile.");
+           throw new Error('Failed to retrieve updated profile after setup.');
       }
 
     } catch (error: any) {
-      console.error("Onboarding completion failed:", error);
+      // --- THIS IS THE MOST IMPORTANT PART ---
+      console.error("--- ONBOARDING COMPLETION FAILED ---"); // <-- LOG 8
+
+      // Axios errors have a 'response' object with more details
+      if (error.response) {
+        console.error("Axios Error Details:", JSON.stringify(error.response.data, null, 2));
+        console.error("Status Code:", error.response.status);
+      } else {
+        // For non-Axios errors or network issues
+        console.error("General Error:", error.message);
+      }
+      
       Alert.alert(
         "Setup Failed", 
-        error.message || "Could not complete your profile setup. Please try again."
+        error.response?.data?.error || error.message || "An unknown error occurred. Please try again."
       );
     } finally {
+      // This will run whether the try block succeeded or failed
+      console.log("--- Onboarding Completion Finished ---"); // <-- LOG 9
       setIsSubmitting(false);
     }
   };

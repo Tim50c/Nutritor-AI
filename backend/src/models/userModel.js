@@ -11,11 +11,12 @@ class User {
     this.targetNutrition = targetNutrition;
     this.fcmToken = fcmToken;
     this.notificationPreferences = notificationPreferences;
+    this.onboardingComplete = onboardingComplete;
   }
 
   static fromFirestore(doc) {
     const data = doc.data();
-    return new User(doc.id, data.name, data.email, data.dob, data.gender, data.height, data.weightCurrent, data.weightGoal, data.targetNutrition, data.fcmToken, data.notificationPreferences);
+    return new User(doc.id, data.name, data.email, data.dob, data.gender, data.height, data.weightCurrent, data.weightGoal, data.targetNutrition, data.fcmToken, data.notificationPreferences, data.onboardingComplete);
   }
 
   toFirestore() {
@@ -29,7 +30,8 @@ class User {
       weightGoal: this.weightGoal,
       targetNutrition: this.targetNutrition,
       fcmToken: this.fcmToken,
-      notificationPreferences: this.notificationPreferences
+      notificationPreferences: this.notificationPreferences,
+      onboardingComplete: this.onboardingComplete,
     };
   }
 }
