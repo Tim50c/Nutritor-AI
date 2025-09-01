@@ -1,7 +1,8 @@
 class User {
-  constructor(id, name, email, dob, gender, height, weightCurrent, weightGoal, targetNutrition, fcmToken, notificationPreferences) {
+  constructor(id, firstname, lastname, email, dob, gender, height, weightCurrent, weightGoal, targetNutrition, fcmToken, notificationPreferences, onboardingComplete) {
     this.id = id;
-    this.name = name;
+    this.firstname = firstname;
+    this.lastname = lastname;
     this.email = email;
     this.dob = dob;
     this.gender = gender;
@@ -16,12 +17,27 @@ class User {
 
   static fromFirestore(doc) {
     const data = doc.data();
-    return new User(doc.id, data.name, data.email, data.dob, data.gender, data.height, data.weightCurrent, data.weightGoal, data.targetNutrition, data.fcmToken, data.notificationPreferences, data.onboardingComplete);
+    return new User(
+      doc.id, 
+      data.firstname, 
+      data.lastname, 
+      data.email, 
+      data.dob, 
+      data.gender, 
+      data.height, 
+      data.weightCurrent, 
+      data.weightGoal, 
+      data.targetNutrition, 
+      data.fcmToken, 
+      data.notificationPreferences, 
+      data.onboardingComplete
+    );
   }
 
   toFirestore() {
     return {
-      name: this.name,
+      firstname: this.firstname,
+      lastname: this.lastname,
       email: this.email,
       dob: this.dob,
       gender: this.gender,
