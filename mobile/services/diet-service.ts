@@ -23,6 +23,7 @@ class DietService {
       throw new Error("An error occurred while getting the diets.");
     }
   }
+
   public async addFoodToTodayDiet(input: IAddDietInput): Promise<DietModel[]> {
     try {
       const response = await authInstance.post(`/diet`, {
@@ -35,6 +36,17 @@ class DietService {
       throw new Error("An error occurred while getting the diets.");
     }
   }
-}
+
+  public async removeFoodFromTodayDiet(input: IAddDietInput): Promise<DietModel[]> {
+    try {
+      const response = await authInstance.delete(`/diet/${input.foodId}`);
+
+      return response.data as DietModel[];
+    } catch (error: any) {
+      console.log(error);
+      throw new Error("An error occurred while getting the diets.");
+    }
+  }
+};
 
 export default DietService.getInstance();
