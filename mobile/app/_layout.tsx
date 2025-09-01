@@ -166,13 +166,13 @@ useEffect(() => {
 
     // Case 1: No user. Must be on an auth screen.
     if (!user) {
-      if (!inAuthGroup) router.replace('/sign_in');
+      if (!inAuthGroup) router.replace('/(auth)/sign_in');
       return;
     }
 
     // Case 2: User exists but not verified. Must be on an auth screen.
     if (!user.emailVerified) {
-      if (!inAuthGroup) router.replace('/sign_in');
+      if (!inAuthGroup) router.replace('/(auth)/sign_in');
       return;
     }
 
@@ -188,7 +188,7 @@ useEffect(() => {
         // This check prevents an infinite redirect loop to the onboarding screen.
         const inOnboardingGroup = segments[0] === '(onboarding)';
         if (!inOnboardingGroup) {
-            router.replace('/(onboarding)/age'); // Or your first onboarding screen
+            router.replace('/(onboarding)/age');
         }
       }
     }

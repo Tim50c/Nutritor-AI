@@ -56,7 +56,7 @@ const Profile = () => {
         lastname,
         email,
         dob, // dob is already formatted as DD-MM-YYYY
-        gender,
+        gender: gender as "Male" | "Female" | "Other" | null,
         height,
         weightCurrent: weight,
       });
@@ -69,9 +69,9 @@ const Profile = () => {
     <View className="flex-1 bg-white px-4 pt-4">
       {/* Profile avatar section */}
       <View className="items-center mb-6">
-        {/* Use a placeholder image or a default avatar if user.avatar is not available */}
+        {/* Use a placeholder image or a default avatar if userProfile.avatar is not available */}
         <Image
-          source={{ uri: user?.avatar || images.placeholder }}
+          source={{ uri: userProfile?.avatar || images.placeholder }}
           className="w-24 h-24 rounded-full mb-2"
         />
         {/* Avatar edit button placeholder */}

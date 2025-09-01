@@ -36,7 +36,7 @@ export default function SignIn() {
     setIsLoading(true);
     try {
       await signInWithEmailAndPassword(auth, form.email, form.password);
-      router.replace('/(tabs)/'); // Navigate to home screen
+      router.replace('/(tabs)'); // Navigate to home screen
     } catch (error: any) {
       Alert.alert('Sign In Failed', 'Invalid email or password. Please try again.');
     } finally {
@@ -71,7 +71,7 @@ export default function SignIn() {
             error={errors.password}
           />
 
-          <Link href="/forgot-password" asChild>
+          <Link href="/forgot_password" asChild>
             <TouchableOpacity className="self-end mb-6">
               <Text className="text-gray-600">Forgot Password?</Text>
             </TouchableOpacity>
@@ -92,7 +92,7 @@ export default function SignIn() {
           
           <View className="flex-row justify-center mt-8">
             <Text className="text-gray-600">Don't have an account? </Text>
-            <Link href="/sign-up" asChild>
+            <Link href="/sign_up" asChild>
               <TouchableOpacity>
                 <Text className="text-[#FF5A16] font-bold">Sign Up</Text>
               </TouchableOpacity>
