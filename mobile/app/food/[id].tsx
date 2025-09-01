@@ -6,12 +6,30 @@ import {
   ImageBackground,
   TouchableOpacity,
   StatusBar,
+  Image,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import CustomButton from "@/components/CustomButton";
 import { FOODS } from "@/data/mockData";
+
+// Define the Food interface based on the backend response
+interface FoodData {
+  id: string;
+  name: string;
+  description: string;
+  barcode?: string;
+  imageUrl?: string;
+  nutrition: {
+    cal: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  };
+  source: string;
+  userId?: string;
+}
 
 // Reusable MacroCard Component
 interface MacroCardProps {
@@ -71,12 +89,33 @@ const GoalCard: React.FC = () => (
 );
 
 const FoodDetails = () => {
-  const { id } = useLocalSearchParams();
+  const { id, foodData, capturedImage } = useLocalSearchParams();
 
-  // Find food by ID - this structure makes it easy to replace with API call later
+  // Parse real API food data or use mock data as fallback
   const food = React.useMemo(() => {
+    if (foodData && typeof foodData === 'string') {
+      try {
+        const parsedFood: FoodData = JSON.parse(foodData);
+        return {
+          id: parsedFood.id || id,
+          name: parsedFood.name,
+          description: parsedFood.description,
+          calories: parsedFood.nutrition.cal || 0,
+          protein: parsedFood.nutrition.protein || 0,
+          carbs: parsedFood.nutrition.carbs || 0,
+          fat: parsedFood.nutrition.fat || 0,
+          image: parsedFood.imageUrl ? { uri: parsedFood.imageUrl } : null,
+          source: parsedFood.source,
+          barcode: parsedFood.barcode,
+        };
+      } catch (error) {
+        console.error('Error parsing food data:', error);
+      }
+    }
+    
+    // Fallback to mock data if no API data available
     return FOODS.find((item) => item.id === id);
-  }, [id]);
+  }, [id, foodData]);
 
   // Handle case where food is not found
   if (!food) {
@@ -93,13 +132,13 @@ const FoodDetails = () => {
   }
 
   // Calculate percentages for macros (assuming daily targets)
-  const proteinPercentage = Math.round((food.protein / 150) * 100); // 150g daily target
-  const carbsPercentage = Math.round((food.carbs / 250) * 100); // 250g daily target
-  const fatPercentage = Math.round((food.fat / 70) * 100); // 70g daily target
+  const proteinPercentage = Math.round(((food.protein || 0) / 150) * 100); // 150g daily target
+  const carbsPercentage = Math.round(((food.carbs || 0) / 250) * 100); // 250g daily target
+  const fatPercentage = Math.round(((food.fat || 0) / 70) * 100); // 70g daily target
 
   const handleAddToDiet = () => {
-    // TODO: Implement add to diet functionality
-    console.log(`Adding ${food.name} to diet`);
+    // TODO: Implement add to diet functionality using the real food ID
+    console.log(`Adding ${food.name} (ID: ${food.id}) to diet`);
     // This is where you'll later add the API call to save to backend
   };
 
@@ -109,33 +148,72 @@ const FoodDetails = () => {
 
       {/* Header with Image */}
       <View className="relative">
-        <ImageBackground
-          source={food.image}
-          className="w-full h-80"
-        >
-          {/* Dark overlay for better text readability */}
-          <LinearGradient
-            colors={["rgba(0,0,0,0.3)", "rgba(0,0,0,0.6)"]}
-            className="flex-1 justify-between"
+        {/* Use captured image, food's image URL, or fallback */}
+        {capturedImage ? (
+          <Image
+            source={{ uri: capturedImage as string }}
+            className="w-full h-80"
+            resizeMode="cover"
+          />
+        ) : food.image ? (
+          <ImageBackground
+            source={food.image}
+            className="w-full h-80"
           >
-            {/* Top Navigation */}
-            <View className="flex-row justify-between items-center pt-12 px-4">
-              <TouchableOpacity
-                className="w-10 h-10 bg-black rounded-full items-center justify-center"
-                onPress={() => router.back()}
-              >
-                <Ionicons name="arrow-back" size={24} color="white" />
-              </TouchableOpacity>
+            <LinearGradient
+              colors={["rgba(0,0,0,0.3)", "rgba(0,0,0,0.6)"]}
+              className="flex-1 justify-between"
+            >
+              {/* Top Navigation */}
+              <View className="flex-row justify-between items-center pt-12 px-4">
+                <TouchableOpacity
+                  className="w-10 h-10 bg-black rounded-full items-center justify-center"
+                  onPress={() => router.back()}
+                >
+                  <Ionicons name="arrow-back" size={24} color="white" />
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                className="w-10 h-10 bg-black rounded-full items-center justify-center"
-                onPress={() => console.log("More options")}
-              >
-                <Ionicons name="ellipsis-vertical" size={20} color="white" />
-              </TouchableOpacity>
-            </View>
-          </LinearGradient>
-        </ImageBackground>
+                <TouchableOpacity
+                  className="w-10 h-10 bg-black rounded-full items-center justify-center"
+                  onPress={() => console.log("More options")}
+                >
+                  <Ionicons name="ellipsis-vertical" size={20} color="white" />
+                </TouchableOpacity>
+              </View>
+            </LinearGradient>
+          </ImageBackground>
+        ) : (
+          // Fallback for foods without images
+          <View className="w-full h-80 bg-gray-300 items-center justify-center">
+            <LinearGradient
+              colors={["rgba(0,0,0,0.3)", "rgba(0,0,0,0.6)"]}
+              className="flex-1 w-full justify-between"
+            >
+              {/* Top Navigation */}
+              <View className="flex-row justify-between items-center pt-12 px-4">
+                <TouchableOpacity
+                  className="w-10 h-10 bg-black rounded-full items-center justify-center"
+                  onPress={() => router.back()}
+                >
+                  <Ionicons name="arrow-back" size={24} color="white" />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  className="w-10 h-10 bg-black rounded-full items-center justify-center"
+                  onPress={() => console.log("More options")}
+                >
+                  <Ionicons name="ellipsis-vertical" size={20} color="white" />
+                </TouchableOpacity>
+              </View>
+              
+              {/* Placeholder content */}
+              <View className="items-center justify-center flex-1">
+                <Ionicons name="nutrition" size={80} color="white" />
+                <Text className="text-white text-lg font-semibold mt-2">Food Image</Text>
+              </View>
+            </LinearGradient>
+          </View>
+        )}
       </View>
 
       <ScrollView className="flex-1 -mt-6 bg-white rounded-t-3xl px-6 pt-6">
@@ -147,6 +225,19 @@ const FoodDetails = () => {
           <Text className="text-gray-600 leading-relaxed">
             {food.description}
           </Text>
+          {/* Show source information for API-recognized foods */}
+          {('source' in food) && food.source && (
+            <View className="flex-row items-center mt-2">
+              <Ionicons 
+                name={food.source === 'gemini' ? 'sparkles' : food.source === 'openfoodfacts' ? 'barcode' : 'information-circle'} 
+                size={16} 
+                color="#666" 
+              />
+              <Text className="text-gray-500 text-sm ml-2 capitalize">
+                Recognized by {food.source === 'gemini' ? 'AI' : food.source === 'openfoodfacts' ? 'Barcode Database' : food.source}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Macro Cards Grid */}
@@ -155,12 +246,12 @@ const FoodDetails = () => {
           <View className="flex-row mb-3">
             <MacroCard
               title="Calories"
-              value={`${food.calories.toLocaleString()} kcal`}
+              value={`${(food.calories || 0).toLocaleString()} kcal`}
               backgroundColor="bg-purple-200"
             />
             <MacroCard
               title="Protein"
-              value={`${food.protein}g`}
+              value={`${food.protein || 0}g`}
               percentage={proteinPercentage}
               backgroundColor="bg-green-300"
             />
@@ -170,13 +261,13 @@ const FoodDetails = () => {
           <View className="flex-row">
             <MacroCard
               title="Carbs"
-              value={`${food.carbs}g`}
+              value={`${food.carbs || 0}g`}
               percentage={carbsPercentage}
               backgroundColor="bg-yellow-300"
             />
             <MacroCard
               title="Fat"
-              value={`${food.fat}g`}
+              value={`${food.fat || 0}g`}
               percentage={fatPercentage}
               backgroundColor="bg-orange-400"
               textColor="text-white"

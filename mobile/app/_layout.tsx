@@ -96,7 +96,25 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // TEMPORARY: Skip authentication for testing
+  const SKIP_AUTH_FOR_TESTING = true;
+
   useEffect(() => {
+    if (SKIP_AUTH_FOR_TESTING) {
+      // Create a mock user for testing
+      const mockUser = {
+        uid: 'test-user-123',
+        email: 'test@example.com',
+        emailVerified: true,
+        getIdToken: async () => 'mock-token'
+      } as any;
+      
+      setUser(mockUser);
+      setIsLoading(false);
+      console.log('🚧 TESTING MODE: Authentication bypassed');
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setIsLoading(false);
@@ -124,6 +142,21 @@ useEffect(() => {
     if (user && !userProfile) {
       const fetchUserProfile = async () => {
         try {
+          // TEMPORARY: Skip profile fetch for test user
+          if (user.uid === 'test-user-123') {
+            const mockProfile = {
+              ...defaultUser,
+              id: 'test-user-123',
+              email: 'test@example.com',
+              firstname: 'Test',
+              lastname: 'User',
+              onboardingComplete: true, // Skip onboarding for testing
+            };
+            setUserProfile(mockProfile);
+            console.log('🚧 TESTING MODE: Using mock profile');
+            return;
+          }
+
           const idToken = await user.getIdToken();
           const response = await apiClient.get('/api/v1/profile', {
             headers: { Authorization: `Bearer ${idToken}` },
