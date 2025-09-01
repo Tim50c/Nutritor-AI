@@ -109,6 +109,9 @@ exports.updateUserProfile = async (req, res, next) => {
     if (body.weightCurrent) updateData.weightCurrent = body.weightCurrent;
     if (body.weightGoal) updateData.weightGoal = body.weightGoal;
     if (body.targetNutrition) updateData.targetNutrition = body.targetNutrition;
+    
+    // Add onboardingComplete field - this was missing!
+    if (body.onboardingComplete !== undefined) updateData.onboardingComplete = body.onboardingComplete;
 
     // If the update object is empty, nothing was sent to update.
     if (Object.keys(updateData).length === 0) {
