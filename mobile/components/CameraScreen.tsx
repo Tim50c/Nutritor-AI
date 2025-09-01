@@ -11,14 +11,13 @@ import {
 } from "react-native";
 import { CameraView, Camera } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
-import * as ImageManipulator from "expo-image-manipulator";
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { useRouter } from "expo-router";
 import { icons } from "@/constants/icons";
-import { getAuth } from "firebase/auth";
-import app from "@/config/firebase";
 import LoadingSpinner from "./LoadingSpinner";
+import { CameraService } from "@/services";
+import NavigationUtils from "@/utils/NavigationUtils";
 
 const CameraScreen = () => {
   const [mode, setMode] = useState("camera"); // "camera" | "barcode" | "gallery"
@@ -29,41 +28,6 @@ const CameraScreen = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [scannedBarcode, setScannedBarcode] = useState<string | null>(null);
   const router = useRouter();
-
-  // Base URL for your backend
-  const BASE_URL = "https://nutritor-ai.onrender.com";
-  const auth = getAuth(app);
-
-  // Function to get Firebase ID token for authentication
-  const getAuthToken = async (): Promise<string | null> => {
-    try {
-      const user = auth.currentUser;
-      if (user) {
-        const token = await user.getIdToken();
-        return token;
-      } else {
-        // For development, you might want to sign in a test user
-        // For now, we'll return null and handle the unauthenticated case
-        console.warn("No authenticated user found");
-        return null;
-      }
-    } catch (error) {
-      console.error("Error getting auth token:", error);
-      return null;
-    }
-  };
-
-  // Get auth headers for API requests
-  const getAuthHeaders = async (): Promise<Record<string, string>> => {
-    const token = await getAuthToken();
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
-    }
-    return headers;
-  };
 
   // Handle barcode scanning
   const handleBarcodeScanned = async (result: any) => {
@@ -77,29 +41,13 @@ const CameraScreen = () => {
     try {
       console.log("🔍 Barcode scanned:", result.data);
 
-      // Send barcode to backend for food lookup
-      const headers = await getAuthHeaders();
-      const response = await fetch(`${BASE_URL}/api/v1/camera/barcode`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ barcode: result.data }),
-      });
+      // Use CameraService for barcode lookup
+      const barcodeResult = await CameraService.lookupBarcode(result.data);
 
-      const apiResult = await response.json();
-      console.log("📦 Barcode lookup result:", apiResult);
-
-      if (apiResult.success && apiResult.data) {
+      if (barcodeResult.success && barcodeResult.data) {
         // Navigate to food detail screen using the real food ID from backend
-        const foodId =
-          apiResult.foodId || apiResult.data.id || `barcode_${Date.now()}`;
-
-        router.push({
-          pathname: "/food/[id]",
-          params: {
-            id: foodId,
-            foodData: JSON.stringify(apiResult.data),
-          },
-        });
+        const foodId = barcodeResult.foodId || `barcode_${Date.now()}`;
+        NavigationUtils.navigateToFoodDetail(barcodeResult.data, foodId);
       } else {
         Alert.alert(
           "Product Not Found",
@@ -164,256 +112,36 @@ const CameraScreen = () => {
     }
   }, [mode, scanLinePosition]);
 
-  // Function to send image to backend for food recognition
-  const sendImageToBackend = async (imageUri: string, endpoint: string) => {
+  // Function to handle food recognition using CameraService
+  const recognizeFood = async (imageUri: string) => {
     try {
       setIsProcessing(true);
+      console.log("📸 Starting food recognition...");
 
-      console.log("📸 Original image URI:", imageUri);
+      // Use CameraService for food recognition
+      const result = await CameraService.recognizeFood(imageUri);
 
-      // ✅ Simple approach: Always try compression, use original on failure
-      let finalImageUri = imageUri;
-      let compressionAttempted = false;
-
-      try {
-        console.log("🔄 Attempting image compression...");
-        const manipulatedImage = await ImageManipulator.manipulateAsync(
-          imageUri,
-          [{ resize: { width: 1024 } }], // Resize to max width 1024px
-          {
-            compress: 0.7, // 70% quality
-            format: ImageManipulator.SaveFormat.JPEG,
-          }
-        );
-
-        finalImageUri = manipulatedImage.uri;
-        compressionAttempted = true;
-        console.log("✅ Image compression successful:", {
-          originalUri: imageUri,
-          compressedUri: manipulatedImage.uri,
-          width: manipulatedImage.width,
-          height: manipulatedImage.height,
-        });
-      } catch (compressionError: any) {
-        console.warn(
-          "⚠️ Image compression failed, using original:",
-          compressionError
-        );
-        finalImageUri = imageUri;
-        compressionAttempted = false;
-      }
-
-      // ✅ Create FormData with the final image URI (no blob conversion needed)
-      const formData = new FormData();
-      formData.append("image", {
-        uri: finalImageUri,
-        type: "image/jpeg",
-        name: "food-image.jpg",
-      } as any);
-
-      console.log(
-        `📦 FormData created with ${compressionAttempted ? "compressed" : "original"} image`
-      );
-
-      // ✅ Get auth token
-      const authToken = await getAuthToken(); // Create headers with optional authentication
-      // ✅ Don't set Content-Type for FormData - let it handle the boundary automatically
-      const headers: Record<string, string> = {};
-
-      if (authToken) {
-        headers["Authorization"] = `Bearer ${authToken}`;
-      } else {
-        console.warn(
-          "No auth token available - proceeding without authentication"
-        );
-      }
-
-      console.log("🚀 About to send API request...");
-      console.log(`📍 URL: ${BASE_URL}/api/v1/camera/${endpoint}`);
-      console.log(`🚀 Sending as FormData (much smaller than base64)`);
-
-      // ✅ Remove timeout to prevent premature aborts on Render.com cold starts
-      const apiResponse = await fetch(`${BASE_URL}/api/v1/camera/${endpoint}`, {
-        method: "POST",
-        headers,
-        body: formData,
-      });
-
-      console.log("🎯 API request completed!");
-      console.log(`📡 Response status: ${apiResponse.status}`);
-      console.log(
-        `📋 Response content type:`,
-        apiResponse.headers.get("content-type")
-      );
-
-      // Get the raw response text first
-      const responseText = await apiResponse.text();
-      console.log(
-        `📄 Raw response (first 200 chars):`,
-        responseText.substring(0, 200)
-      );
-
-      // Try to parse as JSON
-      let result;
-      try {
-        result = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error("❌ JSON Parse Error - Response is not valid JSON:");
-        console.error("Full response:", responseText);
-
-        Alert.alert(
-          "Server Error",
-          `The server returned an invalid response. Status: ${apiResponse.status}\n\nResponse preview: ${responseText.substring(0, 100)}...`
-        );
-        return null;
-      }
-
-      if (apiResponse.ok) {
-        console.log("🖼️ Image URL from backend:", result.data?.imageUrl);
-
+      if (result.success && result.data) {
         // Navigate to food detail screen with the recognized food data
-        if (result.data && result.data.name) {
-          // Use the real food ID from backend response
-          const foodId =
-            result.foodId || result.data.id || `temp_${Date.now()}`;
-
-          // Create navigation params
-          const navigationParams: any = {
-            id: foodId,
-            foodData: JSON.stringify(result.data),
-          };
-
-          // Only pass capturedImage if backend didn't return an imageUrl
-          if (!result.data.imageUrl) {
-            navigationParams.capturedImage = imageUri;
-          }
-
-          // Navigate with the food data
-          router.push({
-            pathname: "/food/[id]",
-            params: navigationParams,
-          });
-        } else {
-          // Fallback alert if no food data
-          Alert.alert("Analysis Complete", "Food recognized successfully!", [
-            { text: "OK" },
-          ]);
-        }
-
-        return result;
+        const foodId = result.foodId || `temp_${Date.now()}`;
+        NavigationUtils.navigateToFoodDetail(result.data, foodId, imageUri);
       } else {
-        console.error("Backend error:", result);
         Alert.alert(
-          "Error",
-          `Analysis failed: ${result.message || "Unknown error"}`
-        );
-        return null;
-      }
-    } catch (error: any) {
-      console.error("💥 Error in optimized image processing:", error);
-
-      // ✅ Fallback: Try with original method if compression/blob conversion fails
-      if (
-        error?.message?.includes("compression failed") ||
-        error?.message?.includes("Blob conversion failed")
-      ) {
-        console.log("🔄 Falling back to original image upload method...");
-        try {
-          const fallbackFormData = new FormData();
-          fallbackFormData.append("image", {
-            uri: imageUri,
-            type: "image/jpeg",
-            name: "food-image.jpg",
-          } as any);
-
-          const authToken = await getAuthToken();
-          const headers: Record<string, string> = {};
-          if (authToken) {
-            headers["Authorization"] = `Bearer ${authToken}`;
-          }
-
-          console.log("🚀 Sending fallback request...");
-          const apiResponse = await fetch(
-            `${BASE_URL}/api/v1/camera/${endpoint}`,
-            {
-              method: "POST",
-              headers,
-              body: fallbackFormData,
-            }
-          );
-
-          const responseText = await apiResponse.text();
-          console.log("📄 Fallback response received");
-
-          if (apiResponse.ok) {
-            const result = JSON.parse(responseText);
-            console.log("✅ Fallback request successful");
-
-            if (result.data && result.data.name) {
-              const foodId =
-                result.foodId || result.data.id || `temp_${Date.now()}`;
-
-              // Create navigation params
-              const navigationParams: any = {
-                id: foodId,
-                foodData: JSON.stringify(result.data),
-              };
-
-              // Only pass capturedImage if backend didn't return an imageUrl
-              if (!result.data.imageUrl) {
-                navigationParams.capturedImage = imageUri;
-              }
-
-              router.push({
-                pathname: "/food/[id]",
-                params: navigationParams,
-              });
-            }
-            return result;
-          } else {
-            throw new Error(`Fallback request failed: ${apiResponse.status}`);
-          }
-        } catch (fallbackError) {
-          console.error("❌ Fallback method also failed:", fallbackError);
-        }
-      }
-
-      // ✅ Standard error handling for other types of errors
-      if (error?.name === "AbortError") {
-        Alert.alert(
-          "Request Timeout",
-          "The server is taking too long to respond. Please try again."
-        );
-      } else if (error?.message?.includes("Network request failed")) {
-        Alert.alert(
-          "Network Error",
-          "Cannot reach the server. Please check your internet connection and try again."
-        );
-      } else if (
-        error?.message?.includes("JSON Parse error") ||
-        error instanceof SyntaxError
-      ) {
-        Alert.alert(
-          "Server Error",
-          "The server returned an invalid response. Please try again later."
-        );
-      } else if (error?.message?.includes("Server error")) {
-        Alert.alert(
-          "Analysis Failed",
-          "The image analysis failed. Please try with a clearer image."
-        );
-      } else {
-        const errorMessage =
-          error instanceof Error ? error.message : "Unknown error";
-        Alert.alert(
-          "Connection Error",
-          `Failed to connect to server: ${errorMessage}`
+          "Recognition Failed",
+          result.message || "Could not recognize the food. Please try again.",
+          [{ text: "OK" }]
         );
       }
-      return null;
+    } catch (error) {
+      console.error("💥 Food recognition error:", error);
+      Alert.alert(
+        "Error",
+        "An error occurred while recognizing the food. Please try again.",
+        [{ text: "OK" }]
+      );
     } finally {
       setIsProcessing(false);
-      setCapturedImage(null); // Clear captured image when processing ends
+      setCapturedImage(null);
     }
   };
 
@@ -445,14 +173,7 @@ const CameraScreen = () => {
         // Send to backend based on current mode
         if (mode === "camera") {
           // Send for food recognition
-          const result = await sendImageToBackend(
-            photo.uri,
-            "recognize-details"
-          );
-          if (result) {
-            console.log("Food recognition result:", result);
-            // Handle the food recognition result
-          }
+          await recognizeFood(photo.uri);
         }
         // Note: Barcode mode uses live scanning, not photo capture
       } catch (error) {
@@ -478,14 +199,7 @@ const CameraScreen = () => {
       console.log("Selected Image:", result.assets[0].uri);
 
       // Send selected image to backend for food recognition
-      const apiResult = await sendImageToBackend(
-        result.assets[0].uri,
-        "recognize-details"
-      );
-      if (apiResult) {
-        console.log("Gallery image recognition result:", apiResult);
-        // Handle the food recognition result
-      }
+      await recognizeFood(result.assets[0].uri);
     }
   };
 
@@ -501,7 +215,7 @@ const CameraScreen = () => {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backArrowContainer}
-          onPress={() => router.back()}
+          onPress={() => NavigationUtils.goBack()}
         >
           <Ionicons name="arrow-back" size={20} color="#fff" />
         </TouchableOpacity>

@@ -14,9 +14,9 @@ import {
   ActivityIndicator, // <-- Import ActivityIndicator for loading state
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import * as ImageManipulator from "expo-image-manipulator";
 import * as DocumentPicker from "expo-document-picker";
-import {Ionicons} from "@expo/vector-icons"; // <-- Import DocumentPicker
+import { Ionicons } from "@expo/vector-icons"; // <-- Import DocumentPicker
+import ImageUtils from "@/utils/ImageUtils";
 
 // icon defined here
 import { icons } from "@/constants/icons";
@@ -96,37 +96,29 @@ const ChatScreen = () => {
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
 
-    // ✅ Apply same compression logic as CameraScreen
+    // ✅ Use ImageUtils for image processing
     let finalAssetUri = asset?.uri;
-    let compressionAttempted = false;
+    let processedSuccessfully = false;
 
     if (asset && asset.mimeType.startsWith("image/")) {
       try {
-        console.log("🔄 Attempting image compression in chat...");
-        const manipulatedImage = await ImageManipulator.manipulateAsync(
-          asset.uri,
-          [{ resize: { width: 1024 } }], // Resize to max width 1024px
-          {
-            compress: 0.7, // 70% quality
-            format: ImageManipulator.SaveFormat.JPEG,
-          }
-        );
+        console.log("🔄 Processing image with ImageUtils...");
+        const processResult = await ImageUtils.processImageForUpload(asset.uri);
 
-        finalAssetUri = manipulatedImage.uri;
-        compressionAttempted = true;
-        console.log("✅ Chat image compression successful:", {
+        finalAssetUri = processResult.uri;
+        processedSuccessfully = processResult.compressed;
+
+        console.log("✅ Chat image processing result:", {
           originalUri: asset.uri,
-          compressedUri: manipulatedImage.uri,
-          width: manipulatedImage.width,
-          height: manipulatedImage.height,
+          processedUri: processResult.uri,
+          width: processResult.width,
+          height: processResult.height,
+          compressed: processResult.compressed,
         });
-      } catch (compressionError: any) {
-        console.warn(
-          "⚠️ Chat image compression failed, using original:",
-          compressionError
-        );
+      } catch (error) {
+        console.warn("⚠️ Chat image processing failed, using original:", error);
         finalAssetUri = asset.uri;
-        compressionAttempted = false;
+        processedSuccessfully = false;
       }
     }
 
@@ -136,16 +128,31 @@ const ChatScreen = () => {
     formData.append("prompt", prompt);
 
     if (asset && finalAssetUri) {
-      const fileData: any = {
-        uri: finalAssetUri,
-        name: asset.fileName,
-        type: asset.mimeType.startsWith("image/")
-          ? "image/jpeg"
-          : asset.mimeType,
-      };
-      formData.append("image", fileData);
+      // Validate image URI before creating FormData
+      if (
+        asset.mimeType.startsWith("image/") &&
+        ImageUtils.isValidImageUri(finalAssetUri)
+      ) {
+        // Use ImageUtils for consistent FormData creation
+        const imageFormData = ImageUtils.createImageFormData(
+          finalAssetUri,
+          "image"
+        );
+        // Get the image data from the ImageUtils FormData and append to our main FormData
+        const imageData = (imageFormData as any)._parts[0][1];
+        formData.append("image", imageData);
+      } else {
+        // For non-image files, use the original approach
+        const fileData: any = {
+          uri: finalAssetUri,
+          name: asset.fileName,
+          type: asset.mimeType,
+        };
+        formData.append("image", fileData);
+      }
+
       console.log(
-        `📦 Chat FormData created with ${compressionAttempted ? "compressed" : "original"} image`
+        `📦 Chat FormData created with ${processedSuccessfully ? "processed" : "original"} ${asset.mimeType.startsWith("image/") ? "image" : "file"}`
       );
     }
 
@@ -174,11 +181,11 @@ const ChatScreen = () => {
     } catch (error: any) {
       console.error("💥 Error in chat sendData:", error);
 
-      // ✅ Fallback: Try with original image if compression failed
+      // ✅ Fallback: Try with original image if processing failed
       if (
-        error?.message?.includes("compression failed") &&
+        error?.message?.includes("processing failed") &&
         asset &&
-        compressionAttempted
+        processedSuccessfully
       ) {
         console.log("🔄 Falling back to original image in chat...");
         try {
@@ -187,12 +194,26 @@ const ChatScreen = () => {
           fallbackFormData.append("prompt", prompt);
 
           if (asset) {
-            const originalFileData: any = {
-              uri: asset.uri,
-              name: asset.fileName,
-              type: asset.mimeType,
-            };
-            fallbackFormData.append("image", originalFileData);
+            if (
+              asset.mimeType.startsWith("image/") &&
+              ImageUtils.isValidImageUri(asset.uri)
+            ) {
+              // Use ImageUtils for consistent fallback FormData creation
+              const imageFormData = ImageUtils.createImageFormData(
+                asset.uri,
+                "image"
+              );
+              const imageData = (imageFormData as any)._parts[0][1];
+              fallbackFormData.append("image", imageData);
+            } else {
+              // For non-image files, use the original approach
+              const originalFileData: any = {
+                uri: asset.uri,
+                name: asset.fileName,
+                type: asset.mimeType,
+              };
+              fallbackFormData.append("image", originalFileData);
+            }
           }
 
           const fallbackResponse = await fetch(API_URL, {
@@ -366,8 +387,8 @@ const ChatScreen = () => {
               <icons.chatIcon width={60} height={60} className="mb-5" />
               <Text style={styles.startTitle}>Hello Nice to see you here!</Text>
               <Text style={styles.startSubtitle}>
-                By pressing the &#34;Start chat&#34; button you agree to have your
-                personal data processed as described in our{" "}
+                By pressing the &#34;Start chat&#34; button you agree to have
+                your personal data processed as described in our{" "}
                 <Text
                   style={styles.privacyLink}
                   onPress={() =>
@@ -413,14 +434,24 @@ const ChatScreen = () => {
                       style={styles.menuOption}
                       onPress={handleAttachFile}
                     >
-                      <icons.fileIcon width={22} height={22} className="mr-2.5" stroke="#555" />
+                      <icons.fileIcon
+                        width={22}
+                        height={22}
+                        className="mr-2.5"
+                        stroke="#555"
+                      />
                       <Text style={styles.menuOptionText}>Send File</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.menuOption}
                       onPress={handleAttachImage}
                     >
-                      <icons.screenShotIcon width={22} height={22} className="mr-2.5" stroke="#555" />
+                      <icons.screenShotIcon
+                        width={22}
+                        height={22}
+                        className="mr-2.5"
+                        stroke="#555"
+                      />
                       <Text style={styles.menuOptionText}>
                         Attach a screenshot
                       </Text>
@@ -441,11 +472,21 @@ const ChatScreen = () => {
                 <TouchableOpacity
                   onPress={() => setAttachmentMenuVisible((prev) => !prev)}
                 >
-                  <icons.screenShotIcon width={24} height={24} className="mx-2" stroke='#888' />
+                  <icons.screenShotIcon
+                    width={24}
+                    height={24}
+                    className="mx-2"
+                    stroke="#888"
+                  />
                 </TouchableOpacity>
                 {/* Send button now calls the unified `sendData` function */}
                 <TouchableOpacity onPress={() => sendData(input)}>
-                  <icons.sendIcon width={24} height={24} className="mx-2" stroke='#888' />
+                  <icons.sendIcon
+                    width={24}
+                    height={24}
+                    className="mx-2"
+                    stroke="#888"
+                  />
                 </TouchableOpacity>
               </View>
             </View>

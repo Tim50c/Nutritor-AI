@@ -8,5 +8,6 @@ import SearchService from "./search-service";
 import FoodService from "./food-service";
 import ProfileService from "./profile-service";
 import PasswordService from "./password-service";
+import CameraService from "./camera-service";
 
-export { AuthenticationService, DietService, HomeService, FavoriteService, NotificationService, AnalysisService, SearchService, FoodService, ProfileService, PasswordService };
+export { AuthenticationService, DietService, HomeService, FavoriteService, NotificationService, AnalysisService, SearchService, FoodService, ProfileService, PasswordService, CameraService };
