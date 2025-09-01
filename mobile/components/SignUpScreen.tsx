@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { Link, router } from 'expo-router';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../../firebase';
+import { auth } from '../config/firebase';
 import axios from 'axios';
 
 import AuthHeader from '../components/AuthHeader';
@@ -43,7 +43,7 @@ export default function SignUp() {
       );
 
       Alert.alert('Success!', 'Your account has been created. Please log in.');
-      router.replace('/sign-in');
+      router.replace('/sign_in');
 
     } catch (error: any) {
       let message = "An error occurred during sign up.";
@@ -94,7 +94,7 @@ export default function SignUp() {
           
           <View className="flex-row justify-center mt-6">
             <Text className="text-gray-600">Already have an account? </Text>
-            <Link href="/sign-in" asChild>
+            <Link href="/sign_in" asChild>
               <TouchableOpacity>
                 <Text className="text-[#FF5A16] font-bold">Log In</Text>
               </TouchableOpacity>

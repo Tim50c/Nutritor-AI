@@ -25,19 +25,24 @@ function NotificationIcon({ hasUnread }: { hasUnread: boolean }) {
 export default function HomeTopBar() {
   const router = useRouter();
   const { hasUnread } = useNotificationContext();
-  const { user } = useUser();
+  const { userProfile } = useUser();
+
+  // If userProfile is not loaded yet, don't render
+  if (!userProfile) {
+    return null;
+  }
 
   return (
     <View className="flex-row items-center justify-between px-4 py-3 bg-white">
       {/* Left side: Avatar + Welcome */}
       <View className="flex-row items-center">
         <Image
-          source={user.avatar}
+          source={userProfile.avatar}
           className="w-10 h-10 rounded-full mr-2"
         />
         <View>
           <Text className="text-sm text-gray-500">Welcome</Text>
-          <Text className="text-base font-semibold">{user.name}</Text>
+          <Text className="text-base font-semibold">{userProfile.firstname} {userProfile.lastname}</Text>
         </View>
       </View>
 
