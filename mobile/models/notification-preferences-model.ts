@@ -1,9 +1,7 @@
 interface NotificationPreferencesModel {
-  pushEnabled: boolean;
-  emailEnabled?: boolean;
-  smsEnabled?: boolean;
-  // Add more preferences as needed
+  mealReminders: boolean;
+  goalMilestoneNotification: boolean;
+  newPlanRecommendations: boolean;
 }
 
 export default NotificationPreferencesModel;
-

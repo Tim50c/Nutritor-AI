@@ -1,8 +1,8 @@
 interface NutritionModel {
-  calorie: number;
+  cal: number;
   protein: number;
-  fat: number;
   carbs: number;
+  fat: number;
 }
 
 export default NutritionModel;

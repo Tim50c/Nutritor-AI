@@ -1,8 +1,29 @@
 const { db } = require('../config/firebase');
+const imagekit = require('../config/imagekit');
 const model = require('../config/gemini');
 const openfoodfacts = require('openfoodfacts-nodejs');
 const { SchemaType } = require("@google/generative-ai");
 const Food = require('../models/foodModel');
+
+// Helper function to upload image to ImageKit
+const uploadImageToImageKit = async (imageBuffer, fileName, mimeType) => {
+  try {
+    console.log(`[LOG] Uploading image to ImageKit: ${fileName}`);
+    
+    const result = await imagekit.upload({
+      file: imageBuffer, // file as Buffer
+      fileName: fileName,
+      folder: "/food-images", // organize images in a folder
+      useUniqueFileName: true, // ensure unique filenames
+    });
+
+    console.log(`[LOG] Image uploaded successfully to ImageKit: ${result.url}`);
+    return result.url;
+  } catch (error) {
+    console.error('[ERROR] Failed to upload image to ImageKit:', error);
+    throw error;
+  }
+};
 
 // @desc    Recognize food details from an image
 // @route   POST /api/v1/camera/recognize-details
@@ -113,13 +134,24 @@ exports.recognizeFoodDetails = async (req, res) => {
       };
     }
 
-    // Create food object
+    // Upload image to ImageKit
+    let imageUrl = null;
+    try {
+      const fileName = `${foodName.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.jpg`;
+      imageUrl = await uploadImageToImageKit(imageFile.buffer, fileName, imageFile.mimetype);
+      console.log('[LOG] Image uploaded to ImageKit:', imageUrl);
+    } catch (uploadError) {
+      console.error('[ERROR] Failed to upload image, proceeding without image URL:', uploadError);
+      // Continue without image URL rather than failing the entire request
+    }
+
+    // Create food object with image URL
     const generatedFood = new Food(
       null,
       foodName,
       detailsData.description,
       null,
-      null,
+      imageUrl, // Save the uploaded image URL
       detailsData.nutrition,
       'gemini',
       null
@@ -136,7 +168,7 @@ exports.recognizeFoodDetails = async (req, res) => {
       foodName,
       detailsData.description,
       null,
-      null,
+      imageUrl, // Include the uploaded image URL
       detailsData.nutrition,
       'gemini',
       null

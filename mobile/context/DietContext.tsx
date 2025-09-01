@@ -1,5 +1,7 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
-import {FOODS} from "@/data/mockData";
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import HomeService from "@/services/home-service";
+import FavoriteService from "@/services/favorite-service";
+import { IHomeInput, IFavoriteInput } from "@/interfaces";
 
 export type DietFood = {
   id: string;
@@ -25,9 +27,11 @@ interface DietContextType {
   summary: DietSummary;
   foods: DietFood[];
   favoriteFoodIds: string[];
-  toggleFavorite: (foodId: string) => void;
+  toggleFavorite: (foodId: string) => Promise<void>;
   isFavorite: (foodId: string) => boolean;
   getFavoriteFoods: () => DietFood[];
+  targetNutrition: DietSummary;
+  loading: boolean;
 }
 
 const DietContext = createContext<DietContextType | undefined>(undefined);
@@ -40,25 +44,71 @@ export function useDietContext() {
 
 export function DietProvider({ children }: { children: ReactNode }) {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [summary, setSummary] = useState<DietSummary>({ calories: 0, carbs: 0, protein: 0, fat: 0 });
+  const [foods, setFoods] = useState<DietFood[]>([]);
   const [favoriteFoodIds, setFavoriteFoodIds] = useState<string[]>([]);
+  const [targetNutrition, setTargetNutrition] = useState<DietSummary>({ calories: 0, carbs: 0, protein: 0, fat: 0 });
+  const [loading, setLoading] = useState<boolean>(true);
 
-  // Demo/mock data
-  const summary: DietSummary = {
-    calories: 49.05,
-    carbs: 11.83,
-    protein: 0.35,
-    fat: 0.35,
-  };
+  // Fetch home data and favorites from backend
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      try {
+        const input: IHomeInput = { date: selectedDate.toISOString().split("T")[0] };
+        const homeData = await HomeService.getHome(input);
+        // Map backend nutrition model to DietSummary
+        setSummary({
+          calories: homeData.totals.cal,
+          carbs: homeData.totals.carbs,
+          protein: homeData.totals.protein,
+          fat: homeData.totals.fat,
+        });
+        setTargetNutrition({
+          calories: homeData.targetNutrition.cal,
+          carbs: homeData.targetNutrition.carbs,
+          protein: homeData.targetNutrition.protein,
+          fat: homeData.targetNutrition.fat,
+        });
+        // Flatten foods from diets
+        const allFoods: DietFood[] = homeData.diets.flatMap(diet =>
+          diet.foods.map(food => ({
+            id: food.foodId,
+            name: "", // You may want to fetch food details for name/image
+            image: null,
+            calories: 0,
+            carbs: 0,
+            protein: 0,
+            fat: 0,
+            description: "",
+            ...food,
+          }))
+        );
+        setFoods(allFoods);
+        // Fetch favorites
+        const favIds = await FavoriteService.getFavorites();
+        setFavoriteFoodIds(favIds);
+      } catch (err) {
+        // Handle error (optional)
+      }
+      setLoading(false);
+    }
+    fetchData();
+  }, [selectedDate]);
 
-  const foods: DietFood[] = FOODS;
-
-  // Favorite logic
-  const toggleFavorite = (foodId: string) => {
-    setFavoriteFoodIds((prev) =>
-      prev.includes(foodId)
-        ? prev.filter((id) => id !== foodId)
-        : [...prev, foodId]
-    );
+  // Favorite logic using backend
+  const toggleFavorite = async (foodId: string) => {
+    try {
+      let updatedIds: string[];
+      if (favoriteFoodIds.includes(foodId)) {
+        updatedIds = await FavoriteService.removeFavorite({ foodId });
+      } else {
+        updatedIds = await FavoriteService.addFavorite({ foodId });
+      }
+      setFavoriteFoodIds(updatedIds);
+    } catch (err) {
+      // Handle error (optional)
+    }
   };
 
   const isFavorite = (foodId: string) => favoriteFoodIds.includes(foodId);
@@ -76,6 +126,8 @@ export function DietProvider({ children }: { children: ReactNode }) {
         toggleFavorite,
         isFavorite,
         getFavoriteFoods,
+        targetNutrition,
+        loading,
       }}
     >
       {children}

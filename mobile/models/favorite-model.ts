@@ -1,6 +1,4 @@
-import BaseModel from "./base-model";
-
-interface FavoriteModel extends BaseModel {
+interface FavoriteModel {
   addedAt: Date | string | number;
 }
 

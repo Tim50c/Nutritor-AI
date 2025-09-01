@@ -8,5 +8,6 @@ import UserModel from "./user-model";
 import HomeModel from "./home-model";
 import FoodDetailsModel from "./food-details-model";
 import ProfileModel from "./profile-model";
+import NutritionModel from "./nutrition-model";
 
-export { DietModel, FavoriteModel, FoodModel, NotificationModel, NotificationPreferencesModel, UserModel, HomeModel, AnalysisModel, FoodDetailsModel, ProfileModel };
+export { DietModel, FavoriteModel, FoodModel, NotificationModel, NotificationPreferencesModel, UserModel, HomeModel, AnalysisModel, FoodDetailsModel, ProfileModel, NutritionModel };

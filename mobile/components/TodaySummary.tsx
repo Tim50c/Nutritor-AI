@@ -1,5 +1,6 @@
 import { View, Text } from "react-native";
 import { Svg, Path } from "react-native-svg";
+import { useDietContext } from "@/context/DietContext";
 
 interface MacroProps {
   label: string;
@@ -87,16 +88,32 @@ function CircularProgress({ current, target }: CircularProgressProps) {
   );
 }
 
-export default function TodaySummary() {
+export default function TodaySummary({ loading = false }: { loading?: boolean }) {
+  const { summary, targetNutrition, loading: contextLoading } = useDietContext();
+  const isLoading = loading || contextLoading;
+
+  // Show loading state if needed
+  if (isLoading) {
+    return (
+      <View className="bg-white mx-4 rounded-2xl p-6 mb-6 border border-gray-200 shadow-sm">
+        <Text className="text-lg font-semibold mb-6">Today Summary</Text>
+        <View className="items-center mb-8"><Text>Loading...</Text></View>
+        <View className="flex-row justify-between">
+          <Text>Loading...</Text>
+        </View>
+      </View>
+    );
+  }
+
   const calorieData = {
-    current: 600,
-    target: 1000,
+    current: summary.calories,
+    target: targetNutrition.calories,
   };
 
   const macroData = [
-    { label: "Protein", current: 78, target: 90, color: "bg-protein-100" },
-    { label: "Fats", current: 45, target: 70, color: "bg-fats-100" },
-    { label: "Carbs", current: 95, target: 110, color: "bg-carbs-300" },
+    { label: "Protein", current: summary.protein, target: targetNutrition.protein, color: "bg-protein-100" },
+    { label: "Fats", current: summary.fat, target: targetNutrition.fat, color: "bg-fats-100" },
+    { label: "Carbs", current: summary.carbs, target: targetNutrition.carbs, color: "bg-carbs-300" },
   ];
 
   return (

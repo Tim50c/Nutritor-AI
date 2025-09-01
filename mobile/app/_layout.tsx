@@ -46,7 +46,6 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-
 function RootLayoutNav() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const { userProfile, setUserProfile, isLoadingProfile } = useUser();
@@ -59,7 +58,7 @@ function RootLayoutNav() {
       const fetchUserProfile = async () => {
         try {
           const idToken = await user.getIdToken();
-          const response = await apiClient.get('/api/v1/profile', {
+          const response = await apiClient.get("/api/v1/profile", {
             headers: { Authorization: `Bearer ${idToken}` },
           });
 
@@ -92,12 +91,12 @@ function RootLayoutNav() {
     const inOnboardingGroup = segments[0] === '(onboarding)';
 
     if (!user) {
-      if (!inAuthGroup) router.replace('/(auth)/sign_in');
+      if (!inAuthGroup) router.replace("/(auth)/sign_in");
       return;
     }
 
     if (!user.emailVerified) {
-      if (!inAuthGroup) router.replace('/(auth)/sign_in');
+      if (!inAuthGroup) router.replace("/(auth)/sign_in");
       return;
     }
 
@@ -112,7 +111,7 @@ function RootLayoutNav() {
       } else {
         // ONBOARDING NOT COMPLETE: Force user to the onboarding flow.
         if (!inOnboardingGroup) {
-            router.replace('/(onboarding)/age');
+          router.replace("/(onboarding)/age");
         }
       }
     }
@@ -128,7 +127,10 @@ function RootLayoutNav() {
       <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="food/[id]" options={{ headerShown: false }} />
-      <Stack.Screen name="settings" options={{ title: "Settings", headerShown: false }} />
+      <Stack.Screen
+        name="settings"
+        options={{ title: "Settings", headerShown: false }}
+      />
       <Stack.Screen
         name="notifications"
         options={{
