@@ -1,8 +1,5 @@
 const { db, admin } = require('../config/firebase');
 const Diet = require('../models/dietModel');
-
-const { db, admin } = require('../config/firebase');
-const Diet = require('../models/dietModel');
 const Food = require('../models/foodModel');
 
 // @desc    Get diet for a specific date with detailed food information
