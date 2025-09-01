@@ -93,10 +93,10 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   rulerUnitText: {
-    color: '#8A8A8E',
+    color: 'transparent',
   },
   rulerValueText: {
-    color: '#1E1E1E',
+    color: 'transparent',
   }
 });
 

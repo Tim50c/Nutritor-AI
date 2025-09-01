@@ -38,12 +38,12 @@ export default function CompletionScreen() {
         onboardingComplete: true,
       };
       
-      const response = await apiClient.patch('/profile', profilePayload, {
+      const response = await apiClient.patch('/api/v1/profile', profilePayload, {
         headers: { Authorization: `Bearer ${idToken}` }
       });
 
-      if (response.data.success) {
-        const updatedProfileResponse = await apiClient.get('/profile', {
+     if (response.data.success) {
+        const updatedProfileResponse = await apiClient.get('/api/v1/profile', {
             headers: { Authorization: `Bearer ${idToken}` },
         });
 
@@ -124,5 +124,7 @@ const styles = StyleSheet.create({
         justifyContent: 'flex-end',
         width: '100%',
         paddingBottom: 40,
+        paddingLeft: 24,
+        paddingRight: 24,
     },
 });
