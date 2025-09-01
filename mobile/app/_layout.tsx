@@ -57,23 +57,20 @@
 //   );
 // }
 
-
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Stack, useRouter, useSegments } from 'expo-router';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth } from '@/config/firebase'; // Adjust this path if necessary
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { Stack, useRouter, useSegments } from "expo-router";
+import { onAuthStateChanged, User } from "firebase/auth";
+import { auth } from "@/config/firebase"; // Adjust this path if necessary
 
 // Your existing imports
 import "./global.css";
 import { StatusBar } from "expo-status-bar";
 import CustomHeader from "@/components/CustomHeader";
 import { NotificationProvider } from "@/context/NotificationContext";
-import { UserProvider , useUser, defaultUser } from "@/context/UserContext";
+import { UserProvider, useUser, defaultUser } from "@/context/UserContext";
 import { DietProvider } from "@/context/DietContext";
 
- 
-import apiClient from '@/utils/apiClients'; // Import your api client
-
+import apiClient from "@/utils/apiClients"; // Import your api client
 
 // 1. Define and Create the Auth Context
 type AuthContextType = {
@@ -97,13 +94,12 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setIsLoading(false);
     });
     return () => unsubscribe();
-  },[user, isLoading] );
+  }, [user, isLoading]);
 
   return (
     <AuthContext.Provider value={{ user, isLoading }}>
@@ -111,7 +107,6 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     </AuthContext.Provider>
   );
 }
-
 
 // This component now contains your original Stack navigator and the redirection logic
 function RootLayoutNav() {
@@ -121,33 +116,50 @@ function RootLayoutNav() {
   const segments = useSegments();
 
   // Effect 1: Fetches the user's Firestore profile when they log in
-useEffect(() => {
+  useEffect(() => {
     if (user && !userProfile) {
       const fetchUserProfile = async () => {
         try {
+          // Add a small delay to allow backend registration to complete during sign-up
+          await new Promise((resolve) => setTimeout(resolve, 1000));
 
           const idToken = await user.getIdToken();
-          const response = await apiClient.get('/api/v1/profile', {
+          const response = await apiClient.get("/api/v1/profile", {
             headers: { Authorization: `Bearer ${idToken}` },
           });
 
-          // --- CHANGE START ---
           if (response.data.success) {
             // Happy path: Profile found, store it in the context.
             setUserProfile(response.data.data);
           } else {
             // Sad path 1: Backend says profile not found. Use the default.
-            console.warn("User profile not found on backend. Using default profile.");
+            console.warn(
+              "User profile not found on backend. Using default profile."
+            );
             setUserProfile(defaultUser);
           }
-          // --- CHANGE END ---
+        } catch (error: any) {
+          // If it's a 404, the profile might not be created yet. Retry once after a longer delay.
+          if (error.response?.status === 404) {
+            await new Promise((resolve) => setTimeout(resolve, 2000));
 
-        } catch (error) {
-          // --- CHANGE START ---
-          // Sad path 2: Network error or server crash. Use the default.
-          console.error("Layout: Failed to fetch user profile:", error);
+            try {
+              const idToken = await user.getIdToken();
+              const retryResponse = await apiClient.get("/api/v1/profile", {
+                headers: { Authorization: `Bearer ${idToken}` },
+              });
+
+              if (retryResponse.data.success) {
+                setUserProfile(retryResponse.data.data);
+                return;
+              }
+            } catch (retryError) {
+              // Retry failed, fall through to default
+            }
+          }
+
+          // Use default profile on any error
           setUserProfile(defaultUser);
-          // --- CHANGE END ---
         }
       };
       fetchUserProfile();
@@ -164,17 +176,17 @@ useEffect(() => {
       return;
     }
 
-    const inAuthGroup = segments[0] === '(auth)';
+    const inAuthGroup = segments[0] === "(auth)";
 
     // Case 1: No user. Must be on an auth screen.
     if (!user) {
-      if (!inAuthGroup) router.replace('/(auth)/sign_in');
+      if (!inAuthGroup) router.replace("/(auth)/sign_in");
       return;
     }
 
     // Case 2: User exists but not verified. Must be on an auth screen.
     if (!user.emailVerified) {
-      if (!inAuthGroup) router.replace('/(auth)/sign_in');
+      if (!inAuthGroup) router.replace("/(auth)/sign_in");
       return;
     }
 
@@ -183,14 +195,13 @@ useEffect(() => {
       if (userProfile.onboardingComplete) {
         // ONBOARDING COMPLETE: User belongs in the main app.
         if (inAuthGroup) {
-          router.replace('/(tabs)');
+          router.replace("/(tabs)");
         }
       } else {
         // ONBOARDING NOT COMPLETE: Force user to the onboarding flow.
-        // This check prevents an infinite redirect loop to the onboarding screen.
-        const inOnboardingGroup = segments[0] === '(onboarding)';
+        const inOnboardingGroup = segments[0] === "(onboarding)";
         if (!inOnboardingGroup) {
-            router.replace('/(onboarding)/age');
+          router.replace("/(onboarding)/age");
         }
       }
     }
@@ -210,7 +221,10 @@ useEffect(() => {
       {/* Your existing screens */}
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="food/[id]" options={{ headerShown: false }} />
-      <Stack.Screen name="settings" options={{ title: "Settings", headerShown: false }} />
+      <Stack.Screen
+        name="settings"
+        options={{ title: "Settings", headerShown: false }}
+      />
       <Stack.Screen
         name="notifications"
         options={{
@@ -228,7 +242,6 @@ useEffect(() => {
     </Stack>
   );
 }
-
 
 // The final export wraps everything in the correct provider order
 export default function RootLayout() {
