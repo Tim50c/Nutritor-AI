@@ -64,16 +64,6 @@ export type User = {
   password?: string; // hashed password
 };
 
-// export type User = {
-//   name: string;
-//   email: string;
-//   avatar: any;
-//   dob: string;
-//   gender: "Male" | "Female" | "Other";
-//   height: string;
-//   weight: string;
-//   password?: string; // hashed password
-// };
 
 // 2. Define the type for the context's value
 type UserContextType = {

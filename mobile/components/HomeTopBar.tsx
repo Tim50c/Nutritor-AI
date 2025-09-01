@@ -3,7 +3,7 @@ import { useRouter } from "expo-router";
 import { icons } from "@/constants/icons";
 import IconButton from "./IconButton";
 import { useNotificationContext } from "@/context/NotificationContext";
-import { useUser } from "@/context/UserContext";
+import { useUser } from "@/context/UserContext"; // This is your upgraded context
 import React from "react";
 
 function NotificationIcon({ hasUnread }: { hasUnread: boolean }) {
@@ -25,11 +25,14 @@ function NotificationIcon({ hasUnread }: { hasUnread: boolean }) {
 export default function HomeTopBar() {
   const router = useRouter();
   const { hasUnread } = useNotificationContext();
+  // --- FIX 1: Destructure 'userProfile' instead of 'user' ---
   const { userProfile } = useUser();
 
-  // If userProfile is not loaded yet, don't render
+  // --- FIX 2: Handle the case where the profile is still loading or null ---
+  // This prevents the app from crashing before the user's data is available.
   if (!userProfile) {
-    return null;
+    // You can return a loading indicator here, or simply nothing
+    return null; 
   }
 
   return (
@@ -37,16 +40,18 @@ export default function HomeTopBar() {
       {/* Left side: Avatar + Welcome */}
       <View className="flex-row items-center">
         <Image
+          // --- FIX 3.1: Use userProfile.avatar ---
           source={userProfile.avatar}
           className="w-10 h-10 rounded-full mr-2"
         />
         <View>
           <Text className="text-sm text-gray-500">Welcome</Text>
-          <Text className="text-base font-semibold">{userProfile.firstname} {userProfile.lastname}</Text>
+          {/* --- FIX 3.2: Combine firstname and lastname for the full name --- */}
+          <Text className="text-base font-semibold">{`${userProfile.firstname} ${userProfile.lastname}`}</Text>
         </View>
       </View>
 
-      {/* Right side: Notification + Settings */}
+      {/* Right side: Notification + Settings (remains the same) */}
       <View className="flex-row items-center space-x-4">
         <IconButton
           Icon={icons.search}

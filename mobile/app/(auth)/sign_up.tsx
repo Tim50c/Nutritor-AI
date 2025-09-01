@@ -28,13 +28,14 @@ export default function SignUp() {
       return 'https://yourapp.com/verify_email'; 
     }
     
-    return `https://auth.expo.io/@${owner}/${slug}`;
+    // for testing
+    return `https://auth.expo.io/@ltdsword/${slug}`;
   };
 
   const verificationUrl = getDynamicVerificationUrl();
 
   const actionCodeSettings: ActionCodeSettings = {
-    url: `${verificationUrl}/verify_email`,
+    url: `${verificationUrl}/--/verify_email`,
     handleCodeInApp: true,
     iOS: {
       bundleId: IOS_BUNDLE_ID,
