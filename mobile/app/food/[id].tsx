@@ -41,15 +41,16 @@ interface MacroCardProps {
 }
 
 const MacroCard: React.FC<MacroCardProps> = ({
-                                               title,
-                                               value,
-                                               percentage,
-                                               backgroundColor,
-                                               textColor = "text-gray-800",
-                                             }) => {
+  title,
+  value,
+  percentage,
+  backgroundColor,
+  textColor = "text-gray-800",
+}) => {
   // Determine if percentage exceeds 100% and set appropriate colors
   const isOverGoal = percentage !== undefined && percentage > 100;
-  const progressBarWidth = percentage !== undefined ? Math.min(percentage, 100) : 0;
+  const progressBarWidth =
+    percentage !== undefined ? Math.min(percentage, 100) : 0;
   const progressBarColor = isOverGoal ? "bg-red-500" : "bg-black/40";
 
   return (
@@ -64,7 +65,9 @@ const MacroCard: React.FC<MacroCardProps> = ({
               style={{ width: `${progressBarWidth}%` }}
             />
           </View>
-          <Text className={`text-xs font-medium ${textColor} ${isOverGoal ? 'text-red-600' : ''}`}>
+          <Text
+            className={`text-xs font-medium ${textColor} ${isOverGoal ? "text-red-600" : ""}`}
+          >
             {percentage}%
           </Text>
         </View>
@@ -93,10 +96,12 @@ const FoodDetails = () => {
 
   // Parse real API food data or use mock data as fallback
   const food = React.useMemo(() => {
-    if (foodData && typeof foodData === 'string') {
+    if (foodData && typeof foodData === "string") {
       try {
         const parsedFood: FoodData = JSON.parse(foodData);
-        return {
+        console.log("🖼️ ImageURL from parsed food:", parsedFood.imageUrl);
+
+        const finalFood = {
           id: parsedFood.id || id,
           name: parsedFood.name,
           description: parsedFood.description,
@@ -108,11 +113,13 @@ const FoodDetails = () => {
           source: parsedFood.source,
           barcode: parsedFood.barcode,
         };
+
+        return finalFood;
       } catch (error) {
-        console.error('Error parsing food data:', error);
+        console.error("Error parsing food data:", error);
       }
     }
-    
+
     // Fallback to mock data if no API data available
     return FOODS.find((item) => item.id === id);
   }, [id, foodData]);
@@ -155,11 +162,8 @@ const FoodDetails = () => {
             className="w-full h-80"
             resizeMode="cover"
           />
-        ) : food.image ? (
-          <ImageBackground
-            source={food.image}
-            className="w-full h-80"
-          >
+        ) : food?.image ? (
+          <ImageBackground source={food.image} className="w-full h-80">
             <LinearGradient
               colors={["rgba(0,0,0,0.3)", "rgba(0,0,0,0.6)"]}
               className="flex-1 justify-between"
@@ -205,11 +209,13 @@ const FoodDetails = () => {
                   <Ionicons name="ellipsis-vertical" size={20} color="white" />
                 </TouchableOpacity>
               </View>
-              
+
               {/* Placeholder content */}
               <View className="items-center justify-center flex-1">
                 <Ionicons name="nutrition" size={80} color="white" />
-                <Text className="text-white text-lg font-semibold mt-2">Food Image</Text>
+                <Text className="text-white text-lg font-semibold mt-2">
+                  Food Image
+                </Text>
               </View>
             </LinearGradient>
           </View>
@@ -226,15 +232,26 @@ const FoodDetails = () => {
             {food.description}
           </Text>
           {/* Show source information for API-recognized foods */}
-          {('source' in food) && food.source && (
+          {"source" in food && food.source && (
             <View className="flex-row items-center mt-2">
-              <Ionicons 
-                name={food.source === 'gemini' ? 'sparkles' : food.source === 'openfoodfacts' ? 'barcode' : 'information-circle'} 
-                size={16} 
-                color="#666" 
+              <Ionicons
+                name={
+                  food.source === "gemini"
+                    ? "sparkles"
+                    : food.source === "openfoodfacts"
+                      ? "barcode"
+                      : "information-circle"
+                }
+                size={16}
+                color="#666"
               />
               <Text className="text-gray-500 text-sm ml-2 capitalize">
-                Recognized by {food.source === 'gemini' ? 'AI' : food.source === 'openfoodfacts' ? 'Barcode Database' : food.source}
+                Recognized by{" "}
+                {food.source === "gemini"
+                  ? "AI"
+                  : food.source === "openfoodfacts"
+                    ? "Barcode Database"
+                    : food.source}
               </Text>
             </View>
           )}

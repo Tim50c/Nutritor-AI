@@ -269,7 +269,7 @@ const CameraScreen = () => {
       }
 
       if (apiResponse.ok) {
-        console.log("Backend response:", result);
+        console.log("🖼️ Image URL from backend:", result.data?.imageUrl);
 
         // Navigate to food detail screen with the recognized food data
         if (result.data && result.data.name) {
@@ -277,14 +277,21 @@ const CameraScreen = () => {
           const foodId =
             result.foodId || result.data.id || `temp_${Date.now()}`;
 
+          // Create navigation params
+          const navigationParams: any = {
+            id: foodId,
+            foodData: JSON.stringify(result.data),
+          };
+
+          // Only pass capturedImage if backend didn't return an imageUrl
+          if (!result.data.imageUrl) {
+            navigationParams.capturedImage = imageUri;
+          }
+
           // Navigate with the food data
           router.push({
             pathname: "/food/[id]",
-            params: {
-              id: foodId,
-              foodData: JSON.stringify(result.data),
-              capturedImage: imageUri, // Pass the captured image
-            },
+            params: navigationParams,
           });
         } else {
           // Fallback alert if no food data
@@ -345,13 +352,21 @@ const CameraScreen = () => {
             if (result.data && result.data.name) {
               const foodId =
                 result.foodId || result.data.id || `temp_${Date.now()}`;
+
+              // Create navigation params
+              const navigationParams: any = {
+                id: foodId,
+                foodData: JSON.stringify(result.data),
+              };
+
+              // Only pass capturedImage if backend didn't return an imageUrl
+              if (!result.data.imageUrl) {
+                navigationParams.capturedImage = imageUri;
+              }
+
               router.push({
                 pathname: "/food/[id]",
-                params: {
-                  id: foodId,
-                  foodData: JSON.stringify(result.data),
-                  capturedImage: imageUri,
-                },
+                params: navigationParams,
               });
             }
             return result;
