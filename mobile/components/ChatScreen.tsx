@@ -16,6 +16,7 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import { Ionicons } from "@expo/vector-icons"; // <-- Import DocumentPicker
+import { useRouter } from "expo-router";
 import ImageUtils from "@/utils/ImageUtils";
 
 // icon defined here
@@ -41,6 +42,7 @@ interface PickerAsset {
 const API_URL = `https://nutritor-ai.onrender.com/api/v1/chat`;
 
 const ChatScreen = () => {
+  const router = useRouter();
   const [isChatStarted, setIsChatStarted] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -368,8 +370,11 @@ const ChatScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backArrowContainer}>
-          <Ionicons name="arrow-back" size={20} color="black" />
+        <TouchableOpacity 
+          style={styles.backArrowContainer}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="arrow-back" size={20} color="white" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Nutritor AI</Text>
       </View>
@@ -378,7 +383,7 @@ const ChatScreen = () => {
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={
-          Platform.OS === "ios" || Platform.OS === "android" ? 50 : 0
+          Platform.OS === "ios" || Platform.OS === "android" ? 0 : 0
         }
       >
         {!isChatStarted ? (
