@@ -2,6 +2,77 @@ const { db, admin } = require('../config/firebase');
 const Diet = require('../models/dietModel');
 const Food = require('../models/foodModel');
 
+// @desc    Get consumed nutrition for a specific date
+// @route   GET /api/v1/diet/nutrition?date=YYYY-MM-DD
+// @access  Private
+exports.getConsumedNutrition = async (req, res, next) => {
+  try {
+    const { uid } = res.locals;
+    const { date } = req.query;
+
+    if (!date) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Date parameter is required (format: YYYY-MM-DD)' 
+      });
+    }
+
+    const dietDoc = await db.collection('users').doc(uid).collection('diets').doc(date).get();
+    
+    if (!dietDoc.exists) {
+      return res.status(200).json({ 
+        success: true, 
+        data: {
+          date,
+          consumedNutrition: { calories: 0, protein: 0, carbs: 0, fat: 0 },
+          totalFoods: 0
+        }
+      });
+    }
+
+    const diet = Diet.fromFirestore(dietDoc);
+    
+    // Get detailed food information for each food in the diet
+    const foodsWithDetails = await Promise.all(
+      diet.foods.map(async (dietFood) => {
+        const foodDoc = await db.collection('foods').doc(dietFood.foodId).get();
+        if (foodDoc.exists) {
+          const food = Food.fromFirestore(foodDoc);
+          return food;
+        }
+        return null;
+      })
+    );
+
+    // Filter out null values (foods that don't exist anymore)
+    const validFoods = foodsWithDetails.filter(food => food !== null);
+
+    // Calculate total consumed nutrition
+    const consumedNutrition = validFoods.reduce(
+      (total, food) => ({
+        calories: total.calories + food.nutrition.cal,
+        protein: Math.round((total.protein + food.nutrition.protein) * 10) / 10,
+        carbs: Math.round((total.carbs + food.nutrition.carbs) * 10) / 10,
+        fat: Math.round((total.fat + food.nutrition.fat) * 10) / 10
+      }),
+      { calories: 0, protein: 0, carbs: 0, fat: 0 }
+    );
+
+    res.status(200).json({ 
+      success: true, 
+      data: {
+        date,
+        consumedNutrition,
+        totalFoods: validFoods.length,
+        foodNames: validFoods.map(food => food.name) // Optional: list of consumed foods
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+};
+
 // @desc    Get diet for a specific date with detailed food information
 // @route   GET /api/v1/diet
 // @access  Private
