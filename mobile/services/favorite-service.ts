@@ -37,7 +37,7 @@ class FavoriteService {
 
   public async getFavorites(): Promise<string[]> {
     try {
-      const response = await authInstance.get("/api/v1/favorites");
+      const response = await authInstance.get("/favorites");
       const data = response.data?.data || [];
       // Extract just the food IDs from the favorite objects
       return Array.isArray(data) ? data.map((favorite: any) => favorite.foodId || favorite.id || favorite) : [];

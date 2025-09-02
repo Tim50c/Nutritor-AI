@@ -28,7 +28,7 @@ class DietService {
   public async addFoodToTodayDiet(input: IAddDietInput): Promise<DietModel[]> {
     try {
       const response = await authInstance.post(`/diet`, {
-        food: input.foodId,
+        foodId: input.foodId,
       });
 
       return response.data as DietModel[];
