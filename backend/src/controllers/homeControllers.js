@@ -54,26 +54,21 @@ exports.getHomeData = async (req, res, next) => {
       diet = new Diet(dietDoc.id, dietData.totalNutrition, populatedFoods);
       diets = [diet];
       
-      // Use totalNutrition from diet data if available, otherwise calculate from populated foods
-      if (dietData.totalNutrition) {
-        totals = dietData.totalNutrition;
-        console.log('🍽️ Backend: Using stored totalNutrition:', totals);
-      } else {
-        // Fallback: calculate from populated foods if totalNutrition doesn't exist
-        totals = populatedFoods.reduce(
-          (total, food) => ({
-            cal: total.cal + (food.nutrition?.cal || 0),
-            protein: Math.round((total.protein + (food.nutrition?.protein || 0)) * 10) / 10,
-            carbs: Math.round((total.carbs + (food.nutrition?.carbs || 0)) * 10) / 10,
-            fat: Math.round((total.fat + (food.nutrition?.fat || 0)) * 10) / 10
-          }),
-          { cal: 0, protein: 0, carbs: 0, fat: 0 }
-        );
-        console.log('🍽️ Backend: Calculated nutrition from foods:', totals);
-      }
+      // Always calculate consumed nutrition fresh from all foods in the diet
+      totals = populatedFoods.reduce(
+        (total, food) => ({
+          cal: total.cal + (food.nutrition?.cal || 0),
+          protein: Math.round((total.protein + (food.nutrition?.protein || 0)) * 10) / 10,
+          carbs: Math.round((total.carbs + (food.nutrition?.carbs || 0)) * 10) / 10,
+          fat: Math.round((total.fat + (food.nutrition?.fat || 0)) * 10) / 10
+        }),
+        { cal: 0, protein: 0, carbs: 0, fat: 0 }
+      );
+      console.log('🍽️ Backend: Calculated consumed nutrition from ALL foods:', totals);
+      console.log('🍽️ Backend: Total foods in diet:', populatedFoods.length);
       
       console.log('🍽️ Backend: Diet with populated foods:', diet);
-      console.log('🍽️ Backend: Final total nutrition:', totals);
+      console.log('🍽️ Backend: Final consumed nutrition:', totals);
     } else {
       console.log('🍽️ Backend: No diet data found for date, returning empty data');
     }
