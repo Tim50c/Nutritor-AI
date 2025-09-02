@@ -20,7 +20,9 @@ export default function GoalWeightScreen() {
         <View style={{ flex: 1, justifyContent: 'center' }}>
             <WeightSelector
                 value={data.weightGoal}
+                unit={data.weightUnit} // <-- ADD THIS
                 onValueChange={(val) => updateData({ weightGoal: val })}
+                onUnitChange={(unit) => updateData({ weightUnit: unit })} // <-- ADD THIS
             />
         </View>
 

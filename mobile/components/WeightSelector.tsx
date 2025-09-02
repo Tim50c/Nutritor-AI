@@ -1,171 +1,113 @@
-import React, { useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, Dimensions, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const ITEM_WIDTH = 12; // Width of each tick + space
-const RULER_WIDTH = SCREEN_WIDTH * 0.8; // Visible part of the ruler
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { RulerPicker } from 'react-native-ruler-picker';
+import ToggleSelector from './ToggleSelector';
 
 interface WeightSelectorProps {
   value: number;
+  unit: 'kg' | 'lbs';
   onValueChange: (value: number) => void;
+  onUnitChange: (unit: 'kg' | 'lbs') => void;
 }
 
-const WeightSelector: React.FC<WeightSelectorProps> = ({ value, onValueChange }) => {
-  const rulerRef = useRef<FlatList>(null);
-  const MIN_WEIGHT = 30; // 30 kg
-  const MAX_WEIGHT = 200; // 200 kg
-  const STEP = 0.5;
+const KG_TO_LBS = 2.20462;
 
-  // Generate the data points for the ruler
-  const rulerData = useMemo(() => {
-    const data = [];
-    const emptyItemsCount = Math.floor(RULER_WIDTH / 2 / ITEM_WIDTH);
-    for (let i = 0; i < emptyItemsCount; i++) {
-        data.push({ type: 'spacer', key: `spacer-start-${i}` });
-    }
-    for (let i = MIN_WEIGHT; i <= MAX_WEIGHT; i += STEP) {
-      data.push({ type: 'tick', value: i, key: `tick-${i}` });
-    }
-    for (let i = 0; i < emptyItemsCount; i++) {
-        data.push({ type: 'spacer', key: `spacer-end-${i}` });
-    }
-    return data;
-  }, []);
+const WeightSelector: React.FC<WeightSelectorProps> = ({ value, unit, onValueChange, onUnitChange }) => {
+  const kgToLbs = (kg: number) => parseFloat((kg * KG_TO_LBS).toFixed(1));
+  const lbsToKg = (lbs: number) => parseFloat((lbs / KG_TO_LBS).toFixed(1));
 
-  const handleScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const offsetX = event.nativeEvent.contentOffset.x;
-    const selectedValue = MIN_WEIGHT + (offsetX / ITEM_WIDTH) * STEP;
-    const roundedValue = Math.round(selectedValue / STEP) * STEP;
-    
-    const finalValue = Math.max(MIN_WEIGHT, Math.min(MAX_WEIGHT, roundedValue));
-    onValueChange(finalValue);
-
-    const finalOffset = ((finalValue - MIN_WEIGHT) / STEP) * ITEM_WIDTH;
-    if (rulerRef.current && Math.abs(finalOffset - offsetX) > 1) { // Prevent snapping if already close
-        rulerRef.current.scrollToOffset({ offset: finalOffset, animated: true });
+  const handleUnitChange = (newUnit: 'kg' | 'lbs') => {
+    if (newUnit !== unit) {
+      onUnitChange(newUnit);
+      if (newUnit === 'lbs') {
+        // convert kg -> lbs, integer for lbs
+        const newValueInLbs = Math.round(kgToLbs(value));
+        onValueChange(newValueInLbs);
+      } else {
+        // convert lbs -> kg, 1 decimal for kg
+        const newValueInKg = parseFloat(lbsToKg(value).toFixed(1));
+        onValueChange(newValueInKg);
+      }
     }
   };
 
-  const renderItem = ({ item }: { item: { type: string; value?: number; key: string }}) => {
-    if (item.type === 'spacer') {
-        return <View style={{ width: ITEM_WIDTH }} />;
+  // Keep the picker's value precision consistent with step/fractionDigits
+  const formatForUnit = (raw: number) => (unit === 'kg' ? parseFloat(raw.toFixed(1)) : Math.round(raw));
+
+  // Handler receives string from RulerPicker (same as HeightSelector)
+  const handleRulerValueChange = (valueAsString: string) => {
+    const numeric = Number(valueAsString);
+    if (!isNaN(numeric)) {
+      // Format to match the current unit's precision before sending up
+      const formatted = formatForUnit(numeric);
+      onValueChange(formatted);
     }
-
-    const isMajorTick = item.value! % 5 === 0;
-    const isHalfTick = !isMajorTick && item.value! % 1 === 0;
-
-    return (
-      <View style={styles.tickContainer}>
-        <View 
-          style={[
-            styles.tick, 
-            isMajorTick && styles.majorTick, 
-            isHalfTick && styles.halfTick
-          ]}
-        />
-        {isMajorTick && <Text style={styles.tickLabel}>{item.value}</Text>}
-      </View>
-    );
   };
-  
-  const initialOffset = useMemo(() => {
-      // Clamp the initial value to be within the min/max range
-      const clampedValue = Math.max(MIN_WEIGHT, Math.min(MAX_WEIGHT, value));
-      return ((clampedValue - MIN_WEIGHT) / STEP) * ITEM_WIDTH;
-  }, [value]);
+
+  // RulerPicker props per unit (matches HeightSelector approach)
+  const min = unit === 'kg' ? 30 : Math.round(30 * KG_TO_LBS);   // ~30 kg
+  const max = unit === 'kg' ? 200 : Math.round(200 * KG_TO_LBS); // ~200 kg
+  const step = unit === 'kg' ? 0.5 : 1;
+  const fractionDigits = unit === 'kg' ? 1 : 0;
 
   return (
     <View style={styles.container}>
-      <View style={styles.displayContainer}>
-        <Text style={styles.valueText}>{value.toFixed(1)}</Text>
-        <Text style={styles.unitText}>kg</Text>
+      <View style={styles.valueContainer}>
+        <Text style={styles.valueText}>
+          {unit === 'kg' ? value.toFixed(1) : Math.round(value)}
+        </Text>
+        <Text style={styles.unitText}>{unit}</Text>
       </View>
-      <View style={styles.rulerArea}>
-        <View style={styles.indicator} />
-        <FlatList
-          ref={rulerRef}
-          data={rulerData}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.key}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          onMomentumScrollEnd={handleScrollEnd}
-          onScrollEndDrag={handleScrollEnd}
-          getItemLayout={(_, index) => ({
-            length: ITEM_WIDTH,
-            offset: ITEM_WIDTH * index,
-            index,
-          })}
-          // --- FIX IS HERE ---
-          // Use `contentOffset` instead of `initialScrollOffset`
-          contentOffset={{ x: initialOffset, y: 0 }}
-          style={{ width: RULER_WIDTH }}
-        />
-      </View>
+
+      <RulerPicker
+        min={min}
+        max={max}
+        step={step}
+        fractionDigits={fractionDigits}
+        initialValue={formatForUnit(value)}
+        onValueChange={handleRulerValueChange}
+        unitTextStyle={styles.rulerUnitText}
+        valueTextStyle={styles.rulerValueText}
+        indicatorColor="#FF5A16"
+        height={150}
+      />
+
+      <ToggleSelector
+        options={['kg', 'lbs']}
+        selectedOption={unit}
+        onSelectOption={handleUnitChange}
+        containerStyle={{ marginTop: 40 }}
+      />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    width: '100%',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 20,
   },
-  displayContainer: {
+  valueContainer: {
     flexDirection: 'row',
     alignItems: 'baseline',
     marginBottom: 40,
   },
   valueText: {
-    fontSize: 56,
+    fontSize: 60,
     fontWeight: 'bold',
     color: '#1E1E1E',
   },
   unitText: {
-    fontSize: 20,
-    fontWeight: '500',
+    fontSize: 24,
+    fontWeight: '600',
     color: '#8A8A8E',
     marginLeft: 8,
   },
-  rulerArea: {
-    width: RULER_WIDTH,
-    height: 100,
-    alignItems: 'center',
-    justifyContent: 'center',
+  rulerUnitText: {
+    color: 'transparent',
   },
-  indicator: {
-    position: 'absolute',
-    width: 3,
-    height: 60,
-    backgroundColor: '#ff5a16',
-    borderRadius: 2,
-    zIndex: 1, // Ensure indicator is on top
-  },
-  tickContainer: {
-    width: ITEM_WIDTH,
-    alignItems: 'center',
-    paddingTop: 10,
-  },
-  tick: {
-    width: 2,
-    height: 20,
-    backgroundColor: '#D1D1D6',
-  },
-  halfTick: {
-    height: 30,
-    backgroundColor: '#A0A0A0',
-  },
-  majorTick: {
-    height: 40,
-    backgroundColor: '#1E1E1E',
-  },
-  tickLabel: {
-    position: 'absolute',
-    top: 55, // Position label below the tick
-    fontSize: 16,
-    color: '#1E1E1E',
-    textAlign: 'center'
+  rulerValueText: {
+    color: 'transparent',
   },
 });
 

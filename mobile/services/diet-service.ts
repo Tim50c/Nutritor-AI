@@ -16,7 +16,8 @@ class DietService {
 
   public async getDiets(input: IDietsInput): Promise<DietModel[]> {
     try {
-      const response = await authInstance.get(`/api/v1/diet/${input.date}`);
+      const response = await authInstance.get(`/diet/${input.date}`);
+
       return response.data as DietModel[];
     } catch (error: any) {
       console.error("Error getting diets:", error);
@@ -26,8 +27,8 @@ class DietService {
 
   public async addFoodToTodayDiet(input: IAddDietInput): Promise<DietModel[]> {
     try {
-      const response = await authInstance.post(`/api/v1/diet`, {
-        foodId: input.foodId,
+      const response = await authInstance.post(`/diet`, {
+        food: input.foodId,
       });
 
       return response.data as DietModel[];
@@ -39,7 +40,8 @@ class DietService {
 
   public async removeFoodFromTodayDiet(input: IAddDietInput): Promise<DietModel[]> {
     try {
-      const response = await authInstance.delete(`/api/v1/diet/${input.foodId}`);
+      const response = await authInstance.delete(`/diet/${input.foodId}`);
+
       return response.data as DietModel[];
     } catch (error: any) {
       console.error("Error removing food from diet:", error);
@@ -54,7 +56,13 @@ class DietService {
     fat: number;
   }> {
     try {
-      const response = await authInstance.get(`/api/v1/diet/nutrition?date=${date}`);
+      console.log("🍎 Starting getConsumedNutrition call:", {
+        date,
+        url: `/diet/nutrition?date=${date}`,
+        timestamp: new Date().toISOString()
+      });
+
+      const response = await authInstance.get(`/diet/nutrition?date=${date}`);
       
       if (response.data.success) {
         return response.data.data.consumedNutrition;
@@ -63,7 +71,26 @@ class DietService {
         return { calories: 0, protein: 0, carbs: 0, fat: 0 };
       }
     } catch (error: any) {
-      console.error("Error fetching consumed nutrition:", error);
+      console.log("❌ Error fetching consumed nutrition:", {
+        message: error.message,
+        status: error.response?.status || 'No response',
+        statusText: error.response?.statusText || 'No status text',
+        url: `/diet/nutrition?date=${date}`,
+        responseData: error.response?.data || 'No response data',
+        hasResponse: !!error.response,
+        errorType: error.constructor.name,
+        code: error.code,
+        fullError: {
+          name: error.name,
+          message: error.message,
+          code: error.code,
+          config: error.config ? {
+            url: error.config.url,
+            method: error.config.method,
+            headers: error.config.headers
+          } : 'No config'
+        }
+      });
       // Return zero nutrition on error
       return { calories: 0, protein: 0, carbs: 0, fat: 0 };
     }
