@@ -1,7 +1,7 @@
 import {View, Text, Image, TouchableOpacity} from "react-native";
 import {icons} from "@/constants/icons";
 import React from "react";
-import {Link} from "expo-router";
+import {router} from "expo-router";
 
 interface FoodItem {
   id: string;
@@ -27,9 +27,33 @@ export default function FoodSuggestionCard({
   // Format calories with comma and unit
   const formattedCalories = `${food.calories.toLocaleString()} kcal`;
 
+  const handleFoodPress = () => {
+    // Convert food to the format expected by food details page
+    const foodData = {
+      id: food.id,
+      name: food.name,
+      description: `${food.name} - Nutritional Information`,
+      nutrition: {
+        cal: food.calories,
+        protein: food.protein,
+        carbs: food.carbs,
+        fat: food.fat,
+      },
+      source: "suggestions",
+      imageUrl: food.image?.uri || null,
+    };
+
+    router.push({
+      pathname: "/food/[id]" as const,
+      params: {
+        id: food.id,
+        foodData: JSON.stringify(foodData),
+      },
+    });
+  };
+
   return (
-    <Link href={`/food/${food.id}`} asChild>
-      <TouchableOpacity>
+    <TouchableOpacity onPress={handleFoodPress}>
         <View className="bg-white rounded-2xl p-4 mb-3 flex-row items-center border border-gray-200 shadow-sm">
           {/* Food Image */}
           <Image
@@ -65,13 +89,15 @@ export default function FoodSuggestionCard({
 
           {/* Heart button */}
           <TouchableOpacity
-            onPress={onToggleFavorite}
+            onPress={(e) => {
+              e.stopPropagation();
+              onToggleFavorite?.();
+            }}
             className="w-8 h-8 bg-gray-100 rounded-full items-center justify-center"
           >
             {isFavorite ? <icons.heartFill width={16} height={16}/> : <icons.heart width={16} height={16}/>}
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
-    </Link>
-  );
+    );
 }

@@ -212,16 +212,20 @@ export function DietProvider({ children }: { children: ReactNode }) {
   // Favorite management
   const toggleFavorite = async (foodId: string) => {
     try {
-      const updatedIds = favoriteFoodIds.includes(foodId)
+      const currentFavorites = Array.isArray(favoriteFoodIds) ? favoriteFoodIds : [];
+      const updatedIds = currentFavorites.includes(foodId)
         ? await FavoriteService.removeFavorite({ foodId })
         : await FavoriteService.addFavorite({ foodId });
-      setFavoriteFoodIds(updatedIds);
+      setFavoriteFoodIds(Array.isArray(updatedIds) ? updatedIds : []);
     } catch (error) {
       console.error("Error toggling favorite:", error);
     }
   };
 
-  const isFavorite = (foodId: string) => favoriteFoodIds.includes(foodId);
+  const isFavorite = (foodId: string) => {
+    if (!Array.isArray(favoriteFoodIds)) return false;
+    return favoriteFoodIds.includes(foodId);
+  };
 
   const getFavoriteFoods = () => foods.filter((food) => isFavorite(food.id));
 
