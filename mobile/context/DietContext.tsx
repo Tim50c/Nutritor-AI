@@ -77,200 +77,155 @@ export function DietProvider({ children }: { children: ReactNode }) {
   });
   const [loading, setLoading] = useState<boolean>(true);
 
-  // Fetch food suggestions
-  const refreshSuggestions = async () => {
+  // Fetch food suggestions using consumed nutrition
+  const fetchFoodSuggestions = async (
+    consumedNutrition: DietSummary,
+    targetNutrition: DietSummary
+  ) => {
     try {
-      if (targetNutrition.calories > 0) {
-        const suggestionsInput: IFoodSuggestionsInput = {
-          targetNutrition: {
-            calories: targetNutrition.calories,
-            protein: targetNutrition.protein,
-            carbs: targetNutrition.carbs,
-            fat: targetNutrition.fat,
-          },
-          consumedNutrition: {
-            calories: summary.calories,
-            protein: summary.protein,
-            carbs: summary.carbs,
-            fat: summary.fat,
-          },
-        };
-
-        const suggestionsData =
-          await FoodService.getFoodSuggestions(suggestionsInput);
-
-        // Map suggested foods to DietFood format
-        const mappedSuggestions: DietFood[] = suggestionsData.map(
-          (food: FoodModel) => ({
-            id: food.id,
-            name: food.name,
-            image: food.imageUrl || null,
-            calories: food.nutrition.cal,
-            carbs: food.nutrition.carbs,
-            protein: food.nutrition.protein,
-            fat: food.nutrition.fat,
-            description: food.description || "",
-          })
-        );
-
-        setSuggestedFoods(mappedSuggestions);
-      }
-    } catch (error) {
-      // Silently handle error for suggestions
-    }
-  };
-
-  // Fetch home data and favorites from backend
-  useEffect(() => {
-    async function fetchData() {
-      // Don't fetch if user profile is still loading or user is not authenticated
-      if (isLoadingProfile || !userProfile) {
-        console.log(
-          "👤 DietContext: User successfully fetched, starting data fetch:",
-          {
-            userId: userProfile?.id || "no-user",
-            email: userProfile?.email || "no-email",
-            firstname: userProfile?.firstname || "no-firstname",
-            onboardingComplete: userProfile?.onboardingComplete || false,
-            targetNutrition: userProfile?.targetNutrition,
-            selectedDate: selectedDate.toISOString().split("T")[0],
-          }
-        );
-        setLoading(false); // Set loading to false to show empty state
+      if (targetNutrition.calories <= 0) {
+        console.log("⚠️ Skipping suggestions - no target nutrition");
         return;
       }
 
-      console.log(
-        "👤 DietContext: User successfully fetched, starting data fetch:",
-        {
-          userId: userProfile.id,
-          email: userProfile.email,
-          firstname: userProfile.firstname,
-          onboardingComplete: userProfile.onboardingComplete,
-          targetNutrition: userProfile.targetNutrition,
-          selectedDate: selectedDate.toISOString().split("T")[0],
-        }
-      );
-
-      // Use user profile target nutrition as fallback
-      const fallbackTargetNutrition = {
-        calories: userProfile.targetNutrition?.cal || 2000,
-        carbs: userProfile.targetNutrition?.carbs || 250,
-        protein: userProfile.targetNutrition?.protein || 150,
-        fat: userProfile.targetNutrition?.fat || 67,
+      const suggestionsInput: IFoodSuggestionsInput = {
+        targetNutrition,
+        consumedNutrition,
       };
 
-      setTargetNutrition(fallbackTargetNutrition);
+      const suggestionsData =
+        await FoodService.getFoodSuggestions(suggestionsInput);
 
-      setLoading(true);
+      const mappedSuggestions: DietFood[] = suggestionsData.map(
+        (food: FoodModel) => ({
+          id: food.id,
+          name: food.name,
+          image: food.imageUrl || null,
+          calories: food.nutrition.cal,
+          carbs: food.nutrition.carbs,
+          protein: food.nutrition.protein,
+          fat: food.nutrition.fat,
+          description: food.description || "",
+        })
+      );
+
+      console.log("✅ Food suggestions fetched:", mappedSuggestions.length);
+      setSuggestedFoods(mappedSuggestions);
+    } catch (error) {
+      console.error("❌ Error fetching food suggestions:", error);
+      setSuggestedFoods([]);
+    }
+  };
+
+  // Refresh suggestions using current state
+  const refreshSuggestions = async () => {
+    await fetchFoodSuggestions(summary, targetNutrition);
+  };
+
+  // Fetch home data and favorites
+  useEffect(() => {
+    async function fetchData() {
+      if (isLoadingProfile || !userProfile) {
+        setLoading(false);
+        return;
+      }
 
       try {
+        setLoading(true);
+
+        // Fallback target nutrition from user profile
+        const fallbackTargetNutrition = {
+          calories: userProfile.targetNutrition?.cal || 2000,
+          carbs: userProfile.targetNutrition?.carbs || 250,
+          protein: userProfile.targetNutrition?.protein || 150,
+          fat: userProfile.targetNutrition?.fat || 67,
+        };
+
+        // Fetch home data
         const input: IHomeInput = {
           date: selectedDate.toISOString().split("T")[0],
         };
 
         const homeData = await HomeService.getHome(input);
-        // Map backend nutrition model to DietSummary
-        const newSummary = {
-          calories: homeData.totals.cal,
-          carbs: homeData.totals.carbs,
-          protein: homeData.totals.protein,
-          fat: homeData.totals.fat,
-        };
+        const actualData = (homeData as any).data;
+
+        // Extract nutrition data with fallbacks
         const newTargetNutrition = {
-          calories: homeData.targetNutrition.cal,
-          carbs: homeData.targetNutrition.carbs,
-          protein: homeData.targetNutrition.protein,
-          fat: homeData.targetNutrition.fat,
+          calories:
+            actualData?.targetNutrition?.calories ||
+            fallbackTargetNutrition.calories,
+          carbs:
+            actualData?.targetNutrition?.carbs || fallbackTargetNutrition.carbs,
+          protein:
+            actualData?.targetNutrition?.protein ||
+            fallbackTargetNutrition.protein,
+          fat: actualData?.targetNutrition?.fat || fallbackTargetNutrition.fat,
         };
 
-        setSummary(newSummary);
-        setTargetNutrition(newTargetNutrition);
+        const consumedNutrition = {
+          calories: actualData?.consumpedNutrition?.cal || 0,
+          carbs: actualData?.consumpedNutrition?.carbs || 0,
+          protein: actualData?.consumpedNutrition?.protein || 0,
+          fat: actualData?.consumpedNutrition?.fat || 0,
+        };
 
-        // Flatten foods from diets
-        const allFoods: DietFood[] = homeData.diets.flatMap((diet) =>
-          diet.foods.map((food) => ({
-            id: food.foodId,
-            name: "", // You may want to fetch food details for name/image
-            image: null,
-            calories: 0,
-            carbs: 0,
-            protein: 0,
-            fat: 0,
-            description: "",
-            ...food,
-          }))
+        // Update state
+        setTargetNutrition(newTargetNutrition);
+        setSummary(consumedNutrition);
+
+        // Process foods from diets
+        const allFoods: DietFood[] = (actualData?.diets || []).flatMap(
+          (diet: any) =>
+            (diet.foods || []).map((food: any) => ({
+              id: food.foodId,
+              name: "",
+              image: null,
+              calories: 0,
+              carbs: 0,
+              protein: 0,
+              fat: 0,
+              description: "",
+            }))
         );
         setFoods(allFoods);
 
-        // Fetch favorites
-        const favIds = await FavoriteService.getFavorites();
-        setFavoriteFoodIds(favIds);
-
-        // Fetch food suggestions with the new nutrition data
-        if (newTargetNutrition.calories > 0) {
-          try {
-            const suggestionsInput: IFoodSuggestionsInput = {
-              targetNutrition: {
-                calories: newTargetNutrition.calories,
-                protein: newTargetNutrition.protein,
-                carbs: newTargetNutrition.carbs,
-                fat: newTargetNutrition.fat,
-              },
-              consumedNutrition: {
-                calories: newSummary.calories,
-                protein: newSummary.protein,
-                carbs: newSummary.carbs,
-                fat: newSummary.fat,
-              },
-            };
-
-            const suggestionsData =
-              await FoodService.getFoodSuggestions(suggestionsInput);
-
-            // Map suggested foods to DietFood format
-            const mappedSuggestions: DietFood[] = suggestionsData.map(
-              (food: FoodModel) => ({
-                id: food.id,
-                name: food.name,
-                image: food.imageUrl || null,
-                calories: food.nutrition.cal,
-                carbs: food.nutrition.carbs,
-                protein: food.nutrition.protein,
-                fat: food.nutrition.fat,
-                description: food.description || "",
-              })
-            );
-
-            setSuggestedFoods(mappedSuggestions);
-          } catch (error) {
-            // Silently handle suggestions error
-          }
+        // Fetch favorites (non-critical)
+        try {
+          const favIds = await FavoriteService.getFavorites();
+          setFavoriteFoodIds(favIds);
+        } catch (error) {
+          setFavoriteFoodIds([]);
         }
-      } catch (err) {
-        // Handle error (optional)
+
+        // Fetch food suggestions
+        await fetchFoodSuggestions(consumedNutrition, newTargetNutrition);
+      } catch (error) {
+        console.error("❌ Error fetching data:", error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
+
     fetchData();
   }, [selectedDate, userProfile, isLoadingProfile]);
 
-  // Favorite logic using backend
+  // Favorite management
   const toggleFavorite = async (foodId: string) => {
     try {
-      let updatedIds: string[];
-      if (favoriteFoodIds.includes(foodId)) {
-        updatedIds = await FavoriteService.removeFavorite({ foodId });
-      } else {
-        updatedIds = await FavoriteService.addFavorite({ foodId });
-      }
-      setFavoriteFoodIds(updatedIds);
-    } catch (err) {
-      // Handle error (optional)
+      const currentFavorites = Array.isArray(favoriteFoodIds) ? favoriteFoodIds : [];
+      const updatedIds = currentFavorites.includes(foodId)
+        ? await FavoriteService.removeFavorite({ foodId })
+        : await FavoriteService.addFavorite({ foodId });
+      setFavoriteFoodIds(Array.isArray(updatedIds) ? updatedIds : []);
+    } catch (error) {
+      console.error("Error toggling favorite:", error);
     }
   };
 
-  const isFavorite = (foodId: string) => favoriteFoodIds.includes(foodId);
+  const isFavorite = (foodId: string) => {
+    if (!Array.isArray(favoriteFoodIds)) return false;
+    return favoriteFoodIds.includes(foodId);
+  };
 
   const getFavoriteFoods = () => foods.filter((food) => isFavorite(food.id));
 

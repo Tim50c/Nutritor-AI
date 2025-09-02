@@ -17,7 +17,7 @@ const AuthStore = {
   },
   getRefreshToken: async () => {
     try {
-      await AsyncStorage.getItem('refresh_token');
+      return await AsyncStorage.getItem('refresh_token');
     } catch (e) {
       console.log(e);
     }

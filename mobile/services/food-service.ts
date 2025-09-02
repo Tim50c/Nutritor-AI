@@ -15,7 +15,7 @@ class FoodService {
 
   public async getFoodDetails(input: IFoodDetailsInput): Promise<FoodDetailsModel> {
     try {
-      const response = await authInstance.get(`/api/v1/foods/${input.foodId}`);
+      const response = await authInstance.get(`/foods/${input.foodId}`);
       return response.data as FoodDetailsModel;
     } catch (error: any) {
       throw new Error("An error occurred while getting food details.");
@@ -24,7 +24,7 @@ class FoodService {
 
   public async getFoodSuggestions(input: IFoodSuggestionsInput): Promise<FoodModel[]> {
     try {
-      const response = await authInstance.post("/api/v1/foods/suggestions", {
+      const response = await authInstance.post("/foods/suggestions", {
         targetNutrition: input.targetNutrition,
         consumedNutrition: input.consumedNutrition
       });
