@@ -53,10 +53,27 @@ exports.getHomeData = async (req, res, next) => {
       // Create diet object with populated foods
       diet = new Diet(dietDoc.id, dietData.totalNutrition, populatedFoods);
       diets = [diet];
-      totals = dietData.totalNutrition || totals;
+      
+      // Use totalNutrition from diet data if available, otherwise calculate from populated foods
+      if (dietData.totalNutrition) {
+        totals = dietData.totalNutrition;
+        console.log('🍽️ Backend: Using stored totalNutrition:', totals);
+      } else {
+        // Fallback: calculate from populated foods if totalNutrition doesn't exist
+        totals = populatedFoods.reduce(
+          (total, food) => ({
+            cal: total.cal + (food.nutrition?.cal || 0),
+            protein: Math.round((total.protein + (food.nutrition?.protein || 0)) * 10) / 10,
+            carbs: Math.round((total.carbs + (food.nutrition?.carbs || 0)) * 10) / 10,
+            fat: Math.round((total.fat + (food.nutrition?.fat || 0)) * 10) / 10
+          }),
+          { cal: 0, protein: 0, carbs: 0, fat: 0 }
+        );
+        console.log('🍽️ Backend: Calculated nutrition from foods:', totals);
+      }
       
       console.log('🍽️ Backend: Diet with populated foods:', diet);
-      console.log('🍽️ Backend: Total nutrition:', totals);
+      console.log('🍽️ Backend: Final total nutrition:', totals);
     } else {
       console.log('🍽️ Backend: No diet data found for date, returning empty data');
     }
