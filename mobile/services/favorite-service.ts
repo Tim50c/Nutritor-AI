@@ -15,7 +15,7 @@ class FavoriteService {
 
   public async addFavorite(input: IFavoriteInput): Promise<string[]> {
     try {
-      await authInstance.post("/api/v1/favorites", { foodId: input.foodId });
+      await authInstance.post("/favorites", { foodId: input.foodId });
       // After adding, fetch the updated favorites list
       return this.getFavorites();
     } catch (error: any) {
@@ -26,7 +26,7 @@ class FavoriteService {
 
   public async removeFavorite(input: IFavoriteInput): Promise<string[]> {
     try {
-      await authInstance.delete(`/api/v1/favorites/${input.foodId}`);
+      await authInstance.delete(`/favorites/${input.foodId}`);
       // After removing, fetch the updated favorites list
       return this.getFavorites();
     } catch (error: any) {
