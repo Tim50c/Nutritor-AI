@@ -81,6 +81,13 @@ exports.getDiet = async (req, res, next) => {
     const { uid } = res.locals;
     const { date } = req.query;
 
+    if (!date) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Date parameter is required (format: YYYY-MM-DD)' 
+      });
+    }
+
     const dietDoc = await db.collection('users').doc(uid).collection('diets').doc(date).get();
     
     if (!dietDoc.exists) {
@@ -146,7 +153,13 @@ exports.addFoodToDiet = async (req, res, next) => {
   try {
     const { uid } = res.locals;
     const { foodId } = req.body;
+    
+    if (!foodId) {
+      return res.status(400).json({ success: false, error: 'foodId is required' });
+    }
+    
     const date = new Date().toISOString().slice(0, 10);
+    const now = new Date();
 
     // Validate that the food exists
     const foodDoc = await db.collection('foods').doc(foodId).get();
@@ -161,7 +174,7 @@ exports.addFoodToDiet = async (req, res, next) => {
       // Create new diet document if it doesn't exist
       const newDiet = {
         date,
-        foods: [{ foodId, addedAt: admin.firestore.FieldValue.serverTimestamp() }],
+        foods: [{ foodId, addedAt: now }],
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       };
@@ -171,7 +184,7 @@ exports.addFoodToDiet = async (req, res, next) => {
       await dietRef.update({
         foods: admin.firestore.FieldValue.arrayUnion({ 
           foodId, 
-          addedAt: admin.firestore.FieldValue.serverTimestamp() 
+          addedAt: now
         }),
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       });
@@ -191,18 +204,36 @@ exports.removeFoodFromDiet = async (req, res, next) => {
   try {
     const { uid } = res.locals;
     const { foodId } = req.params;
+    
+    if (!foodId) {
+      return res.status(400).json({ success: false, error: 'foodId is required' });
+    }
+    
     const date = new Date().toISOString().slice(0, 10);
 
     const dietRef = db.collection('users').doc(uid).collection('diets').doc(date);
-
     const dietDoc = await dietRef.get();
+
+    if (!dietDoc.exists) {
+      return res.status(404).json({ success: false, error: 'No diet found for today' });
+    }
+
     const diet = Diet.fromFirestore(dietDoc);
+
+    // Check if the food exists in the diet
+    const foodExists = diet.foods.some(food => food.foodId === foodId);
+    if (!foodExists) {
+      return res.status(404).json({ success: false, error: 'Food not found in today\'s diet' });
+    }
 
     const newFoods = diet.foods.filter(food => food.foodId !== foodId);
 
-    await dietRef.update({ foods: newFoods });
+    await dietRef.update({ 
+      foods: newFoods,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
 
-    res.status(200).json({ success: true, data: {} });
+    res.status(200).json({ success: true, message: 'Food removed from diet successfully' });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, error: 'Server error' });
