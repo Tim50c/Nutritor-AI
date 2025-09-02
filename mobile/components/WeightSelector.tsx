@@ -1,118 +1,172 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import Slider from '@react-native-community/slider';
+import React, { useRef, useMemo } from 'react';
+import { View, Text, StyleSheet, FlatList, Dimensions, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const ITEM_WIDTH = 12; // Width of each tick + space
+const RULER_WIDTH = SCREEN_WIDTH * 0.8; // Visible part of the ruler
 
 interface WeightSelectorProps {
   value: number;
-  unit: 'Kg' | 'Lbs';
   onValueChange: (value: number) => void;
-  onUnitChange: (unit: 'Kg' | 'Lbs') => void;
 }
 
-const KG_TO_LBS = 2.20462;
+const WeightSelector: React.FC<WeightSelectorProps> = ({ value, onValueChange }) => {
+  const rulerRef = useRef<FlatList>(null);
+  const MIN_WEIGHT = 30; // 30 kg
+  const MAX_WEIGHT = 200; // 200 kg
+  const STEP = 0.5;
 
-const WeightSelector: React.FC<WeightSelectorProps> = ({ value, unit, onValueChange, onUnitChange }) => {
-  const isKg = unit === 'Kg';
-  
-  const handleUnitChange = (newUnit: 'Kg' | 'Lbs') => {
-      if (unit !== newUnit) {
-          onUnitChange(newUnit);
-          const convertedValue = newUnit === 'Lbs' ? value * KG_TO_LBS : value / KG_TO_LBS;
-          onValueChange(Math.round(convertedValue));
-      }
+  // Generate the data points for the ruler
+  const rulerData = useMemo(() => {
+    const data = [];
+    const emptyItemsCount = Math.floor(RULER_WIDTH / 2 / ITEM_WIDTH);
+    for (let i = 0; i < emptyItemsCount; i++) {
+        data.push({ type: 'spacer', key: `spacer-start-${i}` });
+    }
+    for (let i = MIN_WEIGHT; i <= MAX_WEIGHT; i += STEP) {
+      data.push({ type: 'tick', value: i, key: `tick-${i}` });
+    }
+    for (let i = 0; i < emptyItemsCount; i++) {
+        data.push({ type: 'spacer', key: `spacer-end-${i}` });
+    }
+    return data;
+  }, []);
+
+  const handleScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const offsetX = event.nativeEvent.contentOffset.x;
+    const selectedValue = MIN_WEIGHT + (offsetX / ITEM_WIDTH) * STEP;
+    const roundedValue = Math.round(selectedValue / STEP) * STEP;
+    
+    const finalValue = Math.max(MIN_WEIGHT, Math.min(MAX_WEIGHT, roundedValue));
+    onValueChange(finalValue);
+
+    const finalOffset = ((finalValue - MIN_WEIGHT) / STEP) * ITEM_WIDTH;
+    if (rulerRef.current && Math.abs(finalOffset - offsetX) > 1) { // Prevent snapping if already close
+        rulerRef.current.scrollToOffset({ offset: finalOffset, animated: true });
+    }
   };
 
-  const min = isKg ? 30 : Math.round(30 * KG_TO_LBS);
-  const max = isKg ? 150 : Math.round(150 * KG_TO_LBS);
-  const displayValue = Math.round(value);
+  const renderItem = ({ item }: { item: { type: string; value?: number; key: string }}) => {
+    if (item.type === 'spacer') {
+        return <View style={{ width: ITEM_WIDTH }} />;
+    }
+
+    const isMajorTick = item.value! % 5 === 0;
+    const isHalfTick = !isMajorTick && item.value! % 1 === 0;
+
+    return (
+      <View style={styles.tickContainer}>
+        <View 
+          style={[
+            styles.tick, 
+            isMajorTick && styles.majorTick, 
+            isHalfTick && styles.halfTick
+          ]}
+        />
+        {isMajorTick && <Text style={styles.tickLabel}>{item.value}</Text>}
+      </View>
+    );
+  };
+  
+  const initialOffset = useMemo(() => {
+      // Clamp the initial value to be within the min/max range
+      const clampedValue = Math.max(MIN_WEIGHT, Math.min(MAX_WEIGHT, value));
+      return ((clampedValue - MIN_WEIGHT) / STEP) * ITEM_WIDTH;
+  }, [value]);
 
   return (
     <View style={styles.container}>
-      <View style={styles.unitToggle}>
-        <TouchableOpacity
-          style={[styles.unitButton, isKg && styles.activeUnit]}
-          onPress={() => handleUnitChange('Kg')}
-        >
-          <Text style={[styles.unitText, isKg && styles.activeUnitText]}>Kg</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.unitButton, !isKg && styles.activeUnit]}
-          onPress={() => handleUnitChange('Lbs')}
-        >
-          <Text style={[styles.unitText, !isKg && styles.activeUnitText]}>Lbs</Text>
-        </TouchableOpacity>
-      </View>
-
       <View style={styles.displayContainer}>
-        <Text style={styles.valueText}>{displayValue}</Text>
-        <Text style={styles.unitLabel}>{unit}</Text>
+        <Text style={styles.valueText}>{value.toFixed(1)}</Text>
+        <Text style={styles.unitText}>kg</Text>
       </View>
-
-      <Slider
-        style={{ width: '100%', height: 40 }}
-        minimumValue={min}
-        maximumValue={max}
-        step={1}
-        value={value}
-        onValueChange={onValueChange}
-        minimumTrackTintColor="#FF5A16"
-        maximumTrackTintColor="#D1D5DB"
-        thumbTintColor="#FF5A16"
-      />
+      <View style={styles.rulerArea}>
+        <View style={styles.indicator} />
+        <FlatList
+          ref={rulerRef}
+          data={rulerData}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.key}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          onMomentumScrollEnd={handleScrollEnd}
+          onScrollEndDrag={handleScrollEnd}
+          getItemLayout={(_, index) => ({
+            length: ITEM_WIDTH,
+            offset: ITEM_WIDTH * index,
+            index,
+          })}
+          // --- FIX IS HERE ---
+          // Use `contentOffset` instead of `initialScrollOffset`
+          contentOffset={{ x: initialOffset, y: 0 }}
+          style={{ width: RULER_WIDTH }}
+        />
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        alignItems: 'center',
-        paddingVertical: 20,
-    },
-    unitToggle: {
-        flexDirection: 'row',
-        backgroundColor: '#F3F4F6',
-        borderRadius: 20,
-        padding: 4,
-        marginBottom: 40,
-    },
-    unitButton: {
-        paddingVertical: 8,
-        paddingHorizontal: 32,
-        borderRadius: 16,
-    },
-    activeUnit: {
-        backgroundColor: '#FFFFFF',
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.20,
-        shadowRadius: 1.41,
-        elevation: 2,
-    },
-    unitText: {
-        fontFamily: 'SpaceGrotesk-Bold',
-        fontSize: 16,
-        color: '#6B7280',
-    },
-    activeUnitText: {
-        color: '#FF5A16',
-    },
-    displayContainer: {
-        flexDirection: 'row',
-        alignItems: 'flex-end',
-        marginBottom: 20,
-    },
-    valueText: {
-        fontFamily: 'SpaceGrotesk-Bold',
-        fontSize: 64,
-        color: '#1F2937',
-    },
-    unitLabel: {
-        fontFamily: 'SpaceGrotesk-Bold',
-        fontSize: 24,
-        color: '#6B7280',
-        marginLeft: 8,
-        marginBottom: 8,
-    },
+  container: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+  },
+  displayContainer: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginBottom: 40,
+  },
+  valueText: {
+    fontSize: 56,
+    fontWeight: 'bold',
+    color: '#1E1E1E',
+  },
+  unitText: {
+    fontSize: 20,
+    fontWeight: '500',
+    color: '#8A8A8E',
+    marginLeft: 8,
+  },
+  rulerArea: {
+    width: RULER_WIDTH,
+    height: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  indicator: {
+    position: 'absolute',
+    width: 3,
+    height: 60,
+    backgroundColor: '#ff5a16',
+    borderRadius: 2,
+    zIndex: 1, // Ensure indicator is on top
+  },
+  tickContainer: {
+    width: ITEM_WIDTH,
+    alignItems: 'center',
+    paddingTop: 10,
+  },
+  tick: {
+    width: 2,
+    height: 20,
+    backgroundColor: '#D1D1D6',
+  },
+  halfTick: {
+    height: 30,
+    backgroundColor: '#A0A0A0',
+  },
+  majorTick: {
+    height: 40,
+    backgroundColor: '#1E1E1E',
+  },
+  tickLabel: {
+    position: 'absolute',
+    top: 55, // Position label below the tick
+    fontSize: 16,
+    color: '#1E1E1E',
+    textAlign: 'center'
+  },
 });
 
 export default WeightSelector;

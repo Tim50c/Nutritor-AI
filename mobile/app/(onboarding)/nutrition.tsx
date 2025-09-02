@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+// mobile/app/(onboarding)/nutrition.tsx
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -7,10 +8,13 @@ import {
   ScrollView, 
   TouchableOpacity, 
   Image,
-  Alert 
+  Alert,
+  ActivityIndicator
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useOnboarding } from '../../context/OnboardingContext';
+import { auth } from '../../config/firebase';
+import apiClient from '../../utils/apiClients';
 
 import CustomButtonAuth from '../../components/CustomButtonAuth';
 import FormField from '../../components/FormField';
@@ -20,12 +24,60 @@ const backArrowIcon = require('../../assets/images/back-arrow.png');
 export default function NutritionScreen() {
   const router = useRouter();
   const { data, updateData } = useOnboarding();
+  
+  const [isLoading, setIsLoading] = useState(true);
+  const [calories, setCalories] = useState('');
+  const [protein, setProtein] = useState('');
+  const [carbs, setCarbs] = useState('');
+  const [fat, setFat] = useState('');
+  const [fiber, setFiber] = useState('');
 
-  const [calories, setCalories] = useState(data.targetNutrition.calories.toString());
-  const [protein, setProtein] = useState(data.targetNutrition.protein.toString());
-  const [carbs, setCarbs] = useState(data.targetNutrition.carbs.toString());
-  const [fat, setFat] = useState(data.targetNutrition.fat.toString());
-  const [fiber, setFiber] = useState(data.targetNutrition.fiber.toString());
+  useEffect(() => {
+    const fetchNutritionSuggestions = async () => {
+      setIsLoading(true);
+      try {
+        const user = auth.currentUser;
+        if (!user) throw new Error("Authentication error.");
+        
+        const idToken = await user.getIdToken();
+
+        const payload = {
+            age: data.age,
+            gender: data.gender,
+            height: data.height,
+            weightCurrent: data.weightCurrent,
+            weightGoal: data.weightGoal,
+        };
+
+        const response = await apiClient.post('/api/v1/nutrition/predict', payload, {
+          headers: { Authorization: `Bearer ${idToken}` },
+        });
+
+        if (response.data.success) {
+          const suggestions = response.data.data;
+          setCalories(suggestions.calories.toString());
+          setProtein(suggestions.protein.toString());
+          setCarbs(suggestions.carbs.toString());
+          setFat(suggestions.fat.toString());
+          setFiber(suggestions.fiber.toString());
+        } else {
+          throw new Error(response.data.error || "Failed to get suggestions.");
+        }
+      } catch (error: any) {
+        console.error("Failed to fetch nutrition suggestions:", error.response?.data || error.message);
+        setCalories(data.targetNutrition.calories.toString());
+        setProtein(data.targetNutrition.protein.toString());
+        setCarbs(data.targetNutrition.carbs.toString());
+        setFat(data.targetNutrition.fat.toString());
+        setFiber(data.targetNutrition.fiber.toString());
+        Alert.alert("Error", "Could not fetch AI suggestions. Please enter your targets manually.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchNutritionSuggestions();
+  }, []); // Empty dependency array ensures this runs only once when the screen loads
 
   const handleNext = () => {
     const numericValues = {
@@ -36,9 +88,8 @@ export default function NutritionScreen() {
         fiber: Number(fiber),
     };
 
-    // FIX IS HERE: We tell TypeScript that `key` is a valid key for `numericValues`
     for (const key in numericValues) {
-        const typedKey = key as keyof typeof numericValues; // Assert the type of the key
+        const typedKey = key as keyof typeof numericValues;
         if (isNaN(numericValues[typedKey]) || numericValues[typedKey] < 0) {
             Alert.alert('Invalid Input', `Please enter a valid, non-negative number for ${typedKey}.`);
             return;
@@ -49,47 +100,56 @@ export default function NutritionScreen() {
     router.push('/(onboarding)/completion');
   };
 
+  if (isLoading) {
+    return (
+      <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#ff5a16" />
+        <Text style={styles.loadingText}>Calculating your nutrition goals...</Text>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                 <Image source={backArrowIcon} style={styles.backButtonIcon} resizeMode="contain" />
             </TouchableOpacity>
         </View>
 
-        <Text style={styles.title}>Complete your profile</Text>
+        <Text style={styles.title}>Your Daily Nutrition Goals</Text>
         <Text style={styles.subtitle}>
-          Set your daily calorie target based on your health and fitness goals.
+          We've calculated these targets based on your profile. Feel free to adjust them.
         </Text>
 
         <View>
           <FormField
-            label="Maintenance calories"
+            label="Daily Calories"
             value={calories}
             onChangeText={setCalories}
             keyboardType="number-pad"
           />
           <FormField
-            label="Protein goal"
+            label="Protein (grams)"
             value={protein}
             onChangeText={setProtein}
             keyboardType="number-pad"
           />
           <FormField
-            label="Carb goal"
+            label="Carbs (grams)"
             value={carbs}
             onChangeText={setCarbs}
             keyboardType="number-pad"
           />
           <FormField
-            label="Fat goal"
+            label="Fat (grams)"
             value={fat}
             onChangeText={setFat}
             keyboardType="number-pad"
           />
           <FormField
-            label="Fiber goal"
+            label="Fiber (grams)"
             value={fiber}
             onChangeText={setFiber}
             keyboardType="number-pad"
@@ -98,7 +158,7 @@ export default function NutritionScreen() {
 
         <View style={styles.buttonContainer}>
           <CustomButtonAuth
-            title="Next"
+            title="Finish Setup"
             onPress={handleNext}
             containerStyles={{backgroundColor: '#ff5a16'}}
           />
@@ -154,5 +214,10 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     paddingBottom: 40,
     marginTop: 20,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#8A8A8E',
   },
 });

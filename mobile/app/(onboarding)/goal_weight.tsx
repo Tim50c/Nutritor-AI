@@ -1,3 +1,4 @@
+// mobile/app/(onboarding)/goal_weight.tsx
 import React from 'react';
 import { View, SafeAreaView } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -13,24 +14,20 @@ export default function GoalWeightScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
-      <View style={{ flex: 1, paddingHorizontal: 24 }}>
-        {/* The back link is correct, but progress is updated */}
-        <OnboardingHeader title="What's your target weight?" progress={0.85} backHref="/current_weight" />
+      <View style={{ flex: 1, paddingHorizontal: 24, paddingTop: 20 }}>
+        <OnboardingHeader title="What's your target weight?" progress={0.85} backHref="/(onboarding)/current_weight" />
         
         <View style={{ flex: 1, justifyContent: 'center' }}>
             <WeightSelector
                 value={data.weightGoal}
-                unit={data.weightUnit}
                 onValueChange={(val) => updateData({ weightGoal: val })}
-                onUnitChange={(unit) => updateData({ weightUnit: unit })}
             />
         </View>
 
         <View style={{ paddingBottom: 40 }}>
-          {/* Button is now a simple "Continue" that navigates to the nutrition screen */}
           <CustomButtonAuth 
             title="Continue" 
-            onPress={() => router.push('./nutrition')}
+            onPress={() => router.push('/(onboarding)/nutrition')}
             containerStyles={{backgroundColor: '#ff5a16'}}
           />
         </View>

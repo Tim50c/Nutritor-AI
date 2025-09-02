@@ -1,3 +1,4 @@
+// mobile/app/(onboarding)/current_weight.tsx
 import React from 'react';
 import { View, SafeAreaView } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -13,22 +14,21 @@ export default function CurrentWeightScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
-      <View style={{ flex: 1, paddingHorizontal: 24 }}>
-        <OnboardingHeader title="What's your current weight?" progress={0.75} backHref="/height" />
+      <View style={{ flex: 1, paddingHorizontal: 24, paddingTop: 20 }}>
+        <OnboardingHeader title="What's your current weight?" progress={0.75} backHref="/(onboarding)/height" />
         
         <View style={{ flex: 1, justifyContent: 'center' }}>
             <WeightSelector
                 value={data.weightCurrent}
-                unit={data.weightUnit}
                 onValueChange={(val) => updateData({ weightCurrent: val })}
-                onUnitChange={(unit) => updateData({ weightUnit: unit })}
             />
         </View>
 
         <View style={{ paddingBottom: 40 }}>
           <CustomButtonAuth 
             title="Continue" 
-            onPress={() => router.push('./goal_weight')} 
+            onPress={() => router.push('/(onboarding)/goal_weight')} 
+            containerStyles={{backgroundColor: '#ff5a16'}}
           />
         </View>
       </View>
