@@ -10,16 +10,26 @@ exports.getConsumedNutrition = async (req, res, next) => {
     const { uid } = res.locals;
     const { date } = req.query;
 
+    console.log("🍎 Backend: getConsumedNutrition called:", {
+      uid,
+      date,
+      query: req.query,
+      timestamp: new Date().toISOString()
+    });
+
     if (!date) {
+      console.log("❌ Backend: Missing date parameter");
       return res.status(400).json({ 
         success: false, 
         error: 'Date parameter is required (format: YYYY-MM-DD)' 
       });
     }
 
+    console.log("🔍 Backend: Fetching diet document for:", { uid, date });
     const dietDoc = await db.collection('users').doc(uid).collection('diets').doc(date).get();
     
     if (!dietDoc.exists) {
+      console.log("📭 Backend: No diet found for date, returning zero nutrition");
       return res.status(200).json({ 
         success: true, 
         data: {
@@ -31,14 +41,23 @@ exports.getConsumedNutrition = async (req, res, next) => {
     }
 
     const diet = Diet.fromFirestore(dietDoc);
+    console.log("🍽️ Backend: Diet found:", {
+      date,
+      foodCount: diet.foods?.length || 0,
+      foods: diet.foods
+    });
     
     // Get detailed food information for each food in the diet
     const foodsWithDetails = await Promise.all(
       diet.foods.map(async (dietFood) => {
+        console.log("🔍 Backend: Fetching food details for:", dietFood.foodId);
         const foodDoc = await db.collection('foods').doc(dietFood.foodId).get();
         if (foodDoc.exists) {
           const food = Food.fromFirestore(foodDoc);
+          console.log("✅ Backend: Food found:", { id: food.id, name: food.name, nutrition: food.nutrition });
           return food;
+        } else {
+          console.log("❌ Backend: Food not found:", dietFood.foodId);
         }
         return null;
       })
@@ -46,6 +65,7 @@ exports.getConsumedNutrition = async (req, res, next) => {
 
     // Filter out null values (foods that don't exist anymore)
     const validFoods = foodsWithDetails.filter(food => food !== null);
+    console.log("📊 Backend: Valid foods:", validFoods.length);
 
     // Calculate total consumed nutrition
     const consumedNutrition = validFoods.reduce(
@@ -58,17 +78,26 @@ exports.getConsumedNutrition = async (req, res, next) => {
       { calories: 0, protein: 0, carbs: 0, fat: 0 }
     );
 
+    const responseData = {
+      date,
+      consumedNutrition,
+      totalFoods: validFoods.length,
+      foodNames: validFoods.map(food => food.name) // Optional: list of consumed foods
+    };
+
+    console.log("📤 Backend: Sending consumed nutrition response:", responseData);
+
     res.status(200).json({ 
       success: true, 
-      data: {
-        date,
-        consumedNutrition,
-        totalFoods: validFoods.length,
-        foodNames: validFoods.map(food => food.name) // Optional: list of consumed foods
-      }
+      data: responseData
     });
   } catch (error) {
-    console.error(error);
+    console.error("❌ Backend: Error in getConsumedNutrition:", {
+      message: error.message,
+      stack: error.stack,
+      uid: res.locals?.uid,
+      date: req.query?.date
+    });
     res.status(500).json({ success: false, error: 'Server error' });
   }
 };
