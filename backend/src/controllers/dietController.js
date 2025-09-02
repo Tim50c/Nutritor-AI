@@ -161,34 +161,61 @@ exports.addFoodToDiet = async (req, res, next) => {
     const date = new Date().toISOString().slice(0, 10);
     const now = new Date();
 
-    // Validate that the food exists
+    // Validate that the food exists and get its nutrition data
     const foodDoc = await db.collection('foods').doc(foodId).get();
     if (!foodDoc.exists) {
       return res.status(404).json({ success: false, error: 'Food not found' });
     }
+    const food = foodDoc.data();
 
     const dietRef = db.collection('users').doc(uid).collection('diets').doc(date);
     const dietDoc = await dietRef.get();
 
+    let updatedFoods = [];
+    let currentTotalNutrition = { cal: 0, protein: 0, carbs: 0, fat: 0 };
+
     if (!dietDoc.exists) {
       // Create new diet document if it doesn't exist
+      updatedFoods = [{ foodId, addedAt: now }];
+      currentTotalNutrition = {
+        cal: food.nutrition?.cal || 0,
+        protein: food.nutrition?.protein || 0,
+        carbs: food.nutrition?.carbs || 0,
+        fat: food.nutrition?.fat || 0
+      };
+
       const newDiet = {
         date,
-        foods: [{ foodId, addedAt: now }],
+        foods: updatedFoods,
+        totalNutrition: currentTotalNutrition,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       };
       await dietRef.set(newDiet);
     } else {
-      // Add food to existing diet
+      // Add food to existing diet and recalculate total nutrition
+      const existingData = dietDoc.data();
+      updatedFoods = [...(existingData.foods || []), { foodId, addedAt: now }];
+      
+      // Get current total nutrition or start from zero
+      currentTotalNutrition = existingData.totalNutrition || { cal: 0, protein: 0, carbs: 0, fat: 0 };
+      
+      // Add new food's nutrition to the total
+      currentTotalNutrition = {
+        cal: currentTotalNutrition.cal + (food.nutrition?.cal || 0),
+        protein: Math.round((currentTotalNutrition.protein + (food.nutrition?.protein || 0)) * 10) / 10,
+        carbs: Math.round((currentTotalNutrition.carbs + (food.nutrition?.carbs || 0)) * 10) / 10,
+        fat: Math.round((currentTotalNutrition.fat + (food.nutrition?.fat || 0)) * 10) / 10
+      };
+
       await dietRef.update({
-        foods: admin.firestore.FieldValue.arrayUnion({ 
-          foodId, 
-          addedAt: now
-        }),
+        foods: updatedFoods,
+        totalNutrition: currentTotalNutrition,
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       });
     }
+
+    console.log(`✅ Backend: Food ${foodId} added to diet for ${date}. New total nutrition:`, currentTotalNutrition);
 
     res.status(200).json({ success: true, message: 'Food added to diet successfully' });
   } catch (error) {

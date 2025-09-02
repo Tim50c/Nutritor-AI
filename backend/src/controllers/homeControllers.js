@@ -28,16 +28,41 @@ exports.getHomeData = async (req, res, next) => {
     let totals = { cal: 0, protein: 0, carbs: 0, fat: 0 };
 
     if (dietDoc.exists) {
-      diet = Diet.fromFirestore(dietDoc);
-      diets = [diet]; // Convert single diet to array
-      totals = diet.totalNutrition || totals; // Use diet's total nutrition
-      console.log('🍽️ Backend: Diet data found:', diet);
+      const dietData = dietDoc.data();
+      console.log('🍽️ Backend: Raw diet data:', dietData);
+
+      // Populate food details for each food in the diet
+      const populatedFoods = [];
+      if (dietData.foods && Array.isArray(dietData.foods)) {
+        for (const foodEntry of dietData.foods) {
+          const foodDoc = await db.collection('foods').doc(foodEntry.foodId).get();
+          if (foodDoc.exists) {
+            const foodData = foodDoc.data();
+            populatedFoods.push({
+              id: foodDoc.id,
+              name: foodData.name,
+              description: foodData.description,
+              nutrition: foodData.nutrition,
+              imageUrl: foodData.imageUrl,
+              addedAt: foodEntry.addedAt
+            });
+          }
+        }
+      }
+
+      // Create diet object with populated foods
+      diet = new Diet(dietDoc.id, dietData.totalNutrition, populatedFoods);
+      diets = [diet];
+      totals = dietData.totalNutrition || totals;
+      
+      console.log('🍽️ Backend: Diet with populated foods:', diet);
+      console.log('🍽️ Backend: Total nutrition:', totals);
     } else {
       console.log('🍽️ Backend: No diet data found for date, returning empty data');
     }
 
     const responseData = {
-      consumpedNutrition: totals,
+      consumpedNutrition: totals, // Keep the original field name for frontend compatibility
       diets: diets,
       targetNutrition: user.targetNutrition || { cal: 2000, protein: 150, carbs: 250, fat: 67 }
     };
