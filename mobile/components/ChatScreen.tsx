@@ -374,7 +374,9 @@ const ChatScreen = () => {
           style={styles.backArrowContainer}
           onPress={() => router.back()}
         >
-          <Ionicons name="arrow-back" size={20} color="white" />
+        <View style={{ transform: [{ rotate: '0deg' }] }}>
+            <icons.arrow width={20} height={20} color="#FFFFFF" />
+        </View>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Nutritor AI</Text>
       </View>
@@ -434,33 +436,70 @@ const ChatScreen = () => {
               {isAttachmentMenuVisible && (
                 <View style={styles.attachmentMenuContainer}>
                   <View style={styles.attachmentMenu}>
-                    {/* --- (CHANGE 5) - WIRED UP FILE PICKER --- */}
-                    <TouchableOpacity
-                      style={styles.menuOption}
-                      onPress={handleAttachFile}
-                    >
-                      <icons.fileIcon
-                        width={22}
-                        height={22}
-                        className="mr-2.5"
-                        stroke="#555"
-                      />
-                      <Text style={styles.menuOptionText}>Send File</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.menuOption}
-                      onPress={handleAttachImage}
-                    >
+                    {/* Upper half with orange background */}
+                    <View style={{
+                      backgroundColor: '#ff5a16',
+                      flex: 1,
+                      borderTopLeftRadius: 18,
+                      borderTopRightRadius: 18,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      marginLeft: -8,
+                      marginRight: -8,
+                      marginTop: -8,
+                      paddingLeft: 8,
+                    }}>
+                      <TouchableOpacity
+                        style={[styles.menuOption, { 
+                          backgroundColor: 'transparent',
+                          flex: 1,
+                          width: '100%',
+                          margin: 0
+                        }]}
+                        onPress={handleAttachFile}
+                      >
+                        <icons.fileIcon
+                          width={22}
+                          height={22}
+                          className="mr-2.5"
+                          color="#ffffff"
+                          stroke="#ffffff"
+                        />
+                        <Text style={[styles.menuOptionText, { paddingLeft: 8, color: '#ffffff' }]}>Send File</Text>
+                      </TouchableOpacity>
+                    </View>
+                    {/* Lower half with white background */}
+                    <View style={{
+                      backgroundColor: '#ffffff',
+                      flex: 1,
+                      borderBottomLeftRadius: 18,
+                      borderBottomRightRadius: 18,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      marginLeft: -8,
+                      marginRight: -8,
+                      marginBottom: -8,
+                      paddingLeft: 8,
+                    }}>
+                      <TouchableOpacity
+                        style={[styles.menuOption, { 
+                          flex: 1, 
+                          width: '100%',
+                          margin: 0
+                        }]}
+                        onPress={handleAttachImage}
+                      >
                       <icons.screenShotIcon
                         width={22}
                         height={22}
                         className="mr-2.5"
                         stroke="#555"
                       />
-                      <Text style={styles.menuOptionText}>
+                      <Text style={[styles.menuOptionText, { paddingLeft: 8 }]}>
                         Attach a screenshot
                       </Text>
-                    </TouchableOpacity>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                   <View style={styles.menuPointer} />
                 </View>
@@ -476,8 +515,9 @@ const ChatScreen = () => {
                 />
                 <TouchableOpacity
                   onPress={() => setAttachmentMenuVisible((prev) => !prev)}
+                  style={{ marginRight: 16 }}
                 >
-                  <icons.screenShotIcon
+                  <icons.attachmentIcon
                     width={24}
                     height={24}
                     className="mx-2"
@@ -485,7 +525,10 @@ const ChatScreen = () => {
                   />
                 </TouchableOpacity>
                 {/* Send button now calls the unified `sendData` function */}
-                <TouchableOpacity onPress={() => sendData(input)}>
+                <TouchableOpacity 
+                  onPress={() => sendData(input)}
+                  style={{ marginRight: 16 }}
+                  >
                   <icons.sendIcon
                     width={24}
                     height={24}
@@ -617,6 +660,7 @@ const styles = StyleSheet.create({
     left: 15,
     right: 15,
     alignItems: "flex-end",
+    zIndex: 999,
   },
   attachmentMenu: {
     backgroundColor: "#FFFFFF",
@@ -629,7 +673,10 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 5,
+    zIndex: 1000,
+    flexDirection: "column",
+    height: 120,
   },
   menuPointer: {
     position: "absolute",

@@ -5,9 +5,7 @@ export default function SettingsLayout() {
   return (
     <Stack
       screenOptions={{
-        header: ({ options }) => (
-          <CustomHeader title={options.title || ""} />
-        ),
+        headerShown: false,
       }}
     >
       <Stack.Screen

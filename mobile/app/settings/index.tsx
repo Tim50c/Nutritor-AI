@@ -52,7 +52,7 @@ const Settings = () => {
           className="bg-black w-10 h-10 rounded-full justify-center items-center" 
           onPress={() => router.back()}
         >
-          <View style={{ transform: [{ rotate: '180deg' }] }}>
+          <View style={{ transform: [{ rotate: '0deg' }] }}>
             <icons.arrow width={20} height={20} color="#FFFFFF" />
           </View>
         </TouchableOpacity>
