@@ -37,7 +37,7 @@ exports.getHomeData = async (req, res, next) => {
     }
 
     const responseData = {
-      totals: totals,
+      consumpedNutrition: totals,
       diets: diets,
       targetNutrition: user.targetNutrition || { cal: 2000, protein: 150, carbs: 250, fat: 67 }
     };
