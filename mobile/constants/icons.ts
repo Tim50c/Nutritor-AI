@@ -15,6 +15,7 @@ import search from "@/assets/icons/search.svg";
 import arrow from "@/assets/icons/arrow.svg";
 import chatIcon from "@/assets/icons/chat-icon.svg";
 import fileIcon from "@/assets/icons/file-icon.svg";
+import fileIconPng from "@/assets/icons/file-icon.png";
 import screenShotIcon from "@/assets/icons/screen-shot-icon.svg";
 import sendIcon from "@/assets/icons/send-icon.svg";
 import CameraModeIcon from "@/assets/icons/camera-mode-icon.svg";
@@ -22,6 +23,7 @@ import BarcodeModeIcon from "@/assets/icons/barcode-mode-icon.svg";
 import GalleryModeIcon from "@/assets/icons/gallery-mode-icon.svg";
 import close from "@/assets/icons/close.svg";
 import forwardArrow from "@/assets/icons/forward-arrow.svg";
+import attachmentIcon from "@/assets/icons/attachment-icon.svg";
 
 export const icons = {
   home,
@@ -41,11 +43,13 @@ export const icons = {
   arrow,
   chatIcon,
   fileIcon,
+  fileIconPng,
   screenShotIcon,
   sendIcon,
   CameraModeIcon,
   BarcodeModeIcon,
   GalleryModeIcon,
   close,
-  forwardArrow
+  forwardArrow,
+  attachmentIcon,
 };

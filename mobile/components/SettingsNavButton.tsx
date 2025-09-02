@@ -29,7 +29,7 @@ const SettingsNavButton: React.FC<SettingsNavButtonProps> = ({
     ? 'text-black' // Light variant has black text
     : 'text-white'; // Dark variant has white text
 
-  const iconColor = isLight ? '#A0A0A0' : '#FFFFFF'; // Set icon color
+  const iconColor = isLight ? '#000000' : '#FFFFFF'; // Set icon color
 
   return (
     <TouchableOpacity
@@ -39,7 +39,7 @@ const SettingsNavButton: React.FC<SettingsNavButtonProps> = ({
     >
       <Text className={`${textClass} text-base font-medium`}>{label}</Text>
       {/* Pass the color prop to your SVG icon component */}
-      <icons.arrow width={20} height={20} color={iconColor} />
+      <icons.forwardArrow width={20} height={20} color={iconColor} />
     </TouchableOpacity>
   );
 };

@@ -153,12 +153,16 @@ function RootLayoutNav() {
       <Stack.Screen name="food/[id]" options={{ headerShown: false }} />
       <Stack.Screen
         name="settings"
-        options={{ title: "Settings", headerShown: false }}
+        options={{ 
+            title: "Settings", 
+            headerShown: false,
+        }}
       />
       <Stack.Screen
         name="notifications"
         options={{
           title: "Notifications",
+          headerShown: false,
           header: ({ options }) => <CustomHeader title={options.title || ""} />,
         }}
       />
