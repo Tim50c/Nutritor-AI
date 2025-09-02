@@ -16,7 +16,7 @@ class HomeService {
 
   public async getHome(input: IHomeInput): Promise<HomeModel> {
     try {
-      const response = await authInstance.get(`/api/v1/home?date=${input.date}`);
+      const response = await authInstance.get(`/home?date=${input.date}`);
       return response.data as HomeModel;
     } catch (error: any) {
       console.error("Failed to fetch home data:", error.message);

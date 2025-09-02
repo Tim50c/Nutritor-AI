@@ -15,7 +15,7 @@ class DietService {
 
   public async getDiets(input: IDietsInput): Promise<DietModel[]> {
     try {
-      const response = await authInstance.get(`/api/v1/diet/${input.date}`);
+      const response = await authInstance.get(`/diet/${input.date}`);
 
       return response.data as DietModel[];
     } catch (error: any) {
@@ -26,7 +26,7 @@ class DietService {
 
   public async addFoodToTodayDiet(input: IAddDietInput): Promise<DietModel[]> {
     try {
-      const response = await authInstance.post(`/api/v1/diet`, {
+      const response = await authInstance.post(`/diet`, {
         food: input.foodId,
       });
 
@@ -39,7 +39,7 @@ class DietService {
 
   public async removeFoodFromTodayDiet(input: IAddDietInput): Promise<DietModel[]> {
     try {
-      const response = await authInstance.delete(`/api/v1/diet/${input.foodId}`);
+      const response = await authInstance.delete(`/diet/${input.foodId}`);
 
       return response.data as DietModel[];
     } catch (error: any) {
@@ -57,11 +57,11 @@ class DietService {
     try {
       console.log("🍎 Starting getConsumedNutrition call:", {
         date,
-        url: `/api/v1/diet/nutrition?date=${date}`,
+        url: `/diet/nutrition?date=${date}`,
         timestamp: new Date().toISOString()
       });
 
-      const response = await authInstance.get(`/api/v1/diet/nutrition?date=${date}`);
+      const response = await authInstance.get(`/diet/nutrition?date=${date}`);
       
       console.log("🍎 Consumed nutrition API response:", {
         status: response.status,
@@ -88,7 +88,7 @@ class DietService {
         message: error.message,
         status: error.response?.status || 'No response',
         statusText: error.response?.statusText || 'No status text',
-        url: `/api/v1/diet/nutrition?date=${date}`,
+        url: `/diet/nutrition?date=${date}`,
         responseData: error.response?.data || 'No response data',
         hasResponse: !!error.response,
         errorType: error.constructor.name,
