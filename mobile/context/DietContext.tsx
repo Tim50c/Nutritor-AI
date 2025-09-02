@@ -265,14 +265,31 @@ export function DietProvider({ children }: { children: ReactNode }) {
 
   // Favorite management
   const toggleFavorite = async (foodId: string) => {
-    try {
-      const currentFavorites = Array.isArray(favoriteFoodIds) ? favoriteFoodIds : [];
-      const updatedIds = currentFavorites.includes(foodId)
-        ? await FavoriteService.removeFavorite({ foodId })
-        : await FavoriteService.addFavorite({ foodId });
-      setFavoriteFoodIds(Array.isArray(updatedIds) ? updatedIds : []);
-    } catch (error) {
-      console.error("Error toggling favorite:", error);
+    // Optimistically update UI
+    const currentFavorites = Array.isArray(favoriteFoodIds) ? favoriteFoodIds : [];
+    let updatedIds: string[];
+    if (currentFavorites.includes(foodId)) {
+      updatedIds = currentFavorites.filter(id => id !== foodId);
+      setFavoriteFoodIds(updatedIds);
+      try {
+        const backendIds = await FavoriteService.removeFavorite({ foodId });
+        setFavoriteFoodIds(Array.isArray(backendIds) ? backendIds : updatedIds);
+      } catch (error) {
+        // Revert on error
+        setFavoriteFoodIds(currentFavorites);
+        console.error("Error removing favorite:", error);
+      }
+    } else {
+      updatedIds = [...currentFavorites, foodId];
+      setFavoriteFoodIds(updatedIds);
+      try {
+        const backendIds = await FavoriteService.addFavorite({ foodId });
+        setFavoriteFoodIds(Array.isArray(backendIds) ? backendIds : updatedIds);
+      } catch (error) {
+        // Revert on error
+        setFavoriteFoodIds(currentFavorites);
+        console.error("Error adding favorite:", error);
+      }
     }
   };
 

@@ -3,10 +3,17 @@ import { View, Text, ScrollView, Image } from "react-native";
 import { useDietContext } from "@/context/DietContext";
 import FoodSuggestionCard from "@/components/FoodSuggestionCard";
 import { images } from "@/constants/images";
+import { useFocusEffect } from '@react-navigation/native';
 
 const Favorites = () => {
-  const { getFavoriteFoods, toggleFavorite, isFavorite } = useDietContext();
+  const { getFavoriteFoods, toggleFavorite, refreshData } = useDietContext();
   const favoriteFoods = getFavoriteFoods();
+
+  useFocusEffect(
+    React.useCallback(() => {
+      refreshData();
+    }, [])
+  );
 
   if (favoriteFoods.length === 0) {
     return (
