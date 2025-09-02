@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import {Ionicons} from "@expo/vector-icons";
+import { icons } from '@/constants/icons';
 
 interface OnboardingHeaderProps {
   title: string;
@@ -16,9 +17,20 @@ const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({ title, progress, ba
         <View style={{ paddingTop: 24 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', height: 40 }}>
                  {backHref && (
-                    <TouchableOpacity onPress={() => router.back()} style={{ padding: 8, marginLeft: -8 }}>
-                        {/*<Image source={backIcon} style={{ width: 24, height: 24, tintColor: '#1F2937' }} />*/}
-                      <Ionicons name="arrow-back" size={24} color="#1F2937" />
+                    <TouchableOpacity 
+                        onPress={() => router.back()} 
+                        style={{ 
+                            width: 40, 
+                            height: 40, 
+                            backgroundColor: '#000000', 
+                            borderRadius: 20, 
+                            justifyContent: 'center', 
+                            alignItems: 'center' 
+                        }}
+                    >
+                        <View style={{ transform: [{ rotate: '0deg' }] }}>
+                            <icons.arrow width={20} height={20} color="#FFFFFF" />
+                        </View>
                     </TouchableOpacity>
                  )}
             </View>

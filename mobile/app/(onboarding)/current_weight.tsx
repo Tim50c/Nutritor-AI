@@ -20,7 +20,9 @@ export default function CurrentWeightScreen() {
         <View style={{ flex: 1, justifyContent: 'center' }}>
             <WeightSelector
                 value={data.weightCurrent}
+                unit={data.weightUnit} // <-- ADD THIS: Pass the current unit
                 onValueChange={(val) => updateData({ weightCurrent: val })}
+                onUnitChange={(unit) => updateData({ weightUnit: unit })} // <-- ADD THIS: Handle unit changes
             />
         </View>
 

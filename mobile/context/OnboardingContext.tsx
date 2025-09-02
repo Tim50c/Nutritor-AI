@@ -10,7 +10,7 @@ interface OnboardingData {
   gender: 'Female' | 'Male' | 'Other' | null;
   weightCurrent: number;
   weightGoal: number;
-  weightUnit: 'Kg' | 'Lbs';
+  weightUnit: 'kg' | 'lbs'; 
   height: number; // <-- ADD THIS
   heightUnit: 'cm' | 'ft'; // <-- ADD THIS
   targetNutrition: TargetNutrition;
@@ -29,7 +29,7 @@ export const OnboardingProvider = ({ children }: { children: ReactNode }) => {
     gender: null,
     weightCurrent: 60,
     weightGoal: 55,
-    weightUnit: 'Kg',
+    weightUnit: 'kg',
     height: 170, // <-- ADD DEFAULT
     heightUnit: 'cm', // <-- ADD DEFAULT
     targetNutrition: { calories: 2000, protein: 200, carbs: 500, fat: 50, fiber: 60 },

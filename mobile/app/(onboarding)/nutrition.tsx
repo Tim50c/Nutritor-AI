@@ -148,12 +148,6 @@ export default function NutritionScreen() {
             onChangeText={setFat}
             keyboardType="number-pad"
           />
-          <FormField
-            label="Fiber (grams)"
-            value={fiber}
-            onChangeText={setFiber}
-            keyboardType="number-pad"
-          />
         </View>
 
         <View style={styles.buttonContainer}>
