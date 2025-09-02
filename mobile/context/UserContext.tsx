@@ -1,52 +1,5 @@
-// import React, { createContext, useContext, useState, ReactNode } from "react";
-
-// export type User = {
-//   name: string;
-//   email: string;
-//   avatar: any;
-//   dob: string;
-//   gender: "Male" | "Female" | "Other";
-//   height: string;
-//   weight: string;
-//   password?: string; // hashed password
-// };
-
-import { UserProfile } from "firebase/auth";
-import { Timestamp } from "firebase/firestore";
-// const defaultUser: User = {
-//   name: "Jane Cooper",
-//   email: "janecooper@email.com",
-//   avatar: require("@/assets/images/placeholder.png"),
-//   dob: "21-05-2003",
-//   gender: "Male",
-//   height: "1.70m",
-//   weight: "56kg",
-//   password: "", // default empty
-// };
-
-// const UserContext = createContext<{
-//   user: User;
-//   setUser: (user: User) => void;
-// }>({
-//   user: defaultUser,
-//   setUser: () => {},
-// });
-
-// export const useUser = () => useContext(UserContext);
-
-// export const UserProvider = ({ children }: { children: ReactNode }) => {
-//   const [user, setUser] = useState<User>(defaultUser);
-//   return (
-//     <UserContext.Provider value={{ user, setUser }}>
-//       {children}
-//     </UserContext.Provider>
-//   );
-// };
-
-
-// context/UserContext.tsx
-
 import React, { createContext, useContext, useState, ReactNode } from "react";
+import { auth } from "../config/firebase"; // <-- 1. Import Firebase auth
 
 // 1. Define a type that MATCHES your Firestore user document
 export type User = {
@@ -70,13 +23,15 @@ type UserContextType = {
   userProfile: User | null;
   setUserProfile: (profile: User | null) => void;
   isLoadingProfile: boolean;
+  logout: () => Promise<void>; // <-- 2. Add logout to the type definition
 };
 
 // 3. Create the context with a default state
 const UserContext = createContext<UserContextType>({
-  userProfile: null,         // Initially, there is no user profile
-  setUserProfile: () => {},  // A placeholder function
-  isLoadingProfile: true,    // We start in a loading state until we check
+  userProfile: null,
+  setUserProfile: () => {},
+  isLoadingProfile: true,
+  logout: async () => {}, // <-- 3. Add a default async function
 });
 
 // 4. Create the custom hook to use the context
@@ -100,20 +55,29 @@ export const defaultUser: User = {
 // 5. Create the Provider component
 export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [userProfile, setUserProfile] = useState<User | null>(null);
-  // This loading state is true until we fetch the profile for the first time
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
-  // We create a wrapper function so that whenever we set a profile,
-  // we automatically mark loading as complete.
   const handleSetUserProfile = (profile: User | null) => {
     setUserProfile(profile);
     setIsLoadingProfile(false);
+  };
+
+  // <-- 4. Implement the logout function
+  const handleLogout = async () => {
+    try {
+      await auth.signOut(); // Sign out from Firebase
+      handleSetUserProfile(null); // Clear the user profile in the app state
+    } catch (error) {
+      console.error("Error signing out: ", error);
+      // You could optionally re-throw the error or handle it here
+    }
   };
 
   const value = {
     userProfile,
     setUserProfile: handleSetUserProfile,
     isLoadingProfile,
+    logout: handleLogout, // <-- 5. Provide the logout function in the context value
   };
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;

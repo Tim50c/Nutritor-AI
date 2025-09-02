@@ -20,6 +20,8 @@ import sendIcon from "@/assets/icons/send-icon.svg";
 import CameraModeIcon from "@/assets/icons/camera-mode-icon.svg";
 import BarcodeModeIcon from "@/assets/icons/barcode-mode-icon.svg";
 import GalleryModeIcon from "@/assets/icons/gallery-mode-icon.svg";
+import close from "@/assets/icons/close.svg";
+import forwardArrow from "@/assets/icons/forward-arrow.svg";
 
 export const icons = {
   home,
@@ -43,5 +45,7 @@ export const icons = {
   sendIcon,
   CameraModeIcon,
   BarcodeModeIcon,
-  GalleryModeIcon
+  GalleryModeIcon,
+  close,
+  forwardArrow
 };

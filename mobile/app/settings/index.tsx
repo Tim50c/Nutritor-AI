@@ -1,68 +1,111 @@
-import { Text, View, Image, TouchableOpacity } from "react-native";
-import { useUser } from "@/context/UserContext";
-import { useRouter } from "expo-router";
-import SettingsNavButton from "@/components/SettingsNavButton";
+// mobile/app/settings/index.tsx
+import React, { useState } from 'react';
+import {
+  Text,
+  View,
+  Image,
+  TouchableOpacity,
+  SafeAreaView,
+  ScrollView,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
+import { useUser } from '@/context/UserContext';
+import { useRouter } from 'expo-router';
+import SettingsNavButton from '@/components/SettingsNavButton';
+import CustomButtonAuth from '@/components/CustomButtonAuth';
+import { icons } from '@/constants/icons';
+
+const placeholderAvatar = require('../../assets/images/placeholder.png'); 
 
 const Settings = () => {
   const router = useRouter();
-  const { userProfile } = useUser();
+  const { userProfile, logout } = useUser(); // Now 'logout' exists and is correctly typed
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  // If userProfile is not loaded yet, show loading or return null
   if (!userProfile) {
     return (
-      <View className="flex-1 bg-white px-4 pt-4 justify-center items-center">
-        <Text>Loading...</Text>
-      </View>
+      <SafeAreaView className="flex-1 bg-white justify-center items-center">
+        <ActivityIndicator size="large" color="#FF6F2D" />
+      </SafeAreaView>
     );
   }
+  
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+      console.log("User logged out successfully");
+      // After logout is successful, replace the entire navigation stack with the sign-in screen
+      // router.replace('/sign_in');
+    } catch (error) {
+      Alert.alert("Logout Failed", "An error occurred while trying to log out. Please try again.");
+      setIsLoggingOut(false);
+    }
+  };
 
   return (
-    <View className="flex-1 bg-white px-4 pt-4">
-      {/* User Info Card */}
-      <TouchableOpacity
-        className="bg-primary-200 rounded-2xl p-4 flex-row items-center mb-6 border border-black"
-        onPress={() => router.push("/settings/profile")}
-        activeOpacity={0.8}
-      >
-        <Image source={userProfile.avatar} className="w-14 h-14 rounded-full mr-4" />
-        <View>
-          <Text className="text-lg font-semibold text-white">{userProfile.firstname} {userProfile.lastname}</Text>
-          <Text className="text-sm text-white mt-1">{userProfile.email}</Text>
-        </View>
-      </TouchableOpacity>
-
-      {/* Settings Navigation Buttons - Grouped as in the design */}
-      <View className="space-y-4">
-        <View className="bg-primary-200 rounded-2xl p-0 mb-4 border border-black">
-          <SettingsNavButton
-            label="Profile"
-            route="/settings/profile"
-            style="mb-0"
-          />
-          <SettingsNavButton
-            label="Change Password"
-            route="/settings/change-password"
-            style="mb-0"
-          />
-          <SettingsNavButton
-            label="Notification"
-            route="/settings/notification-settings"
-            style="mb-0"
-          />
-          <SettingsNavButton
-            label="Favorite"
-            route="/settings/favorites"
-            style="mb-0"
-          />
-        </View>
-        <View className="bg-primary-200 rounded-2xl p-0 mb-4 border border-black">
-          <SettingsNavButton label="More" route="/settings/more" />
-        </View>
-        <View className="bg-primary-200 rounded-2xl p-0 border border-black">
-          <SettingsNavButton label="Log Out" route="/logout" />
-        </View>
+    <SafeAreaView className="flex-1 bg-white">
+      {/* Header */}
+      <View className="flex-row items-center justify-between px-4 py-3">
+        <TouchableOpacity 
+          className="bg-black w-10 h-10 rounded-full justify-center items-center" 
+          onPress={() => router.back()}
+        >
+          <View style={{ transform: [{ rotate: '180deg' }] }}>
+            <icons.arrow width={20} height={20} color="#FFFFFF" />
+          </View>
+        </TouchableOpacity>
+        <Text className="text-xl font-bold text-black">Settings</Text>
+        <View className="w-10" />
       </View>
-    </View>
+
+      <ScrollView className="px-6" showsVerticalScrollIndicator={false}>
+        {/* User Info Card */}
+        <TouchableOpacity
+          className="bg-[#FF6F2D] rounded-2xl p-4 flex-row items-center mt-4 mb-6"
+          onPress={() => router.push('/settings/profile')}
+          activeOpacity={0.8}
+        >
+          <Image
+            source={userProfile.avatar ? { uri: userProfile.avatar } : placeholderAvatar}
+            className="w-16 h-16 rounded-full mr-4 bg-white"
+          />
+          <View>
+            <Text className="text-lg font-bold text-white">
+              {userProfile.firstname} {userProfile.lastname}
+            </Text>
+            <Text className="text-sm text-white mt-1">{userProfile.email}</Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* Settings Group 1 */}
+        <View className="bg-gray-100 rounded-2xl mb-6">
+          <SettingsNavButton label="Profile" route="/settings/profile" variant="light" />
+          <View className="h-px bg-gray-200 mx-5" />
+          <SettingsNavButton label="Change Password" route="/settings/change-password" variant="light" />
+          <View className="h-px bg-gray-200 mx-5" />
+          <SettingsNavButton label="Notification" route="/notifications" variant="light" />
+          <View className="h-px bg-gray-200 mx-5" />
+          <SettingsNavButton label="Favorite" route="/settings/favorites" variant="light" />
+        </View>
+
+        {/* Settings Group 2 */}
+        <View className="bg-gray-100 rounded-2xl mb-6">
+          <SettingsNavButton label="More" route="/settings/more" variant="light" />
+        </View>
+      </ScrollView>
+      
+      {/* Logout Button */}
+      <View className="px-6 pt-4 pb-6 bg-white">
+        <CustomButtonAuth
+          title="Logout"
+          onPress={handleLogout}
+          isLoading={isLoggingOut}
+          containerStyles={{ backgroundColor: '#FF6F2D' }}
+        />
+      </View>
+    </SafeAreaView>
   );
 };
 
