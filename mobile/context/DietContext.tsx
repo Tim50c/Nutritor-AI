@@ -47,6 +47,7 @@ interface DietContextType {
   targetNutrition: DietSummary;
   loading: boolean;
   refreshSuggestions: () => Promise<void>;
+  refreshData: () => Promise<void>;
 }
 
 const DietContext = createContext<DietContextType | undefined>(undefined);
@@ -122,6 +123,59 @@ export function DietProvider({ children }: { children: ReactNode }) {
     await fetchFoodSuggestions(summary, targetNutrition);
   };
 
+  // Refresh all data (nutrition and suggestions)
+  const refreshData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch home data which includes nutrition for selected date
+      const homeData = await HomeService.getHome({ 
+        date: selectedDate.toISOString().split('T')[0] 
+      });
+      
+      if (homeData && homeData.totals) {
+        // Convert NutritionModel to DietSummary format
+        const nutritionSummary = {
+          calories: homeData.totals.cal,
+          carbs: homeData.totals.carbs,
+          protein: homeData.totals.protein,
+          fat: homeData.totals.fat,
+        };
+        setSummary(nutritionSummary);
+
+        if (homeData.targetNutrition) {
+          const targetSummary = {
+            calories: homeData.targetNutrition.cal,
+            carbs: homeData.targetNutrition.carbs,
+            protein: homeData.targetNutrition.protein,
+            fat: homeData.targetNutrition.fat,
+          };
+          setTargetNutrition(targetSummary);
+        }
+      }
+
+      // Also refresh food suggestions
+      await fetchFoodSuggestions(
+        homeData?.totals ? {
+          calories: homeData.totals.cal,
+          carbs: homeData.totals.carbs,
+          protein: homeData.totals.protein,
+          fat: homeData.totals.fat,
+        } : summary,
+        homeData?.targetNutrition ? {
+          calories: homeData.targetNutrition.cal,
+          carbs: homeData.targetNutrition.carbs,
+          protein: homeData.targetNutrition.protein,
+          fat: homeData.targetNutrition.fat,
+        } : targetNutrition
+      );
+    } catch (error) {
+      console.error('Failed to refresh data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Fetch home data and favorites
   useEffect(() => {
     async function fetchData() {
@@ -173,18 +227,18 @@ export function DietProvider({ children }: { children: ReactNode }) {
         setTargetNutrition(newTargetNutrition);
         setSummary(consumedNutrition);
 
-        // Process foods from diets
+        // Process foods from diets - now with populated food data
         const allFoods: DietFood[] = (actualData?.diets || []).flatMap(
           (diet: any) =>
             (diet.foods || []).map((food: any) => ({
-              id: food.foodId,
-              name: "",
-              image: null,
-              calories: 0,
-              carbs: 0,
-              protein: 0,
-              fat: 0,
-              description: "",
+              id: food.id || food.foodId, // Use populated id or fallback to foodId
+              name: food.name || "Unknown Food",
+              image: food.imageUrl ? { uri: food.imageUrl } : null,
+              calories: food.nutrition?.cal || 0,
+              carbs: food.nutrition?.carbs || 0,
+              protein: food.nutrition?.protein || 0,
+              fat: food.nutrition?.fat || 0,
+              description: food.description || "",
             }))
         );
         setFoods(allFoods);
@@ -244,6 +298,7 @@ export function DietProvider({ children }: { children: ReactNode }) {
         targetNutrition,
         loading,
         refreshSuggestions,
+        refreshData,
       }}
     >
       {children}

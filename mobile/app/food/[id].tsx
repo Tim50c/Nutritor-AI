@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -7,12 +7,15 @@ import {
   TouchableOpacity,
   StatusBar,
   Image,
+  Alert,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import CustomButton from "@/components/CustomButton";
+import DietService from "@/services/diet-service";
 import { FOODS } from "@/data/mockData";
+import { useDietContext } from "@/context/DietContext";
 
 // Define the Food interface based on the backend response
 interface FoodData {
@@ -93,6 +96,8 @@ const GoalCard: React.FC = () => (
 
 const FoodDetails = () => {
   const { id, foodData, capturedImage } = useLocalSearchParams();
+  const [isAddingToDiet, setIsAddingToDiet] = useState(false);
+  const { refreshData } = useDietContext();
 
   // Parse real API food data or use mock data as fallback
   const food = React.useMemo(() => {
@@ -143,10 +148,43 @@ const FoodDetails = () => {
   const carbsPercentage = Math.round(((food.carbs || 0) / 250) * 100); // 250g daily target
   const fatPercentage = Math.round(((food.fat || 0) / 70) * 100); // 70g daily target
 
-  const handleAddToDiet = () => {
-    // TODO: Implement add to diet functionality using the real food ID
-    console.log(`Adding ${food.name} (ID: ${food.id}) to diet`);
-    // This is where you'll later add the API call to save to backend
+  const handleAddToDiet = async () => {
+    if (!food?.id) {
+      Alert.alert("Error", "Unable to add food to diet. Food ID not found.");
+      return;
+    }
+
+    try {
+      setIsAddingToDiet(true);
+
+      // Ensure food.id is a string
+      const foodId = Array.isArray(food.id) ? food.id[0] : food.id;
+
+      // Add food to today's diet using the DietService
+      await DietService.addFoodToTodayDiet({ foodId });
+
+      // Refresh home screen data to show updated nutrition
+      await refreshData();
+
+      // Show success message
+      Alert.alert("Success!", `${food.name} has been added to your diet.`, [
+        {
+          text: "Go to Home",
+          onPress: () => router.replace("/"),
+        },
+        {
+          text: "Add Another",
+          style: "cancel",
+        },
+      ]);
+    } catch (error) {
+      console.error("Error adding food to diet:", error);
+      Alert.alert("Error", "Failed to add food to diet. Please try again.", [
+        { text: "OK" },
+      ]);
+    } finally {
+      setIsAddingToDiet(false);
+    }
   };
 
   return (
@@ -297,9 +335,10 @@ const FoodDetails = () => {
 
         {/* Add to Diet Button */}
         <CustomButton
-          label="Add to My Diet"
+          label={isAddingToDiet ? "Adding..." : "Add to My Diet"}
           onPress={handleAddToDiet}
           style="mb-8"
+          disabled={isAddingToDiet}
         />
       </ScrollView>
     </View>
