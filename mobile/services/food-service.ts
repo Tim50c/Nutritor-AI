@@ -1,6 +1,6 @@
 import { authInstance } from "@/config/api/axios";
-import { IFoodDetailsInput } from "@/interfaces";
-import { FoodDetailsModel } from "@/models";
+import { IFoodDetailsInput, IFoodSuggestionsInput } from "@/interfaces";
+import { FoodDetailsModel, FoodModel } from "@/models";
 
 class FoodService {
   private static instance: FoodService;
@@ -15,11 +15,24 @@ class FoodService {
 
   public async getFoodDetails(input: IFoodDetailsInput): Promise<FoodDetailsModel> {
     try {
-      const response = await authInstance.get(`/foods/${input.foodId}`);
+      const response = await authInstance.get(`/api/v1/foods/${input.foodId}`);
       return response.data as FoodDetailsModel;
     } catch (error: any) {
-      console.log(error);
       throw new Error("An error occurred while getting food details.");
+    }
+  }
+
+  public async getFoodSuggestions(input: IFoodSuggestionsInput): Promise<FoodModel[]> {
+    try {
+      const response = await authInstance.post("/api/v1/foods/suggestions", {
+        targetNutrition: input.targetNutrition,
+        consumedNutrition: input.consumedNutrition
+      });
+      
+      const suggestions = response.data.data.suggestions as FoodModel[];
+      return suggestions;
+    } catch (error: any) {
+      throw new Error("An error occurred while getting food suggestions.");
     }
   }
 }

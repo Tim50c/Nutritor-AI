@@ -5,11 +5,11 @@ import FoodSection from "../../components/FoodSection";
 import { useDietContext } from "@/context/DietContext";
 
 export default function HomeScreen() {
-  const { isFavorite, toggleFavorite, foods, loading } = useDietContext();
+  const { isFavorite, toggleFavorite, foods, suggestedFoods, loading } =
+    useDietContext();
 
-  // Example logic: suggested foods are first 3, history foods are the rest
-  const suggestedFoods = foods.slice(0, 3);
-  const historyFoods = foods.slice(3);
+  // History foods are the consumed foods from the backend
+  const historyFoods = foods;
 
   if (loading) {
     return (

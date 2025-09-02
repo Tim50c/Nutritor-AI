@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode } from "react";
 import { auth } from "../config/firebase"; // <-- 1. Import Firebase auth
+import NutritionModel from "@/models/nutrition-model";
 
 // 1. Define a type that MATCHES your Firestore user document
 export type User = {
@@ -13,10 +14,10 @@ export type User = {
   height: string | null;
   weightCurrent: string | null;
   weightGoal: string | null;
-  onboardingComplete: boolean; 
+  targetNutrition?: NutritionModel;
+  onboardingComplete: boolean;
   password?: string; // hashed password
 };
-
 
 // 2. Define the type for the context's value
 type UserContextType = {
