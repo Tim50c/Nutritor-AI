@@ -43,7 +43,7 @@ export default function SignUp() {
     const slug = Constants.expoConfig?.slug;
     
     // This is the special URL format that works with Expo Go
-    return `https://auth.expo.io/@${owner}/${slug}/--/verify_email`;
+    return `https://auth.expo.io/@${owner}/${slug}/auth/verify_email`;
   };
 
   const actionCodeSettings: ActionCodeSettings = {
