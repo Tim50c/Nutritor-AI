@@ -6,7 +6,6 @@ import {
   StyleSheet, 
   ScrollView, 
   TouchableOpacity, 
-  Image,
   Alert,
   ActivityIndicator
 } from 'react-native';
@@ -18,8 +17,7 @@ import apiClient from '../../utils/apiClients';
 
 import CustomButtonAuth from '../../components/CustomButtonAuth';
 import FormField from '../../components/FormField';
-
-const backArrowIcon = require('../../assets/images/back-arrow.png');
+import { icons } from '../../constants/icons';
 
 export default function NutritionScreen() {
   const router = useRouter();
@@ -114,7 +112,9 @@ export default function NutritionScreen() {
       <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                <Image source={backArrowIcon} style={styles.backButtonIcon} resizeMode="contain" />
+                <View style={{ transform: [{ rotate: '0deg' }] }}>
+                    <icons.arrow width={20} height={20} color="#FFFFFF" />
+                </View>
             </TouchableOpacity>
         </View>
 
@@ -183,11 +183,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  backButtonIcon: {
-    width: 20,
-    height: 20,
-    tintColor: '#FFFFFF',
   },
   title: {
     fontSize: 24,
