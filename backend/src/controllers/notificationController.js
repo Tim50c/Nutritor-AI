@@ -1,5 +1,6 @@
 const { db } = require('../config/firebase');
-const messaging = require('../config/fcm');
+const { sendNotificationToUser, sendTestNotification } = require('../utils/notificationHelpers');
+const { sendExpoPushNotification } = require('../utils/expoPushNotifications');
 const Notification = require('../models/notificationModel');
 
 // Notification Templates - Backend decides what to send
@@ -276,4 +277,92 @@ exports.triggerNotification = async (uid, type, data = {}) => {
     console.error('Error triggering notification:', error);
     return false;
   }
+};
+
+// @desc    Send test notification
+// @route   POST /api/v1/notifications/test
+// @access  Private
+const sendTestNotificationController = async (req, res) => {
+  try {
+    const uid = req.user.uid;
+    const { title, body, type } = req.body;
+
+    // Use provided data or defaults
+    const notificationData = {
+      title: title || '🧪 Test Notification',
+      body: body || 'This is a test notification from Nutritor AI!',
+      type: type || { testType: 'manual' },
+    };
+
+    // Send notification using helper function
+    const notificationId = await sendNotificationToUser(uid, notificationData);
+
+    res.status(200).json({
+      success: true,
+      message: 'Test notification sent successfully',
+      data: {
+        notificationId,
+        notification: notificationData,
+      },
+    });
+  } catch (error) {
+    console.error('Error sending test notification:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to send test notification',
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Send manual notification to user
+// @route   POST /api/v1/notifications/send
+// @access  Private
+const sendManualNotification = async (req, res) => {
+  try {
+    const uid = req.user.uid;
+    const { title, body, type } = req.body;
+
+    if (!title || !body) {
+      return res.status(400).json({
+        success: false,
+        message: 'Title and body are required',
+      });
+    }
+
+    const notificationData = {
+      title,
+      body,
+      type: type || { manualType: 'user_created' },
+    };
+
+    const notificationId = await sendNotificationToUser(uid, notificationData);
+
+    res.status(200).json({
+      success: true,
+      message: 'Notification sent successfully',
+      data: {
+        notificationId,
+        notification: notificationData,
+      },
+    });
+  } catch (error) {
+    console.error('Error sending manual notification:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to send notification',
+      error: error.message,
+    });
+  }
+};
+
+module.exports = {
+  getNotifications,
+  markAsRead,
+  deleteNotification,
+  updateNotificationPreferences,
+  getNotificationPreferences,
+  triggerNotification,
+  sendTestNotificationController,
+  sendManualNotification,
 };
