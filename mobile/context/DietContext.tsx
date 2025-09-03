@@ -3,6 +3,7 @@ import React, {
   useContext,
   useState,
   useEffect,
+  useCallback,
   ReactNode,
 } from "react";
 import HomeService from "@/services/home-service";
@@ -41,9 +42,11 @@ interface DietContextType {
   foods: DietFood[];
   suggestedFoods: DietFood[];
   favoriteFoodIds: string[];
+  favoriteFoods: DietFood[];
   toggleFavorite: (foodId: string) => Promise<void>;
   isFavorite: (foodId: string) => boolean;
   getFavoriteFoods: () => DietFood[];
+  fetchFavoriteFoods: () => Promise<void>;
   targetNutrition: DietSummary;
   loading: boolean;
   refreshSuggestions: () => Promise<void>;
@@ -70,6 +73,7 @@ export function DietProvider({ children }: { children: ReactNode }) {
   const [foods, setFoods] = useState<DietFood[]>([]);
   const [suggestedFoods, setSuggestedFoods] = useState<DietFood[]>([]);
   const [favoriteFoodIds, setFavoriteFoodIds] = useState<string[]>([]);
+  const [favoriteFoods, setFavoriteFoods] = useState<DietFood[]>([]);
   const [targetNutrition, setTargetNutrition] = useState<DietSummary>({
     calories: 0,
     carbs: 0,
@@ -127,12 +131,12 @@ export function DietProvider({ children }: { children: ReactNode }) {
   const refreshData = async () => {
     try {
       setLoading(true);
-      
+
       // Fetch home data which includes nutrition for selected date
-      const homeData = await HomeService.getHome({ 
-        date: selectedDate.toISOString().split('T')[0] 
+      const homeData = await HomeService.getHome({
+        date: selectedDate.toISOString().split("T")[0],
       });
-      
+
       if (homeData && homeData.totals) {
         // Convert NutritionModel to DietSummary format
         const nutritionSummary = {
@@ -156,25 +160,51 @@ export function DietProvider({ children }: { children: ReactNode }) {
 
       // Also refresh food suggestions
       await fetchFoodSuggestions(
-        homeData?.totals ? {
-          calories: homeData.totals.cal,
-          carbs: homeData.totals.carbs,
-          protein: homeData.totals.protein,
-          fat: homeData.totals.fat,
-        } : summary,
-        homeData?.targetNutrition ? {
-          calories: homeData.targetNutrition.cal,
-          carbs: homeData.targetNutrition.carbs,
-          protein: homeData.targetNutrition.protein,
-          fat: homeData.targetNutrition.fat,
-        } : targetNutrition
+        homeData?.totals
+          ? {
+              calories: homeData.totals.cal,
+              carbs: homeData.totals.carbs,
+              protein: homeData.totals.protein,
+              fat: homeData.totals.fat,
+            }
+          : summary,
+        homeData?.targetNutrition
+          ? {
+              calories: homeData.targetNutrition.cal,
+              carbs: homeData.targetNutrition.carbs,
+              protein: homeData.targetNutrition.protein,
+              fat: homeData.targetNutrition.fat,
+            }
+          : targetNutrition
       );
     } catch (error) {
-      console.error('Failed to refresh data:', error);
+      console.error("Failed to refresh data:", error);
     } finally {
       setLoading(false);
     }
   };
+
+  // Fetch complete favorite foods independently
+  const fetchFavoriteFoods = useCallback(async () => {
+    try {
+      console.log("🔄 Fetching all favorite foods with details...");
+      const favoriteFoodsWithDetails =
+        await FavoriteService.getFavoriteFoodsWithDetails();
+      const favoriteIds = favoriteFoodsWithDetails.map((food) => food.id);
+
+      setFavoriteFoods(favoriteFoodsWithDetails);
+      setFavoriteFoodIds(favoriteIds);
+
+      console.log(
+        "✅ Favorite foods updated:",
+        favoriteFoodsWithDetails.length
+      );
+    } catch (error) {
+      console.error("❌ Error fetching favorite foods:", error);
+      setFavoriteFoods([]);
+      setFavoriteFoodIds([]);
+    }
+  }, []); // Empty dependency array since this function doesn't depend on any state
 
   // Fetch home data and favorites
   useEffect(() => {
@@ -245,10 +275,10 @@ export function DietProvider({ children }: { children: ReactNode }) {
 
         // Fetch favorites (non-critical)
         try {
-          const favIds = await FavoriteService.getFavorites();
-          setFavoriteFoodIds(favIds);
+          await fetchFavoriteFoods();
         } catch (error) {
           setFavoriteFoodIds([]);
+          setFavoriteFoods([]);
         }
 
         // Fetch food suggestions
@@ -266,14 +296,17 @@ export function DietProvider({ children }: { children: ReactNode }) {
   // Favorite management
   const toggleFavorite = async (foodId: string) => {
     // Optimistically update UI
-    const currentFavorites = Array.isArray(favoriteFoodIds) ? favoriteFoodIds : [];
+    const currentFavorites = Array.isArray(favoriteFoodIds)
+      ? favoriteFoodIds
+      : [];
     let updatedIds: string[];
     if (currentFavorites.includes(foodId)) {
-      updatedIds = currentFavorites.filter(id => id !== foodId);
+      updatedIds = currentFavorites.filter((id) => id !== foodId);
       setFavoriteFoodIds(updatedIds);
       try {
-        const backendIds = await FavoriteService.removeFavorite({ foodId });
-        setFavoriteFoodIds(Array.isArray(backendIds) ? backendIds : updatedIds);
+        await FavoriteService.removeFavorite({ foodId });
+        // Refresh complete favorite foods list
+        await fetchFavoriteFoods();
       } catch (error) {
         // Revert on error
         setFavoriteFoodIds(currentFavorites);
@@ -283,8 +316,9 @@ export function DietProvider({ children }: { children: ReactNode }) {
       updatedIds = [...currentFavorites, foodId];
       setFavoriteFoodIds(updatedIds);
       try {
-        const backendIds = await FavoriteService.addFavorite({ foodId });
-        setFavoriteFoodIds(Array.isArray(backendIds) ? backendIds : updatedIds);
+        await FavoriteService.addFavorite({ foodId });
+        // Refresh complete favorite foods list
+        await fetchFavoriteFoods();
       } catch (error) {
         // Revert on error
         setFavoriteFoodIds(currentFavorites);
@@ -298,7 +332,7 @@ export function DietProvider({ children }: { children: ReactNode }) {
     return favoriteFoodIds.includes(foodId);
   };
 
-  const getFavoriteFoods = () => foods.filter((food) => isFavorite(food.id));
+  const getFavoriteFoods = () => favoriteFoods;
 
   return (
     <DietContext.Provider
@@ -309,9 +343,11 @@ export function DietProvider({ children }: { children: ReactNode }) {
         foods,
         suggestedFoods,
         favoriteFoodIds,
+        favoriteFoods,
         toggleFavorite,
         isFavorite,
         getFavoriteFoods,
+        fetchFavoriteFoods,
         targetNutrition,
         loading,
         refreshSuggestions,
