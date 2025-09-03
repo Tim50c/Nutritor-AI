@@ -1,6 +1,7 @@
 import React, {useState} from "react";
-import {KeyboardAvoidingView, Platform, View} from "react-native";
+import {KeyboardAvoidingView, Platform, View, Text, TouchableOpacity, SafeAreaView} from "react-native";
 import {useRouter} from "expo-router";
+import { icons } from "@/constants/icons";
 import { useUser } from "@/context/UserContext";
 import CustomButton from "@/components/CustomButton";
 import CustomInput from "@/components/CustomInput";
@@ -45,27 +46,45 @@ const ChangePassword = () => {
   };
 
   return (
-    <KeyboardAvoidingView
-      className="flex-1 bg-white px-6 pt-8"
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <CustomInput
-        label="New Password"
-        placeholder="Enter Password"
-        value={newPassword}
-        onChangeText={setNewPassword}
-        secureTextEntry
-      />
-      <CustomInput
-        label="Confirm Password"
-        placeholder="Confirm New Password"
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        secureTextEntry
-      />
-      <View className="flex-1 justify-end pb-6">
-        <CustomButton label="Save" onPress={handleSave} />
+    <SafeAreaView className="flex-1 bg-white">
+      {/* Header */}
+      <View className="flex-row items-center justify-between px-4 py-3">
+        <TouchableOpacity 
+          className="bg-black w-10 h-10 rounded-full justify-center items-center" 
+          onPress={() => router.back()}
+        >
+          <View style={{ transform: [{ rotate: '0deg' }] }}>
+            <icons.arrow width={20} height={20} color="#FFFFFF" />
+          </View>
+        </TouchableOpacity>
+        <Text className="text-xl font-bold text-black">Change Password</Text>
+        <View className="w-10 h-10" />
       </View>
+
+      <KeyboardAvoidingView
+        className="flex-1 justify-center px-6"
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <View className="justify-center">
+          <CustomInput
+            label="New Password"
+            placeholder="Enter Password"
+            value={newPassword}
+            onChangeText={setNewPassword}
+            secureTextEntry
+          />
+          <CustomInput
+            label="Confirm Password"
+            placeholder="Confirm New Password"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry
+          />
+          <View className="mt-8">
+            <CustomButton label="Save" onPress={handleSave} />
+          </View>
+        </View>
+      </KeyboardAvoidingView>
       <CustomModal
         visible={modalVisible}
         title={modalType === "success" ? "Password changed" : "Invalid Password"}
@@ -77,7 +96,7 @@ const ChangePassword = () => {
         buttonLabel={modalType === "success" ? "Go Back" : "Try Again"}
         onButtonPress={handleModalButton}
       />
-    </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 

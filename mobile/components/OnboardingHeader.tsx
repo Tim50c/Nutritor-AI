@@ -35,7 +35,7 @@ const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({ title, progress, ba
                  )}
             </View>
 
-            <Text style={{ fontFamily: 'SpaceGrotesk-Bold', fontSize: 32, color: '#1F2937', marginTop: 24 }}>
+            <Text style={{ fontFamily: 'SpaceGrotesk-Bold', fontSize: 24, color: '#1F2937', marginTop: 24, fontWeight: 'bold' }}>
                 {title}
             </Text>
 

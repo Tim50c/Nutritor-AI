@@ -23,21 +23,21 @@ export default function PromptVerification() {
       
       <View style={{ flex: 1, paddingHorizontal: 24, justifyContent: 'center', alignItems: 'center' }}>
           
-          {/* This inner View can remain as it was, but the parent now controls its alignment */}
-          <View> 
-            <Text style={{ color: '#1F2937', fontSize: 28, fontWeight: 'bold', textAlign: 'center' }}>
+          {/* Main content centered vertically */}
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}> 
+            <Text style={{ color: '#1F2937', fontSize: 32, fontWeight: 'bold', textAlign: 'center', marginBottom: 8, marginTop: 30 }}>
               Verify Your Email
             </Text>
-            <Text style={{ color: '#6B7280', fontSize: 16, marginTop: 16, textAlign: 'center', lineHeight: 24 }}>
+            <Text style={{ color: '#6B7280', fontSize: 16, marginTop: 16, textAlign: 'center', lineHeight: 26, paddingHorizontal: 10 }}>
                 We&#39;ve sent a verification link to {'\n'}
                 <Text style={{ fontWeight: 'bold', color: '#1F2937' }}>{email}</Text>
             </Text>
-            <Text style={{ color: '#6B7280', fontSize: 16, marginTop: 8, textAlign: 'center', lineHeight: 24 }}>
+            <Text style={{ color: '#6B7280', fontSize: 16, marginTop: 12, textAlign: 'center', lineHeight: 26, paddingHorizontal: 10 }}>
                 Please check your inbox and click the link to continue.
             </Text>
           </View>
 
-          <View style={{ width: '100%', marginTop: 'auto', marginBottom: 40 }}>
+          <View style={{ width: '100%', paddingBottom: 40 }}>
             <CustomButtonAuth title="Back to Sign In" onPress={() => router.replace('./sign_in')} />
           </View>
       </View>

@@ -38,7 +38,7 @@ export default function VerifyEmailHandler() {
                 return (
                     <>
                         <ActivityIndicator size="large" color="#F97316" />
-                        <Text style={{ color: '#1F2937', fontSize: 18, marginTop: 20 }}>
+                        <Text style={{ color: '#1F2937', fontSize: 20, marginTop: 20, textAlign: 'center', fontWeight: '600' }}>
                             Verifying your email...
                         </Text>
                     </>
@@ -46,10 +46,10 @@ export default function VerifyEmailHandler() {
             case 'success':
                 return (
                     <>
-                        <Text style={{ color: '#1F2937', fontSize: 28, fontWeight: 'bold', textAlign: 'center' }}>
+                        <Text style={{ color: '#1F2937', fontSize: 32, fontWeight: 'bold', textAlign: 'center', marginBottom: 8 }}>
                             Email Verified!
                         </Text>
-                        <Text style={{ color: '#6B7280', fontSize: 16, marginTop: 16, textAlign: 'center' }}>
+                        <Text style={{ color: '#6B7280', fontSize: 18, marginTop: 16, textAlign: 'center', lineHeight: 24, paddingHorizontal: 20 }}>
                             Your account has been successfully verified.
                         </Text>
                         <View style={{width: '100%', marginTop: 40}}>
@@ -60,10 +60,10 @@ export default function VerifyEmailHandler() {
             case 'error':
                 return (
                     <>
-                        <Text style={{ color: '#DC2626', fontSize: 28, fontWeight: 'bold', textAlign: 'center' }}>
+                        <Text style={{ color: '#DC2626', fontSize: 32, fontWeight: 'bold', textAlign: 'center', marginBottom: 8 }}>
                             Verification Failed
                         </Text>
-                        <Text style={{ color: '#6B7280', fontSize: 16, marginTop: 16, textAlign: 'center' }}>
+                        <Text style={{ color: '#6B7280', fontSize: 18, marginTop: 16, textAlign: 'center', lineHeight: 24, paddingHorizontal: 20 }}>
                             {errorMessage}
                         </Text>
                         <View style={{width: '100%', marginTop: 40}}>

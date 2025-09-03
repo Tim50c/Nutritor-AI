@@ -5,7 +5,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
-  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Link, useRouter } from "expo-router";
@@ -16,14 +15,15 @@ import {
 } from "firebase/auth";
 import { auth } from "../../config/firebase";
 import axios from "axios";
-import Constants from "expo-constants";
+import Constants from "expo-constants"; // <-- Import Constants
 
 import FormField from "../../components/FormField";
 import CustomButtonAuth from "../../components/CustomButtonAuth";
 import { Ionicons } from "@expo/vector-icons";
 
-const IOS_BUNDLE_ID = "com.app.nutriai";
-const ANDROID_PACKAGE_NAME = "com.app.nutriai";
+// We no longer need these for the Expo Go flow
+// const IOS_BUNDLE_ID = "com.app.nutriai";
+// const ANDROID_PACKAGE_NAME = "com.app.nutriai";
 
 export default function SignUp() {
   const router = useRouter();
@@ -36,29 +36,20 @@ export default function SignUp() {
   const [activeField, setActiveField] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const getDynamicVerificationUrl = () => {
+  // --- NEW: DYNAMIC URL FOR EXPO GO ---
+  const getExpoGoVerificationUrl = () => {
+    // Get owner and slug from your app config
+    const owner = Constants.expoConfig?.owner || 'anonymous';
     const slug = Constants.expoConfig?.slug;
-    const owner = Constants.expoConfig?.owner || "anonymous";
-
-    if (!slug) {
-      return "https://yourapp.com/verify_email";
-    }
-
-    // for testing
-    return `https://auth.expo.io/@ltdsword/${slug}`;
+    
+    // This is the special URL format that works with Expo Go
+    return `https://auth.expo.io/@${owner}/${slug}/--/verify_email`;
   };
 
-  const verificationUrl = getDynamicVerificationUrl();
-
   const actionCodeSettings: ActionCodeSettings = {
-    url: `${verificationUrl}/--/verify_email`,
+    url: getExpoGoVerificationUrl(),
     handleCodeInApp: true,
-    iOS: {
-      bundleId: IOS_BUNDLE_ID,
-    },
-    android: {
-      packageName: ANDROID_PACKAGE_NAME,
-    },
+    // We remove the iOS and Android specific bundle/package IDs as they are not used by Expo Go
   };
 
   const handleSignUp = async () => {
@@ -69,6 +60,7 @@ export default function SignUp() {
 
     setIsSubmitting(true);
     try {
+      console.log("Sending verification email with URL:", actionCodeSettings.url);
       // 1. Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(
         auth,

@@ -20,7 +20,7 @@ const placeholderAvatar = require('../../assets/images/placeholder.png');
 
 const Settings = () => {
   const router = useRouter();
-  const { userProfile, logout } = useUser(); // Now 'logout' exists and is correctly typed
+  const { userProfile, logout } = useUser();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   if (!userProfile) {
@@ -34,12 +34,21 @@ const Settings = () => {
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
+      // 1. Call the logout function from the context.
+      // This will sign the user out of Firebase and clear the userProfile state.
       await logout();
-      console.log("User logged out successfully");
-      // After logout is successful, replace the entire navigation stack with the sign-in screen
-      // router.replace('/sign_in');
+      
+      // 2. No need for router.replace here!
+      // The navigation logic in `app/_layout.tsx` will detect that the user
+      // is no longer authenticated and automatically redirect to the sign-in screen.
+      // This keeps your navigation logic centralized and predictable.
+      console.log("User logged out successfully. Redirecting...");
+
     } catch (error) {
+      console.error("Logout failed:", error);
       Alert.alert("Logout Failed", "An error occurred while trying to log out. Please try again.");
+    } finally {
+      // It's good practice to stop the loading indicator even if an error occurs.
       setIsLoggingOut(false);
     }
   };
@@ -68,7 +77,7 @@ const Settings = () => {
           activeOpacity={0.8}
         >
           <Image
-            source={userProfile.avatar ? { uri: userProfile.avatar } : placeholderAvatar}
+            source={userProfile.avatar && typeof userProfile.avatar === 'string' ? { uri: userProfile.avatar } : placeholderAvatar}
             className="w-16 h-16 rounded-full mr-4 bg-white"
           />
           <View>
