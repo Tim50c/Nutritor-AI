@@ -120,7 +120,7 @@ export default function NutritionScreen() {
 
         <Text style={styles.title}>Your Daily Nutrition Goals</Text>
         <Text style={styles.subtitle}>
-          We've calculated these targets based on your profile. Feel free to adjust them.
+          We&apos;ve calculated these targets based on your profile. Feel free to adjust them.
         </Text>
 
         <View>

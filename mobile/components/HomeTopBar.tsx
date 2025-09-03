@@ -1,10 +1,11 @@
-import { View, Text, Image, TouchableOpacity } from "react-native";
-import { useRouter } from "expo-router";
 import { icons } from "@/constants/icons";
-import IconButton from "./IconButton";
 import { useNotificationContext } from "@/context/NotificationContext";
 import { useUser } from "@/context/UserContext"; // This is your upgraded context
+import { useRouter } from "expo-router";
 import React from "react";
+import { Image, Text, TouchableOpacity, View } from "react-native";
+import IconButton from "./IconButton";
+import { images } from "@/constants/images";
 
 function NotificationIcon({ hasUnread }: { hasUnread: boolean }) {
   return (
@@ -32,18 +33,25 @@ export default function HomeTopBar() {
   // This prevents the app from crashing before the user's data is available.
   if (!userProfile) {
     // You can return a loading indicator here, or simply nothing
-    return null; 
+    return null;
   }
 
   return (
     <View className="flex-row items-center justify-between px-4 py-3 bg-white">
       {/* Left side: Avatar + Welcome */}
       <View className="flex-row items-center">
-        <Image
-          // --- FIX 3.1: Use userProfile.avatar ---
-          source={userProfile.avatar}
-          className="w-10 h-10 rounded-full mr-2"
-        />
+        {userProfile?.avatar ? (
+          <Image
+            // --- FIX 3.1: Use userProfile.avatar ---
+            source={userProfile.avatar}
+            className="w-10 h-10 rounded-full mr-2"
+          />
+        ) : (
+          <Image
+            source={images.default_avatar}
+            className="w-14 h-14 mr-2"
+          />
+        )}
         <View>
           <Text className="text-sm text-gray-500">Welcome</Text>
           {/* --- FIX 3.2: Combine firstname and lastname for the full name --- */}
@@ -57,9 +65,7 @@ export default function HomeTopBar() {
           Icon={icons.search}
           onPress={() => router.push("/search")}
         />
-        <TouchableOpacity
-          onPress={() => router.push("/notifications")}
-        >
+        <TouchableOpacity onPress={() => router.push("/notifications")}>
           <NotificationIcon hasUnread={hasUnread} />
         </TouchableOpacity>
         <IconButton

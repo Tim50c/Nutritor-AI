@@ -361,7 +361,7 @@ export default function SignIn() {
             }}
           >
             <Text style={{ color: "#6B7280", fontSize: 14 }}>
-              Don't have an account?{" "}
+              Don&apos;t have an account?{" "}
             </Text>
             <Link href="./sign_up">
               <Text
