@@ -16,6 +16,7 @@ import CustomButton from "@/components/CustomButton";
 import DietService from "@/services/diet-service";
 import { FOODS } from "@/data/mockData";
 import { useDietContext } from "@/context/DietContext";
+import {images} from "@/constants/images";
 
 // Define the Food interface based on the backend response
 interface FoodData {
@@ -226,7 +227,7 @@ const FoodDetails = () => {
           </ImageBackground>
         ) : (
           // Fallback for foods without images
-          <View className="w-full h-80 bg-gray-300 items-center justify-center">
+          <ImageBackground source={images.fallback_food} className="w-full h-80 ">
             <LinearGradient
               colors={["rgba(0,0,0,0.3)", "rgba(0,0,0,0.6)"]}
               className="flex-1 w-full justify-between"
@@ -256,7 +257,7 @@ const FoodDetails = () => {
                 </Text>
               </View>
             </LinearGradient>
-          </View>
+          </ImageBackground>
         )}
       </View>
 

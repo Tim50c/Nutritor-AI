@@ -1,20 +1,17 @@
+import { useUser } from "@/context/UserContext";
+import { IFoodSuggestionsInput, IHomeInput } from "@/interfaces";
+import { FoodModel } from "@/models";
+import FavoriteService from "@/services/favorite-service";
+import FoodService from "@/services/food-service";
+import HomeService from "@/services/home-service";
 import React, {
   createContext,
-  useContext,
-  useState,
-  useEffect,
   ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
 } from "react";
-import HomeService from "@/services/home-service";
-import FoodService from "@/services/food-service";
-import FavoriteService from "@/services/favorite-service";
-import {
-  IHomeInput,
-  IFavoriteInput,
-  IFoodSuggestionsInput,
-} from "@/interfaces";
-import { FoodModel } from "@/models";
-import { useUser } from "@/context/UserContext";
 
 export type DietFood = {
   id: string;
@@ -41,9 +38,11 @@ interface DietContextType {
   foods: DietFood[];
   suggestedFoods: DietFood[];
   favoriteFoodIds: string[];
-  toggleFavorite: (foodId: string) => Promise<void>;
+  favoriteFoods: DietFood[];
+  toggleFavorite: (foodId: string, food?: DietFood) => Promise<void>; // optional food for optimistic add
   isFavorite: (foodId: string) => boolean;
   getFavoriteFoods: () => DietFood[];
+  fetchFavoriteFoods: () => Promise<void>;
   targetNutrition: DietSummary;
   loading: boolean;
   refreshSuggestions: () => Promise<void>;
@@ -70,6 +69,7 @@ export function DietProvider({ children }: { children: ReactNode }) {
   const [foods, setFoods] = useState<DietFood[]>([]);
   const [suggestedFoods, setSuggestedFoods] = useState<DietFood[]>([]);
   const [favoriteFoodIds, setFavoriteFoodIds] = useState<string[]>([]);
+  const [favoriteFoods, setFavoriteFoods] = useState<DietFood[]>([]);
   const [targetNutrition, setTargetNutrition] = useState<DietSummary>({
     calories: 0,
     carbs: 0,
@@ -127,12 +127,12 @@ export function DietProvider({ children }: { children: ReactNode }) {
   const refreshData = async () => {
     try {
       setLoading(true);
-      
+
       // Fetch home data which includes nutrition for selected date
-      const homeData = await HomeService.getHome({ 
-        date: selectedDate.toISOString().split('T')[0] 
+      const homeData = await HomeService.getHome({
+        date: selectedDate.toISOString().split("T")[0],
       });
-      
+
       if (homeData && homeData.totals) {
         // Convert NutritionModel to DietSummary format
         const nutritionSummary = {
@@ -156,25 +156,51 @@ export function DietProvider({ children }: { children: ReactNode }) {
 
       // Also refresh food suggestions
       await fetchFoodSuggestions(
-        homeData?.totals ? {
-          calories: homeData.totals.cal,
-          carbs: homeData.totals.carbs,
-          protein: homeData.totals.protein,
-          fat: homeData.totals.fat,
-        } : summary,
-        homeData?.targetNutrition ? {
-          calories: homeData.targetNutrition.cal,
-          carbs: homeData.targetNutrition.carbs,
-          protein: homeData.targetNutrition.protein,
-          fat: homeData.targetNutrition.fat,
-        } : targetNutrition
+        homeData?.totals
+          ? {
+              calories: homeData.totals.cal,
+              carbs: homeData.totals.carbs,
+              protein: homeData.totals.protein,
+              fat: homeData.totals.fat,
+            }
+          : summary,
+        homeData?.targetNutrition
+          ? {
+              calories: homeData.targetNutrition.cal,
+              carbs: homeData.targetNutrition.carbs,
+              protein: homeData.targetNutrition.protein,
+              fat: homeData.targetNutrition.fat,
+            }
+          : targetNutrition
       );
     } catch (error) {
-      console.error('Failed to refresh data:', error);
+      console.error("Failed to refresh data:", error);
     } finally {
       setLoading(false);
     }
   };
+
+  // Fetch complete favorite foods independently
+  const fetchFavoriteFoods = useCallback(async () => {
+    try {
+      console.log("🔄 Fetching all favorite foods with details...");
+      const favoriteFoodsWithDetails =
+        await FavoriteService.getFavoriteFoodsWithDetails();
+      const favoriteIds = favoriteFoodsWithDetails.map((food) => food.id);
+
+      setFavoriteFoods(favoriteFoodsWithDetails);
+      setFavoriteFoodIds(favoriteIds);
+
+      console.log(
+        "✅ Favorite foods updated:",
+        favoriteFoodsWithDetails.length
+      );
+    } catch (error) {
+      console.error("❌ Error fetching favorite foods:", error);
+      setFavoriteFoods([]);
+      setFavoriteFoodIds([]);
+    }
+  }, []); // Empty dependency array since this function doesn't depend on any state
 
   // Fetch home data and favorites
   useEffect(() => {
@@ -245,10 +271,10 @@ export function DietProvider({ children }: { children: ReactNode }) {
 
         // Fetch favorites (non-critical)
         try {
-          const favIds = await FavoriteService.getFavorites();
-          setFavoriteFoodIds(favIds);
-        } catch (error) {
+          await fetchFavoriteFoods();
+        } catch {
           setFavoriteFoodIds([]);
+          setFavoriteFoods([]);
         }
 
         // Fetch food suggestions
@@ -261,18 +287,46 @@ export function DietProvider({ children }: { children: ReactNode }) {
     }
 
     fetchData();
-  }, [selectedDate, userProfile, isLoadingProfile]);
+  }, [selectedDate, userProfile, isLoadingProfile, fetchFavoriteFoods]);
 
   // Favorite management
-  const toggleFavorite = async (foodId: string) => {
-    try {
-      const currentFavorites = Array.isArray(favoriteFoodIds) ? favoriteFoodIds : [];
-      const updatedIds = currentFavorites.includes(foodId)
-        ? await FavoriteService.removeFavorite({ foodId })
-        : await FavoriteService.addFavorite({ foodId });
-      setFavoriteFoodIds(Array.isArray(updatedIds) ? updatedIds : []);
-    } catch (error) {
-      console.error("Error toggling favorite:", error);
+  const toggleFavorite = async (foodId: string, food?: DietFood) => {
+    // Keep previous state for potential revert
+    const prevIds = Array.isArray(favoriteFoodIds) ? favoriteFoodIds : [];
+    const prevFoods = favoriteFoods;
+
+    const alreadyFavorite = prevIds.includes(foodId);
+
+    if (alreadyFavorite) {
+      // Optimistically remove
+      setFavoriteFoodIds(prevIds.filter((id) => id !== foodId));
+      setFavoriteFoods(prevFoods.filter((f) => f.id !== foodId));
+      try {
+        await FavoriteService.removeFavorite({ foodId });
+        // Background refresh (don't await to keep UI snappy)
+        fetchFavoriteFoods();
+      } catch (error) {
+        console.error("Error removing favorite:", error);
+        // Revert
+        setFavoriteFoodIds(prevIds);
+        setFavoriteFoods(prevFoods);
+      }
+    } else {
+      // Optimistically add
+      setFavoriteFoodIds([...prevIds, foodId]);
+      if (food && !prevFoods.some((f) => f.id === foodId)) {
+        setFavoriteFoods([...prevFoods, food]);
+      }
+      try {
+        await FavoriteService.addFavorite({ foodId });
+        // Background refresh
+        fetchFavoriteFoods();
+      } catch (error) {
+        console.error("Error adding favorite:", error);
+        // Revert
+        setFavoriteFoodIds(prevIds);
+        setFavoriteFoods(prevFoods);
+      }
     }
   };
 
@@ -281,7 +335,7 @@ export function DietProvider({ children }: { children: ReactNode }) {
     return favoriteFoodIds.includes(foodId);
   };
 
-  const getFavoriteFoods = () => foods.filter((food) => isFavorite(food.id));
+  const getFavoriteFoods = () => favoriteFoods;
 
   return (
     <DietContext.Provider
@@ -292,9 +346,11 @@ export function DietProvider({ children }: { children: ReactNode }) {
         foods,
         suggestedFoods,
         favoriteFoodIds,
+        favoriteFoods,
         toggleFavorite,
         isFavorite,
         getFavoriteFoods,
+        fetchFavoriteFoods,
         targetNutrition,
         loading,
         refreshSuggestions,

@@ -2,6 +2,7 @@ import {View, Text, Image, TouchableOpacity} from "react-native";
 import {icons} from "@/constants/icons";
 import React from "react";
 import {router} from "expo-router";
+import {images} from "@/constants/images";
 
 interface FoodItem {
   id: string;
@@ -57,7 +58,7 @@ export default function FoodSuggestionCard({
         <View className="bg-white rounded-2xl p-4 mb-3 flex-row items-center border border-gray-200 shadow-sm">
           {/* Food Image */}
           <Image
-            source={food.image}
+            source={food.image ? food.image : images.fallback_food}
             className="w-16 h-16 rounded-xl mr-4"
             resizeMode="cover"
           />
