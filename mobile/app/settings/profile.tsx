@@ -3,26 +3,48 @@ import { useUser } from "@/context/UserContext";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Image,
-  StyleSheet,
+  KeyboardAvoidingView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
+  Platform,
+  ScrollView,
 } from "react-native";
 import ModalDateTimePicker from "react-native-modal-datetime-picker";
 
-const genders = ["Male", "Female"]; // Gender options restricted to Male and Female
+const genders = ["Male", "Female", "Other"];
 
 const Profile = () => {
   const { userProfile, setUserProfile } = useUser();
   const router = useRouter();
 
-  // Helper to convert Firestore Timestamp to string
-  const getDobString = (dobValue: any) => {
+  // Helper to convert Firestore Timestamp to Date object
+  const getDateFromDob = (dobValue: any): Date => {
+    if (!dobValue) return new Date();
+    
+    // Firestore Timestamp object
+    if (typeof dobValue === "object" && "_seconds" in dobValue) {
+      return new Date(dobValue._seconds * 1000);
+    }
+    
+    // String in DD-MM-YYYY format
+    if (typeof dobValue === "string" && dobValue.includes("-")) {
+      const [day, month, year] = dobValue.split("-");
+      return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    }
+    
+    // Fallback to current date
+    return new Date();
+  };
+
+  // Helper to convert Firestore Timestamp to display string
+  const getDobString = (dobValue: any): string => {
     if (!dobValue) return "";
+    
     // Firestore Timestamp object
     if (typeof dobValue === "object" && "_seconds" in dobValue) {
       const date = new Date(dobValue._seconds * 1000);
@@ -34,37 +56,46 @@ const Profile = () => {
         })
         .replace(/\//g, "-");
     }
+    
     // Already a string
-    return dobValue;
+    if (typeof dobValue === "string") {
+      return dobValue;
+    }
+    
+    return "";
   };
 
-  // Initialize state with userProfile data or default values if userProfile is null/undefined
+  // Initialize state with userProfile data or default values
   const [name, setName] = useState(
-    userProfile ? `${userProfile.firstname} ${userProfile.lastname}` : ""
+    userProfile ? `${userProfile.firstname || ""} ${userProfile.lastname || ""}`.trim() : ""
   );
   const [email, setEmail] = useState(userProfile?.email || "");
-  // For DOB, store as Date object internally for the picker, display as string
-  const [dob, setDob] = useState(getDobString(userProfile?.dob)); // Always string for display
-  const [selectedDate, setSelectedDate] = useState(new Date()); // Date object for DateTimePicker
-  const [showDatePicker, setShowDatePicker] = useState(false); // State to control date picker visibility
+  const [dob, setDob] = useState(getDobString(userProfile?.dob));
+  const [selectedDate, setSelectedDate] = useState(getDateFromDob(userProfile?.dob));
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [gender, setGender] = useState<string>(userProfile?.gender || genders[0]);
+  const [height, setHeight] = useState(userProfile?.height?.toString() || "");
+  const [weight, setWeight] = useState(userProfile?.weightCurrent?.toString() || "");
 
-  const [gender, setGender] = useState(userProfile?.gender || genders[0]);
-  const [height, setHeight] = useState(userProfile?.height || ""); // Changed to TextInput, so default empty
-  const [weight, setWeight] = useState(userProfile?.weightCurrent || ""); // Changed to TextInput, so default empty
+  // Update selectedDate when dob changes
+  useEffect(() => {
+    if (userProfile?.dob) {
+      setSelectedDate(getDateFromDob(userProfile.dob));
+    }
+  }, [userProfile?.dob]);
 
   // Function to handle date selection from the calendar
-  const onChangeDate = (event: any, selectedDate: Date | undefined) => {
+  const onChangeDate = (selectedDate: Date) => {
     if (selectedDate) {
       setSelectedDate(selectedDate);
-      setDob(
-        selectedDate
-          .toLocaleDateString("en-GB", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-          })
-          .replace(/\//g, "-")
-      );
+      const formattedDate = selectedDate
+        .toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        })
+        .replace(/\//g, "-");
+      setDob(formattedDate);
     }
     setShowDatePicker(false);
   };
@@ -74,252 +105,200 @@ const Profile = () => {
   };
 
   const handleSave = () => {
+    // Validate required fields
+    if (!name.trim()) {
+      // You might want to show an alert here
+      return;
+    }
+
     // Update userProfile context with new profile data
     if (userProfile) {
-      const nameParts = name.split(" ");
+      const nameParts = name.trim().split(" ");
       const firstname = nameParts[0] || "";
       const lastname = nameParts.slice(1).join(" ") || "";
+
+      // Convert height and weight to numbers if they're valid
+      const heightValue = height ? parseFloat(height) : null;
+      const weightValue = weight ? parseFloat(weight) : null;
 
       setUserProfile({
         ...userProfile,
         firstname,
         lastname,
-        email,
+        email: email.trim(),
         dob, // dob is already formatted as DD-MM-YYYY
-        gender: gender as "Male" | "Female" | "Other" | null,
-        height,
-        weightCurrent: weight,
+        gender: gender as "Male" | "Female" | "Other",
+        height: heightValue?.toString() || null,
+        weightCurrent: weightValue?.toString() || null,
       });
     }
+    
     // Navigate back to the previous screen
     router.back();
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#fff" }}>
-      {/* Avatar section */}
-      <View style={{ alignItems: "center", marginBottom: 24 }}>
-        <View
-          style={{
-            width: 100,
-            height: 100,
-            borderRadius: 50,
-            backgroundColor: "white",
-            alignItems: "center",
-            justifyContent: "center",
-            position: "relative",
-          }}
-        >
-          <Image
-            source={
-              userProfile?.avatar
-                ? { uri: userProfile.avatar }
-                : images.default_avatar
-            }
-            style={{ width: 90, height: 90, borderRadius: 45 }}
-          />
-          <TouchableOpacity
-            style={{
-              position: "absolute",
-              right: 8,
-              bottom: 8,
-              backgroundColor: "#fff",
-              borderRadius: 16,
-              padding: 4,
-              borderWidth: 1,
-              borderColor: "#E5E7EB",
-            }}
-          >
-            <Ionicons name="pencil" size={16} color="#6B7280" />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Form fields */}
-      <View style={{ paddingHorizontal: 16 }}>
-        {/* Name */}
-        <View style={{ marginBottom: 16 }}>
-          <Text style={{ color: "#374151", fontSize: 14, marginBottom: 4 }}>
-            Name
-          </Text>
-          <TextInput
-            style={{
-              borderWidth: 1,
-              borderColor: "#D1D5DB",
-              borderRadius: 12,
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              fontSize: 16,
-              backgroundColor: "#fff",
-            }}
-            value={name}
-            onChangeText={setName}
-            placeholder="Name"
-            placeholderTextColor="#9CA3AF"
-          />
-        </View>
-        {/* Email */}
-        <View style={{ marginBottom: 16 }}>
-          <Text style={{ color: "#374151", fontSize: 14, marginBottom: 4 }}>
-            Email
-          </Text>
-          <TextInput
-            style={{
-              borderWidth: 1,
-              borderColor: "#D1D5DB",
-              borderRadius: 12,
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              fontSize: 16,
-              backgroundColor: "#fff",
-            }}
-            value={email}
-            onChangeText={setEmail}
-            placeholder="Email"
-            keyboardType="email-address"
-            placeholderTextColor="#9CA3AF"
-          />
-        </View>
-        {/* Row: DOB & Gender */}
-        <View style={{ flexDirection: "row", gap: 16, marginBottom: 16 }}>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: "#374151", fontSize: 14, marginBottom: 4 }}>
-              DOB
-            </Text>
-            <TouchableOpacity
-              onPress={showMode}
-              style={{
-                borderWidth: 1,
-                borderColor: "#D1D5DB",
-                borderRadius: 12,
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                backgroundColor: "#fff",
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
-              <Text
-                style={{ fontSize: 16, color: dob ? "#111827" : "#9CA3AF" }}
-              >
-                {dob || "DD-MM-YYYY"}
-              </Text>
-              <Ionicons name="chevron-down" size={18} color="#9CA3AF" />
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === "ios" ? "padding" : "height"} 
+      className="flex-1"
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+    >
+      <ScrollView 
+        className="flex-1"
+        contentContainerStyle={{ flexGrow: 1 }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Avatar section */}
+        <View className="items-center mb-6 pt-4">
+          <View className="w-24 h-24 rounded-full bg-white items-center justify-center relative">
+            <Image
+              source={
+                userProfile?.avatar
+                  ? { uri: userProfile.avatar }
+                  : images.default_avatar
+              }
+              className="w-20 h-20 rounded-full"
+            />
+            <TouchableOpacity className="absolute right-2 bottom-2 bg-white rounded-2xl p-1 border border-gray-300">
+              <Ionicons name="pencil" size={16} color="#6B7280" />
             </TouchableOpacity>
-            <ModalDateTimePicker
-              isVisible={showDatePicker}
-              mode="date"
-              date={selectedDate}
-              onConfirm={onChangeDate}
-              onCancel={() => setShowDatePicker(false)}
-              display="spinner"
-              headerTextIOS="Select Date of Birth"
-              confirmTextIOS="Confirm"
-              cancelTextIOS="Cancel"
+          </View>
+        </View>
+
+        {/* Form fields */}
+        <View className="px-4 flex-1">
+          {/* Name */}
+          <View className="mb-4">
+            <Text className="text-gray-700 text-sm mb-1">Name</Text>
+            <TextInput
+              className="border border-gray-300 rounded-xl px-4 py-3 text-base bg-white"
+              value={name}
+              onChangeText={setName}
+              placeholder="Enter your name"
+              placeholderTextColor="#9CA3AF"
+              returnKeyType="next"
             />
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: "#374151", fontSize: 14, marginBottom: 4 }}>
-              Gender
-            </Text>
-            <View
-              style={{
-                borderWidth: 1,
-                borderColor: "#D1D5DB",
-                borderRadius: 12,
-                overflow: "hidden",
-                backgroundColor: "#fff",
-              }}
-            >
-              <Picker
-                selectedValue={gender}
-                onValueChange={(itemValue) => setGender(itemValue)}
-                style={{ height: 48, width: "100%" }}
+
+          {/* Email */}
+          <View className="mb-4">
+            <Text className="text-gray-700 text-sm mb-1">Email</Text>
+            <TextInput
+              className="border border-gray-300 rounded-xl px-4 py-3 text-base bg-white"
+              value={email}
+              onChangeText={setEmail}
+              placeholder="Enter your email"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              placeholderTextColor="#9CA3AF"
+              returnKeyType="next"
+            />
+          </View>
+
+          {/* Row: DOB & Gender */}
+          <View className="flex-row gap-4 mb-4">
+            {/* DOB */}
+            <View className="flex-1">
+              <Text className="text-gray-700 text-sm mb-1">Date of Birth</Text>
+              <TouchableOpacity
+                onPress={showMode}
+                className="border border-gray-300 rounded-xl px-4 py-3 bg-white flex-row items-center justify-between min-h-[48px]"
               >
-                {genders.map((g) => (
-                  <Picker.Item key={g} label={g} value={g} />
-                ))}
-              </Picker>
+                <Text
+                  className={`text-base flex-1 ${
+                    dob ? "text-gray-900" : "text-gray-400"
+                  }`}
+                >
+                  {dob || "DD-MM-YYYY"}
+                </Text>
+                <Ionicons name="calendar-outline" size={18} color="#9CA3AF" />
+              </TouchableOpacity>
+              
+              <ModalDateTimePicker
+                isVisible={showDatePicker}
+                mode="date"
+                date={selectedDate}
+                onConfirm={onChangeDate}
+                onCancel={() => setShowDatePicker(false)}
+                display="spinner"
+                confirmTextIOS="Confirm"
+                cancelTextIOS="Cancel"
+                maximumDate={new Date()} // Prevent selecting future dates
+              />
+            </View>
+
+            {/* Gender */}
+            <View className="flex-1">
+              <Text className="text-gray-700 text-sm mb-1">Gender</Text>
+              <View className="border border-gray-300 rounded-xl bg-white min-h-[48px] justify-center overflow-hidden">
+                <Picker
+                  selectedValue={gender}
+                  onValueChange={(itemValue: string) => setGender(itemValue)}
+                  className="h-12 w-full"
+                  dropdownIconColor="#9CA3AF"
+                  mode="dropdown"
+                  style={{
+                    height: Platform.OS === "ios" ? 48 : 48,
+                    width: "100%",
+                  }}
+                  itemStyle={{
+                    fontSize: 16,
+                    height: Platform.OS === "ios" ? 48 : undefined,
+                  }}
+                >
+                  {genders.map((g) => (
+                    <Picker.Item key={g} label={g} value={g} />
+                  ))}
+                </Picker>
+              </View>
+            </View>
+          </View>
+
+          {/* Row: Height & Weight */}
+          <View className="flex-row gap-4 mb-8">
+            {/* Height */}
+            <View className="flex-1">
+              <Text className="text-gray-700 text-sm mb-1">Height (m)</Text>
+              <TextInput
+                className="border border-gray-300 rounded-xl px-4 py-3 text-base bg-white"
+                value={height}
+                onChangeText={setHeight}
+                placeholder="e.g., 1.75"
+                keyboardType="numeric"
+                placeholderTextColor="#9CA3AF"
+                returnKeyType="next"
+              />
+            </View>
+
+            {/* Weight */}
+            <View className="flex-1">
+              <Text className="text-gray-700 text-sm mb-1">Weight (kg)</Text>
+              <TextInput
+                className="border border-gray-300 rounded-xl px-4 py-3 text-base bg-white"
+                value={weight}
+                onChangeText={setWeight}
+                placeholder="e.g., 65"
+                keyboardType="numeric"
+                placeholderTextColor="#9CA3AF"
+                returnKeyType="done"
+              />
             </View>
           </View>
         </View>
-        {/* Row: Height & Weight */}
-        <View style={{ flexDirection: "row", gap: 16, marginBottom: 32 }}>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: "#374151", fontSize: 14, marginBottom: 4 }}>
-              Height
-            </Text>
-            <TextInput
-              style={{
-                borderWidth: 1,
-                borderColor: "#D1D5DB",
-                borderRadius: 12,
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                fontSize: 16,
-                backgroundColor: "#fff",
-              }}
-              value={height}
-              onChangeText={setHeight}
-              placeholder="e.g., 1.75m"
-              keyboardType="numeric"
-              placeholderTextColor="#9CA3AF"
-            />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: "#374151", fontSize: 14, marginBottom: 4 }}>
-              Weight
-            </Text>
-            <TextInput
-              style={{
-                borderWidth: 1,
-                borderColor: "#D1D5DB",
-                borderRadius: 12,
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                fontSize: 16,
-                backgroundColor: "#fff",
-              }}
-              value={weight}
-              onChangeText={setWeight}
-              placeholder="e.g., 65kg"
-              keyboardType="numeric"
-              placeholderTextColor="#9CA3AF"
-            />
-          </View>
-        </View>
-      </View>
 
-      {/* Save button */}
-      <View style={{ paddingHorizontal: 16, marginBottom: 24 }}>
-        <TouchableOpacity
-          style={{
-            backgroundColor: "#FF6F2D",
-            borderRadius: 16,
-            paddingVertical: 16,
-            alignItems: "center",
-          }}
-          onPress={handleSave}
-        >
-          <Text style={{ color: "#fff", fontSize: 18, fontWeight: "bold" }}>
-            Save
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+        {/* Save button */}
+        <View className="px-4 mb-6 mt-auto">
+          <TouchableOpacity
+            className="bg-orange-500 rounded-2xl py-4 items-center"
+            onPress={handleSave}
+          >
+            <Text className="text-white text-lg font-bold">Save</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
-
-// Basic StyleSheet for Picker due to some className limitations or specific styling needs for Picker
-const styles = StyleSheet.create({
-  picker: {
-    height: 40,
-    width: "100%",
-  },
-  pickerItem: {
-    // Optional: Add specific styles for picker items if needed
-  },
-});
 
 export default Profile;
