@@ -1,6 +1,7 @@
 // mobile/components/SettingsNavButton.tsx
 import React from "react";
-import { Text, TouchableOpacity } from "react-native";
+import { TouchableOpacity } from "react-native";
+import { Text } from './CustomText';
 import { useRouter } from "expo-router";
 import { icons } from "@/constants/icons"; // Your icons are imported here
 

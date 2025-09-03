@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import {
   View,
-  Text,
   TextInput,
   TouchableOpacity,
   FlatList,
@@ -13,6 +12,7 @@ import {
   Linking,
   ActivityIndicator, // <-- Import ActivityIndicator for loading state
 } from "react-native";
+import { Text } from './CustomText';
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import { Ionicons } from "@expo/vector-icons"; // <-- Import DocumentPicker

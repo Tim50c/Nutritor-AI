@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   View,
-  Text,
   TouchableOpacity,
   Image,
   StyleSheet,
@@ -9,6 +8,7 @@ import {
   Animated,
   Alert,
 } from "react-native";
+import { Text } from './CustomText';
 import { CameraView, Camera } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";

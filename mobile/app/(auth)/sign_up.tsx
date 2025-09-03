@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import {
   View,
-  Text,
   ScrollView,
   TouchableOpacity,
   Alert,
+  Image,
 } from "react-native";
+import { Text } from '../../components/CustomText';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Link, useRouter } from "expo-router";
 import {
@@ -19,7 +20,9 @@ import Constants from "expo-constants"; // <-- Import Constants
 
 import FormField from "../../components/FormField";
 import CustomButtonAuth from "../../components/CustomButtonAuth";
-import { Ionicons } from "@expo/vector-icons";
+import { icons } from "../../constants/icons";
+
+const backArrowIcon = require('../../assets/images/back-arrow.png');
 
 // We no longer need these for the Expo Go flow
 // const IOS_BUNDLE_ID = "com.app.nutriai";
@@ -139,10 +142,22 @@ export default function SignUp() {
     <SafeAreaView style={{ backgroundColor: "#FFFFFF", flex: 1 }}>
       <TouchableOpacity
         onPress={() => router.back()}
-        style={{ position: "absolute", top: 50, left: 24, zIndex: 10 }}
+        style={{ 
+          position: "absolute", 
+          top: 50, 
+          left: 24, 
+          zIndex: 10,
+          width: 40,
+          height: 40,
+          backgroundColor: '#000000',
+          borderRadius: 20,
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}
       >
-        {/*<Image source={backIcon} style={{ width: 24, height: 24, tintColor: '#1F2937' }} resizeMode='contain' />*/}
-        <Ionicons name="arrow-back" size={24} color="#1F2937" />
+        <View style={{ transform: [{ rotate: '0deg' }] }}>
+          <icons.arrow width={20} height={20} color="#FFFFFF" />
+        </View>
       </TouchableOpacity>
       <ScrollView
         contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}

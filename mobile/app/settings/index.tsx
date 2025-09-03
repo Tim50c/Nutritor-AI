@@ -1,7 +1,6 @@
 // mobile/app/settings/index.tsx
 import React, { useState } from 'react';
 import {
-  Text,
   View,
   Image,
   TouchableOpacity,
@@ -10,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { Text } from '../../components/CustomText';
 import { useUser } from '@/context/UserContext';
 import { useRouter } from 'expo-router';
 import SettingsNavButton from '@/components/SettingsNavButton';

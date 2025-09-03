@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, StyleProp, ViewStyle } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, StyleProp, ViewStyle } from 'react-native';
+import { Text } from './CustomText';
 
 // Renamed interface for clarity
 interface ToggleSelectorProps {

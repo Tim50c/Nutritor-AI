@@ -10,8 +10,11 @@ import { NotificationProvider } from "@/context/NotificationContext";
 import { UserProvider, useUser, defaultUser } from "@/context/UserContext";
 import { DietProvider } from "@/context/DietContext";
 import apiClient from "@/utils/apiClients";
+import { useFonts } from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
 
-// --- No changes needed in AuthContext, useAuth, or AuthProvider ---
+
+SplashScreen.preventAutoHideAsync();
 
 type AuthContextType = {
   user: User | null;
@@ -178,6 +181,53 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
+  
+  // Track font loading time
+  const [fontLoadStartTime] = useState(() => Date.now());
+  
+  const [fontsLoaded, error] = useFonts({
+    'SF-Pro-Display-Black': require('../assets/fonts/SF-Pro-Display-Black.otf'),
+    'SF-Pro-Display-BlackItalic': require('../assets/fonts/SF-Pro-Display-BlackItalic.otf'),
+    'SF-Pro-Display-Bold': require('../assets/fonts/SF-Pro-Display-Bold.otf'),
+    'SF-Pro-Display-BoldItalic': require('../assets/fonts/SF-Pro-Display-BoldItalic.otf'),
+    'SF-Pro-Display-Heavy': require('../assets/fonts/SF-Pro-Display-Heavy.otf'),
+    'SF-Pro-Display-HeavyItalic': require('../assets/fonts/SF-Pro-Display-HeavyItalic.otf'),
+    'SF-Pro-Display-Light': require('../assets/fonts/SF-Pro-Display-Light.otf'),
+    'SF-Pro-Display-LightItalic': require('../assets/fonts/SF-Pro-Display-LightItalic.otf'),
+    'SF-Pro-Display-Medium': require('../assets/fonts/SF-Pro-Display-Medium.otf'),
+    'SF-Pro-Display-MediumItalic': require('../assets/fonts/SF-Pro-Display-MediumItalic.otf'),
+    'SF-Pro-Display-Regular': require('../assets/fonts/SF-Pro-Display-Regular.otf'),
+    'SF-Pro-Display-RegularItalic': require('../assets/fonts/SF-Pro-Display-RegularItalic.otf'),
+    'SF-Pro-Display-Semibold': require('../assets/fonts/SF-Pro-Display-Semibold.otf'),
+    'SF-Pro-Display-SemiboldItalic': require('../assets/fonts/SF-Pro-Display-SemiboldItalic.otf'),
+    'SF-Pro-Display-Thin': require('../assets/fonts/SF-Pro-Display-Thin.otf'),
+    'SF-Pro-Display-ThinItalic': require('../assets/fonts/SF-Pro-Display-ThinItalic.otf'),
+    'SF-Pro-Display-Ultralight': require('../assets/fonts/SF-Pro-Display-Ultralight.otf'),
+    'SF-Pro-Display-UltralightItalic': require('../assets/fonts/SF-Pro-Display-UltralightItalic.otf'),
+  });
+
+  useEffect(() => {
+    if (error) {
+      const loadTime = Date.now() - fontLoadStartTime;
+      console.log(`❌ Font loading failed after ${loadTime}ms:`, error);
+      throw error;
+    }
+
+    if (fontsLoaded) {
+      const loadTime = Date.now() - fontLoadStartTime;
+      console.log(`✅ Fonts loaded successfully in ${loadTime}ms`);
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded, error, fontLoadStartTime]);
+
+  if (!fontsLoaded) {
+    return null;
+  }
+
+  if (!fontsLoaded && !error) {
+    return null;
+  }
+
   return (
     <AuthProvider>
       <UserProvider>

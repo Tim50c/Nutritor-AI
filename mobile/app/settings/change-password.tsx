@@ -1,5 +1,6 @@
 import React, {useState} from "react";
-import {KeyboardAvoidingView, Platform, View, Text, TouchableOpacity, SafeAreaView} from "react-native";
+import {KeyboardAvoidingView, Platform, View, TouchableOpacity, SafeAreaView} from "react-native";
+import { Text } from '../../components/CustomText';
 import {useRouter} from "expo-router";
 import { icons } from "@/constants/icons";
 import { useUser } from "@/context/UserContext";

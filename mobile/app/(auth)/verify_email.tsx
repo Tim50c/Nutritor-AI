@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator } from 'react-native';
+import { Text } from '../../components/CustomText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { applyActionCode } from 'firebase/auth';

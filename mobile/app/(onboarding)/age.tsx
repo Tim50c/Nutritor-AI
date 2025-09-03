@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, SafeAreaView } from 'react-native';
+import { View, SafeAreaView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useOnboarding } from '../../context/OnboardingContext';
 

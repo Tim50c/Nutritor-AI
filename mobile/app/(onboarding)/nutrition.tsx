@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
   View, 
-  Text, 
   SafeAreaView, 
   StyleSheet, 
   ScrollView, 
@@ -11,6 +10,7 @@ import {
   Alert,
   ActivityIndicator
 } from 'react-native';
+import { Text } from '../../components/CustomText';
 import { useRouter } from 'expo-router';
 import { useOnboarding } from '../../context/OnboardingContext';
 import { auth } from '../../config/firebase';

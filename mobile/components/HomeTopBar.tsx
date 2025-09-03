@@ -3,7 +3,8 @@ import { useNotificationContext } from "@/context/NotificationContext";
 import { useUser } from "@/context/UserContext"; // This is your upgraded context
 import { useRouter } from "expo-router";
 import React from "react";
-import { Image, Text, TouchableOpacity, View } from "react-native";
+import { Image, TouchableOpacity, View } from "react-native";
+import { Text } from './CustomText';
 import IconButton from "./IconButton";
 import { images } from "@/constants/images";
 

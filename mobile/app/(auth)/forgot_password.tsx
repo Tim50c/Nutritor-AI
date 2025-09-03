@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert, Image } from 'react-native';
+import { View, ScrollView, TouchableOpacity, Alert, Image } from 'react-native';
+import { Text } from '../../components/CustomText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { sendPasswordResetEmail } from 'firebase/auth';

@@ -1,5 +1,6 @@
 import React from "react";
-import { View, Text, Modal, TouchableOpacity } from "react-native";
+import { View, Modal, TouchableOpacity } from "react-native";
+import { Text } from './CustomText';
 
 interface CustomModalProps {
   visible: boolean;

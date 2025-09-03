@@ -1,5 +1,6 @@
 import React, {useState, useEffect, useRef} from "react";
-import {View, Text, TextInput, TouchableOpacity, FlatList, Image, Platform, KeyboardAvoidingView, ScrollView} from "react-native";
+import {View, TextInput, TouchableOpacity, FlatList, Image, Platform, KeyboardAvoidingView, ScrollView} from "react-native";
+import { Text } from '../components/CustomText';
 import {useRouter} from "expo-router";
 import {useDietContext, DietFood} from "@/context/DietContext";
 import FoodSuggestionCard from "@/components/FoodSuggestionCard";

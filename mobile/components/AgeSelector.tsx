@@ -1,5 +1,6 @@
-import React, { useRef } from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import React from 'react';
+import { View, ScrollView, StyleSheet, NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
+import { Text } from './CustomText'; // Make sure this path is correct
 
 const AGES = Array.from({ length: 83 }, (_, i) => i + 18); // Ages 18 to 100
 const ITEM_HEIGHT = 60;
@@ -10,14 +11,19 @@ interface AgeSelectorProps {
 }
 
 const AgeSelector: React.FC<AgeSelectorProps> = ({ selectedValue, onValueChange }) => {
-  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollViewRef = React.useRef<ScrollView>(null);
 
-  const handleScroll = (event: any) => {
+  // Added correct type for the event
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const y = event.nativeEvent.contentOffset.y;
     const index = Math.round(y / ITEM_HEIGHT);
-    const age = AGES[index];
-    if (age !== selectedValue) {
-        onValueChange(age);
+    
+    // Ensure index is within bounds to prevent errors
+    if (index >= 0 && index < AGES.length) {
+      const age = AGES[index];
+      if (age !== selectedValue) {
+          onValueChange(age);
+      }
     }
   };
 
@@ -42,7 +48,8 @@ const AgeSelector: React.FC<AgeSelectorProps> = ({ selectedValue, onValueChange 
           const isSelected = age === selectedValue;
           return (
             <View key={age} style={styles.item}>
-              <Text style={[styles.text, isSelected && styles.selectedText]}>
+              {/* --- THIS IS THE FIXED LINE --- */}
+              <Text style={[styles.text, isSelected ? styles.selectedText : null]}>
                 {age}
               </Text>
             </View>
@@ -77,12 +84,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   text: {
-    fontFamily: 'SpaceGrotesk-Medium',
+    // Using fontWeight lets CustomText handle the font file
+    fontWeight: '500', // Medium
     fontSize: 32,
     color: '#9CA3AF', // Gray for non-selected
   },
   selectedText: {
-    fontFamily: 'SpaceGrotesk-Bold',
+    // Using fontWeight lets CustomText handle the font file
+    fontWeight: '700', // Bold
     fontSize: 48,
     color: '#FF5A16', // Orange for selected
   },

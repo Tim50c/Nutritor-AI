@@ -1,5 +1,6 @@
 import React, { useState } from 'react'; // <-- FIX IS HERE: Added useState
-import { View, Text, SafeAreaView, StyleSheet, Image, Alert } from 'react-native';
+import { View, SafeAreaView, StyleSheet, Image, Alert } from 'react-native';
+import { Text } from '../../components/CustomText';
 import { useRouter } from 'expo-router';
 import { useOnboarding } from '../../context/OnboardingContext';
 import { useUser } from '../../context/UserContext';

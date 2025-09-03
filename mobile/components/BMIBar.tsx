@@ -1,6 +1,7 @@
 // /app/components/BMIBar.tsx
 import React, { useState } from "react";
-import { View, Text, LayoutChangeEvent } from "react-native";
+import { View, LayoutChangeEvent } from "react-native";
+import { Text } from './CustomText';
 import { LinearGradient } from "expo-linear-gradient";
 
 interface BMIBarProps {

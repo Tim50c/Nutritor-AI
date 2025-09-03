@@ -1,13 +1,13 @@
 // mobile/app/notifications.tsx
 import React from "react";
 import {
-  Text,
   View,
   Image,
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
 } from "react-native";
+import { Text } from '../components/CustomText';
 import { useRouter } from "expo-router";
 import { useNotificationContext } from "@/context/NotificationContext";
 import { images } from "@/constants/images";

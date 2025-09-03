@@ -1,4 +1,3 @@
-// mobile/app/(onboarding)/current_weight.tsx
 import React from 'react';
 import { View, SafeAreaView } from 'react-native';
 import { useRouter } from 'expo-router';
