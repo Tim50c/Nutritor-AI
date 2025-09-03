@@ -1,13 +1,21 @@
-import React from "react";
-import { View, Text, ScrollView, Image } from "react-native";
-import { useDietContext } from "@/context/DietContext";
 import FoodSuggestionCard from "@/components/FoodSuggestionCard";
 import { images } from "@/constants/images";
+import { useDietContext } from "@/context/DietContext";
 import { useFocusEffect } from "@react-navigation/native";
+import React, { useState } from "react";
+import {
+  ActivityIndicator,
+  Image,
+  RefreshControl,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 
 const Favorites = () => {
   const { getFavoriteFoods, toggleFavorite, fetchFavoriteFoods } =
     useDietContext();
+  const [refreshing, setRefreshing] = useState(false);
   const favoriteFoods = getFavoriteFoods();
 
   useFocusEffect(
@@ -35,19 +43,39 @@ const Favorites = () => {
     );
   }
 
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await fetchFavoriteFoods();
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   return (
     <ScrollView
       className="flex-1 bg-white px-4 pt-4"
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+      }
     >
       {favoriteFoods.map((food) => (
         <FoodSuggestionCard
           key={food.id}
           food={food}
           isFavorite={true}
-          onToggleFavorite={() => toggleFavorite(food.id)}
+          onToggleFavorite={() => toggleFavorite(food.id, food)}
         />
       ))}
+      {refreshing && (
+        <View className="py-4 items-center">
+          <ActivityIndicator size="small" color="#999" />
+          <Text className="text-xs text-gray-500 mt-2">
+            Refreshing favorites…
+          </Text>
+        </View>
+      )}
     </ScrollView>
   );
 };

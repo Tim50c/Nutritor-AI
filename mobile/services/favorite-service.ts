@@ -1,9 +1,9 @@
 import { authInstance } from "@/config/api/axios";
-import {IFavoriteInput} from "@/interfaces";
+import { IFavoriteInput } from "@/interfaces";
 
 class FavoriteService {
   private static instance: FavoriteService;
-  
+
   private constructor() {}
 
   public static getInstance(): FavoriteService {
@@ -45,7 +45,11 @@ class FavoriteService {
       const data = response.data?.data || [];
       // Extract just the food IDs from the favorite objects
       // Backend Favorite model uses 'id' field for foodId
-      const favoriteIds = Array.isArray(data) ? data.map((favorite: any) => favorite.id || favorite.foodId || favorite) : [];
+      const favoriteIds = Array.isArray(data)
+        ? data.map(
+            (favorite: any) => favorite.id || favorite.foodId || favorite
+          )
+        : [];
       console.log("📋 Extracted favorite IDs:", favoriteIds);
       return favoriteIds;
     } catch (error: any) {
@@ -58,47 +62,39 @@ class FavoriteService {
     try {
       console.log("🍽️ Fetching favorite foods with complete details...");
       const favoriteIds = await this.getFavorites();
-      
+
       if (favoriteIds.length === 0) {
         console.log("📋 No favorite IDs found");
         return [];
       }
-
-      // For each favorite ID, get the complete food details
-      const favoriteFoodsDetails = [];
-      for (const foodId of favoriteIds) {
+      // Parallel fetch for better performance
+      const detailPromises = favoriteIds.map(async (foodId) => {
         try {
-          console.log(`🔍 Fetching details for favorite food: ${foodId}`);
           const response = await authInstance.get(`/foods/${foodId}`);
-          console.log(`📋 Raw response for ${foodId}:`, response.data);
-          
-          // The backend returns { success: true, data: foodObject }
           const foodData = response.data?.data;
-          
-          if (foodData) {
-            // Map the food data to our DietFood format
-            const mappedFood = {
-              id: foodData.id || foodId,
-              name: foodData.name || "Unknown Food",
-              image: foodData.imageUrl ? { uri: foodData.imageUrl } : null,
-              calories: foodData.nutrition?.cal || 0,
-              carbs: foodData.nutrition?.carbs || 0,
-              protein: foodData.nutrition?.protein || 0,
-              fat: foodData.nutrition?.fat || 0,
-              description: foodData.description || "",
-            };
-            favoriteFoodsDetails.push(mappedFood);
-            console.log(`✅ Added favorite food: ${mappedFood.name} (${mappedFood.calories} cal)`);
-          } else {
-            console.log(`⚠️ No food data found for ${foodId}`);
-          }
+          if (!foodData) return null;
+          return {
+            id: foodData.id || foodId,
+            name: foodData.name || "Unknown Food",
+            image: foodData.imageUrl ? { uri: foodData.imageUrl } : null,
+            calories: foodData.nutrition?.cal || 0,
+            carbs: foodData.nutrition?.carbs || 0,
+            protein: foodData.nutrition?.protein || 0,
+            fat: foodData.nutrition?.fat || 0,
+            description: foodData.description || "",
+          };
         } catch (error) {
           console.error(`❌ Error fetching details for food ${foodId}:`, error);
+          return null;
         }
-      }
-      
-      console.log(`🎉 Total favorite foods fetched: ${favoriteFoodsDetails.length}`);
-      return favoriteFoodsDetails;
+      });
+
+      const results = await Promise.all(detailPromises);
+      const favoriteFoodsDetails = results.filter(Boolean);
+      console.log(
+        `🎉 Total favorite foods fetched: ${favoriteFoodsDetails.length}`
+      );
+      return favoriteFoodsDetails as any[];
     } catch (error: any) {
       console.error("❌ Error getting favorite foods with details:", error);
       return [];
@@ -107,4 +103,3 @@ class FavoriteService {
 }
 
 export default FavoriteService.getInstance();
-

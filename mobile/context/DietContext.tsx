@@ -1,21 +1,17 @@
+import { useUser } from "@/context/UserContext";
+import { IFoodSuggestionsInput, IHomeInput } from "@/interfaces";
+import { FoodModel } from "@/models";
+import FavoriteService from "@/services/favorite-service";
+import FoodService from "@/services/food-service";
+import HomeService from "@/services/home-service";
 import React, {
   createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
   ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
 } from "react";
-import HomeService from "@/services/home-service";
-import FoodService from "@/services/food-service";
-import FavoriteService from "@/services/favorite-service";
-import {
-  IHomeInput,
-  IFavoriteInput,
-  IFoodSuggestionsInput,
-} from "@/interfaces";
-import { FoodModel } from "@/models";
-import { useUser } from "@/context/UserContext";
 
 export type DietFood = {
   id: string;
@@ -43,7 +39,7 @@ interface DietContextType {
   suggestedFoods: DietFood[];
   favoriteFoodIds: string[];
   favoriteFoods: DietFood[];
-  toggleFavorite: (foodId: string) => Promise<void>;
+  toggleFavorite: (foodId: string, food?: DietFood) => Promise<void>; // optional food for optimistic add
   isFavorite: (foodId: string) => boolean;
   getFavoriteFoods: () => DietFood[];
   fetchFavoriteFoods: () => Promise<void>;
@@ -276,7 +272,7 @@ export function DietProvider({ children }: { children: ReactNode }) {
         // Fetch favorites (non-critical)
         try {
           await fetchFavoriteFoods();
-        } catch (error) {
+        } catch {
           setFavoriteFoodIds([]);
           setFavoriteFoods([]);
         }
@@ -291,38 +287,45 @@ export function DietProvider({ children }: { children: ReactNode }) {
     }
 
     fetchData();
-  }, [selectedDate, userProfile, isLoadingProfile]);
+  }, [selectedDate, userProfile, isLoadingProfile, fetchFavoriteFoods]);
 
   // Favorite management
-  const toggleFavorite = async (foodId: string) => {
-    // Optimistically update UI
-    const currentFavorites = Array.isArray(favoriteFoodIds)
-      ? favoriteFoodIds
-      : [];
-    let updatedIds: string[];
-    if (currentFavorites.includes(foodId)) {
-      updatedIds = currentFavorites.filter((id) => id !== foodId);
-      setFavoriteFoodIds(updatedIds);
+  const toggleFavorite = async (foodId: string, food?: DietFood) => {
+    // Keep previous state for potential revert
+    const prevIds = Array.isArray(favoriteFoodIds) ? favoriteFoodIds : [];
+    const prevFoods = favoriteFoods;
+
+    const alreadyFavorite = prevIds.includes(foodId);
+
+    if (alreadyFavorite) {
+      // Optimistically remove
+      setFavoriteFoodIds(prevIds.filter((id) => id !== foodId));
+      setFavoriteFoods(prevFoods.filter((f) => f.id !== foodId));
       try {
         await FavoriteService.removeFavorite({ foodId });
-        // Refresh complete favorite foods list
-        await fetchFavoriteFoods();
+        // Background refresh (don't await to keep UI snappy)
+        fetchFavoriteFoods();
       } catch (error) {
-        // Revert on error
-        setFavoriteFoodIds(currentFavorites);
         console.error("Error removing favorite:", error);
+        // Revert
+        setFavoriteFoodIds(prevIds);
+        setFavoriteFoods(prevFoods);
       }
     } else {
-      updatedIds = [...currentFavorites, foodId];
-      setFavoriteFoodIds(updatedIds);
+      // Optimistically add
+      setFavoriteFoodIds([...prevIds, foodId]);
+      if (food && !prevFoods.some((f) => f.id === foodId)) {
+        setFavoriteFoods([...prevFoods, food]);
+      }
       try {
         await FavoriteService.addFavorite({ foodId });
-        // Refresh complete favorite foods list
-        await fetchFavoriteFoods();
+        // Background refresh
+        fetchFavoriteFoods();
       } catch (error) {
-        // Revert on error
-        setFavoriteFoodIds(currentFavorites);
         console.error("Error adding favorite:", error);
+        // Revert
+        setFavoriteFoodIds(prevIds);
+        setFavoriteFoods(prevFoods);
       }
     }
   };
