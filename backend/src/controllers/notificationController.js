@@ -7,31 +7,22 @@ const NotificationTemplates = {
   mealReminder: (mealType) => ({
     title: `🍽️ ${mealType} Reminder`,
     body: `Don't forget to log your ${mealType.toLowerCase()}!`,
-    data: { type: 'meal_reminder', mealType }
-  }),
-
-  goalAchieved: (goalName) => ({
-    title: "🎉 Goal Achieved!",
-    body: `Congratulations! You've reached your ${goalName} goal.`,
-    data: { type: 'goal_achieved', goalName }
+    type: 'meal_reminder',
+    data: { mealType }
   }),
 
   weeklyProgress: (progress) => ({
     title: "📊 Weekly Progress",
     body: `You're ${progress}% towards your weekly nutrition goals!`,
-    data: { type: 'weekly_progress', progress }
-  }),
-
-  hydrationReminder: () => ({
-    title: "💧 Stay Hydrated",
-    body: "Remember to drink water throughout the day!",
-    data: { type: 'hydration_reminder' }
+    type: 'weekly_progress',
+    data: { progress }
   }),
 
   customMessage: (title, message, data = {}) => ({
     title,
     body: message,
-    data: { type: 'custom', ...data }
+    type: 'custom',
+    data: { ...data }
   })
 };
 
@@ -41,6 +32,7 @@ const NotificationTemplates = {
 exports.getNotifications = async (req, res, next) => {
   try {
     const { uid } = res.locals;
+    console.log(`📋 Fetching notifications for user: ${uid}`);
 
     const notificationsSnapshot = await db
       .collection('users')
@@ -49,13 +41,23 @@ exports.getNotifications = async (req, res, next) => {
       .orderBy('createdAt', 'desc')
       .get();
     
-    const notifications = notificationsSnapshot.docs.map(doc => 
-      Notification.fromFirestore(doc)
-    );
+    const notifications = notificationsSnapshot.docs.map(doc => {
+      const notification = Notification.fromFirestore(doc);
+      return {
+        id: notification.id,
+        title: notification.title,
+        body: notification.body,
+        message: `${notification.title}: ${notification.body}`, // Combined message for frontend
+        type: notification.type,
+        read: notification.read,
+        createdAt: notification.createdAt
+      };
+    });
 
+    console.log(`✅ Found ${notifications.length} notifications for user ${uid}`);
     res.status(200).json({ success: true, data: notifications });
   } catch (error) {
-    console.error(error);
+    console.error('❌ Error fetching notifications:', error);
     res.status(500).json({ success: false, error: 'Server error' });
   }
 };
