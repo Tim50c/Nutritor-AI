@@ -8,7 +8,8 @@ import React, {
   useRef,
 } from "react";
 import * as Notifications from "expo-notifications";
-import { db } from "../config/firebase";
+import { auth, db } from "../config/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 import {
   collection,
   query,
@@ -50,7 +51,7 @@ interface NotificationContextType {
   preferences: NotificationPreferences;
   markAsRead: (id: string) => void;
   updatePreferences: (newPreferences: Partial<NotificationPreferences>) => void;
-  startListening: (uid: string) => void;
+  startListening: () => void;
   stopListening: () => void;
   refreshNotifications: () => Promise<void>;
 }
@@ -128,86 +129,90 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Start listening to Firestore notifications
-  const startListening = useCallback(
-    (uid: string) => {
-      if (!uid) {
-        console.warn("Cannot start listening: UID is required");
-        return;
-      }
+  const startListening = useCallback(() => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      console.warn("Cannot start listening: No user is logged in");
+      return;
+    }
 
-      // Stop existing listener
-      if (unsubscribeRef.current) {
-        unsubscribeRef.current();
-      }
+    const uid = currentUser.uid;
+    console.log("🔥 Starting Firestore listener for logged-in user:", uid);
+    console.log("📧 User email:", currentUser.email);
 
-      console.log("🔥 Starting Firestore listener for user:", uid);
+    // Stop existing listener
+    if (unsubscribeRef.current) {
+      unsubscribeRef.current();
+    }
 
-      try {
-        const notificationsRef = collection(db, "users", uid, "notifications");
-        const q = query(notificationsRef, orderBy("createdAt", "desc"));
+    try {
+      const notificationsRef = collection(db, "users", uid, "notifications");
+      const q = query(notificationsRef, orderBy("createdAt", "desc"));
 
-        const unsubscribe = onSnapshot(
-          q,
-          (snapshot) => {
-            console.log(
-              "📱 Firestore snapshot received, changes:",
-              snapshot.docChanges().length
-            );
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          console.log(
+            "📱 Firestore snapshot received, changes:",
+            snapshot.docChanges().length
+          );
 
-            const newNotifications: Notification[] = [];
+          const newNotifications: Notification[] = [];
 
-            snapshot.docChanges().forEach((change: DocumentChange) => {
-              const data = change.doc.data();
-              const notification = {
-                id: change.doc.id,
-                title: data.title,
-                body: data.body,
-                message: data.message || `${data.title}: ${data.body}`,
-                read: data.read || false,
-                type: data.type,
-                createdAt: data.createdAt,
-              };
+          snapshot.docChanges().forEach((change: DocumentChange) => {
+            const data = change.doc.data();
+            const notification = {
+              id: change.doc.id,
+              title: data.title,
+              body: data.body,
+              message: data.message || `${data.title}: ${data.body}`,
+              read: data.read || false,
+              type: data.type,
+              createdAt: data.createdAt,
+            };
 
-              if (change.type === "added") {
-                console.log("➕ New notification added:", notification.title);
-                newNotifications.push(notification);
+            if (change.type === "added") {
+              console.log("➕ New notification added:", notification.title);
+              newNotifications.push(notification);
 
-                // Only trigger local notification for new docs (not on initial load)
-                if (!isFirstLoadRef.current) {
-                  triggerLocalNotification(notification);
-                }
+              // Only trigger local notification for new docs (not on initial load)
+              if (!isFirstLoadRef.current) {
+                triggerLocalNotification(notification);
               }
-            });
+            }
+          });
 
-            // Update state with all notifications
-            const allNotifications = snapshot.docs.map((doc) => {
-              const data = doc.data();
-              return {
-                id: doc.id,
-                title: data.title,
-                body: data.body,
-                message: data.message || `${data.title}: ${data.body}`,
-                read: data.read || false,
-                type: data.type,
-                createdAt: data.createdAt,
-              };
-            });
+          // Update state with all notifications (filter for specific types if needed)
+          const allNotifications = snapshot.docs.map((doc) => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              title: data.title,
+              body: data.body,
+              message: data.message || `${data.title}: ${data.body}`,
+              read: data.read || false,
+              type: data.type,
+              createdAt: data.createdAt,
+            };
+          });
 
-            setNotifications(allNotifications);
-            isFirstLoadRef.current = false;
-          },
-          (error) => {
-            console.error("❌ Firestore listener error:", error);
-          }
-        );
+          // Show all notifications without filtering since backend sends object types
+          console.log(
+            `📋 Setting ${allNotifications.length} notifications in state`
+          );
+          setNotifications(allNotifications);
+          isFirstLoadRef.current = false;
+        },
+        (error) => {
+          console.error("❌ Firestore listener error:", error);
+        }
+      );
 
-        unsubscribeRef.current = unsubscribe;
-      } catch (error) {
-        console.error("❌ Error setting up Firestore listener:", error);
-      }
-    },
-    [triggerLocalNotification]
-  );
+      unsubscribeRef.current = unsubscribe;
+    } catch (error) {
+      console.error("❌ Error setting up Firestore listener:", error);
+    }
+  }, [triggerLocalNotification]);
 
   // Stop listening to Firestore
   const stopListening = useCallback(() => {
@@ -218,17 +223,29 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Auto-start listener when app loads and cleanup on unmount
+  // Auto-start listener when user authentication state changes
   useEffect(() => {
-    // For demo/testing - use a fixed UID
-    // In a real app, this would come from authentication
-    const demoUID = "sFbSZufUl4ecSLDfRys4pdm4lbo1";
-
-    console.log("🚀 Auto-starting Firestore listener on app load");
-    startListening(demoUID);
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        console.log(
+          "🚀 User authenticated, starting Firestore listener for:",
+          user.uid
+        );
+        console.log("📧 User email:", user.email);
+        // Reset first load flag when new user logs in
+        isFirstLoadRef.current = true;
+        startListening();
+      } else {
+        console.log("� User not authenticated, stopping Firestore listener");
+        stopListening();
+        setNotifications([]);
+        isFirstLoadRef.current = true;
+      }
+    });
 
     // Cleanup on unmount
     return () => {
+      unsubscribeAuth();
       stopListening();
     };
   }, [startListening, stopListening]);
