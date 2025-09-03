@@ -1,10 +1,18 @@
-import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, Image, Platform, StyleSheet } from "react-native";
-import { Picker } from '@react-native-picker/picker';
-import DateTimePicker from '@react-native-community/datetimepicker'; // Import DateTimePicker
-import { useUser } from "@/context/UserContext";
-import { useRouter } from "expo-router";
 import { images } from "@/constants/images";
+import { useUser } from "@/context/UserContext";
+import { Ionicons } from "@expo/vector-icons";
+import { Picker } from "@react-native-picker/picker";
+import { useRouter } from "expo-router";
+import React, { useState } from "react";
+import {
+  Image,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import ModalDateTimePicker from "react-native-modal-datetime-picker";
 
 const genders = ["Male", "Female"]; // Gender options restricted to Male and Female
 
@@ -12,11 +20,31 @@ const Profile = () => {
   const { userProfile, setUserProfile } = useUser();
   const router = useRouter();
 
+  // Helper to convert Firestore Timestamp to string
+  const getDobString = (dobValue: any) => {
+    if (!dobValue) return "";
+    // Firestore Timestamp object
+    if (typeof dobValue === "object" && "_seconds" in dobValue) {
+      const date = new Date(dobValue._seconds * 1000);
+      return date
+        .toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        })
+        .replace(/\//g, "-");
+    }
+    // Already a string
+    return dobValue;
+  };
+
   // Initialize state with userProfile data or default values if userProfile is null/undefined
-  const [name, setName] = useState(userProfile ? `${userProfile.firstname} ${userProfile.lastname}` : "");
+  const [name, setName] = useState(
+    userProfile ? `${userProfile.firstname} ${userProfile.lastname}` : ""
+  );
   const [email, setEmail] = useState(userProfile?.email || "");
   // For DOB, store as Date object internally for the picker, display as string
-  const [dob, setDob] = useState(userProfile?.dob || ""); // Still string for display
+  const [dob, setDob] = useState(getDobString(userProfile?.dob)); // Always string for display
   const [selectedDate, setSelectedDate] = useState(new Date()); // Date object for DateTimePicker
   const [showDatePicker, setShowDatePicker] = useState(false); // State to control date picker visibility
 
@@ -26,17 +54,19 @@ const Profile = () => {
 
   // Function to handle date selection from the calendar
   const onChangeDate = (event: any, selectedDate: Date | undefined) => {
-    const currentDate = selectedDate || selectedDate;
-    setShowDatePicker(Platform.OS === 'ios'); // Hide picker on Android immediately, on iOS it's part of the modal
-    if (currentDate) {
-      setSelectedDate(currentDate);
-      // Format date for display and storage
-      setDob(currentDate.toLocaleDateString('en-GB', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      }).replace(/\//g, '-')); // Format as DD-MM-YYYY
+    if (selectedDate) {
+      setSelectedDate(selectedDate);
+      setDob(
+        selectedDate
+          .toLocaleDateString("en-GB", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+          })
+          .replace(/\//g, "-")
+      );
     }
+    setShowDatePicker(false);
   };
 
   const showMode = () => {
@@ -46,10 +76,10 @@ const Profile = () => {
   const handleSave = () => {
     // Update userProfile context with new profile data
     if (userProfile) {
-      const nameParts = name.split(' ');
-      const firstname = nameParts[0] || '';
-      const lastname = nameParts.slice(1).join(' ') || '';
-      
+      const nameParts = name.split(" ");
+      const firstname = nameParts[0] || "";
+      const lastname = nameParts.slice(1).join(" ") || "";
+
       setUserProfile({
         ...userProfile,
         firstname,
@@ -66,122 +96,217 @@ const Profile = () => {
   };
 
   return (
-    <View className="flex-1 bg-white px-4 pt-4">
-      {/* Profile avatar section */}
-      <View className="items-center mb-6">
-        {/* Use a placeholder image or a default avatar if userProfile.avatar is not available */}
-        <Image
-          source={{ uri: userProfile?.avatar || images.placeholder }}
-          className="w-24 h-24 rounded-full mb-2"
-        />
-        {/* Avatar edit button placeholder */}
-        <View className="absolute bottom-2 right-[calc(50%-12px)] translate-x-1/2 bg-gray-200 rounded-full p-2">
-          <Text className="text-gray-600">🖉</Text>
+    <View style={{ flex: 1, backgroundColor: "#fff" }}>
+      {/* Avatar section */}
+      <View style={{ alignItems: "center", marginBottom: 24 }}>
+        <View
+          style={{
+            width: 100,
+            height: 100,
+            borderRadius: 50,
+            backgroundColor: "white",
+            alignItems: "center",
+            justifyContent: "center",
+            position: "relative",
+          }}
+        >
+          <Image
+            source={
+              userProfile?.avatar
+                ? { uri: userProfile.avatar }
+                : images.default_avatar
+            }
+            style={{ width: 90, height: 90, borderRadius: 45 }}
+          />
+          <TouchableOpacity
+            style={{
+              position: "absolute",
+              right: 8,
+              bottom: 8,
+              backgroundColor: "#fff",
+              borderRadius: 16,
+              padding: 4,
+              borderWidth: 1,
+              borderColor: "#E5E7EB",
+            }}
+          >
+            <Ionicons name="pencil" size={16} color="#6B7280" />
+          </TouchableOpacity>
         </View>
       </View>
 
-      {/* Form fields section */}
-      <View className="space-y-4 mb-6">
-        {/* Name input */}
-        <View>
-          <Text className="text-gray-700 text-sm mb-1">Name</Text>
+      {/* Form fields */}
+      <View style={{ paddingHorizontal: 16 }}>
+        {/* Name */}
+        <View style={{ marginBottom: 16 }}>
+          <Text style={{ color: "#374151", fontSize: 14, marginBottom: 4 }}>
+            Name
+          </Text>
           <TextInput
-            className="border border-gray-300 rounded-lg px-4 py-2 text-base"
+            style={{
+              borderWidth: 1,
+              borderColor: "#D1D5DB",
+              borderRadius: 12,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              fontSize: 16,
+              backgroundColor: "#fff",
+            }}
             value={name}
             onChangeText={setName}
             placeholder="Name"
+            placeholderTextColor="#9CA3AF"
           />
         </View>
-
-        {/* Email input */}
-        <View>
-          <Text className="text-gray-700 text-sm mb-1">Email</Text>
+        {/* Email */}
+        <View style={{ marginBottom: 16 }}>
+          <Text style={{ color: "#374151", fontSize: 14, marginBottom: 4 }}>
+            Email
+          </Text>
           <TextInput
-            className="border border-gray-300 rounded-lg px-4 py-2 text-base"
+            style={{
+              borderWidth: 1,
+              borderColor: "#D1D5DB",
+              borderRadius: 12,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              fontSize: 16,
+              backgroundColor: "#fff",
+            }}
             value={email}
             onChangeText={setEmail}
             placeholder="Email"
             keyboardType="email-address"
+            placeholderTextColor="#9CA3AF"
           />
         </View>
-
-        {/* DOB and Gender row */}
-        <View className="flex-row space-x-4">
-          <View className="flex-1">
-            <Text className="text-gray-700 text-sm mb-1">DOB</Text>
-            {/* TouchableOpacity to trigger date picker */}
-            <TouchableOpacity onPress={showMode} className="relative border border-gray-300 rounded-lg px-4 py-2">
-              <Text className="text-base text-gray-800">{dob || "DD-MM-YYYY"}</Text>
-              <Text className="absolute right-3 top-1/2 -translate-y-1/2 text-lg text-gray-500">
-                ▾
+        {/* Row: DOB & Gender */}
+        <View style={{ flexDirection: "row", gap: 16, marginBottom: 16 }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: "#374151", fontSize: 14, marginBottom: 4 }}>
+              DOB
+            </Text>
+            <TouchableOpacity
+              onPress={showMode}
+              style={{
+                borderWidth: 1,
+                borderColor: "#D1D5DB",
+                borderRadius: 12,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                backgroundColor: "#fff",
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <Text
+                style={{ fontSize: 16, color: dob ? "#111827" : "#9CA3AF" }}
+              >
+                {dob || "DD-MM-YYYY"}
               </Text>
+              <Ionicons name="chevron-down" size={18} color="#9CA3AF" />
             </TouchableOpacity>
-            {showDatePicker && (
-              <DateTimePicker
-                testID="dateTimePicker"
-                value={selectedDate}
-                mode="date"
-                display="default" // or 'spinner' or 'calendar'
-                onChange={onChangeDate}
-              />
-            )}
+            <ModalDateTimePicker
+              isVisible={showDatePicker}
+              mode="date"
+              date={selectedDate}
+              onConfirm={onChangeDate}
+              onCancel={() => setShowDatePicker(false)}
+              display="spinner"
+              headerTextIOS="Select Date of Birth"
+              confirmTextIOS="Confirm"
+              cancelTextIOS="Cancel"
+            />
           </View>
-          <View className="flex-1">
-            <Text className="text-gray-700 text-sm mb-1">Gender</Text>
-            {/* Picker for Gender */}
-            <View className="border border-gray-300 rounded-lg overflow-hidden">
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: "#374151", fontSize: 14, marginBottom: 4 }}>
+              Gender
+            </Text>
+            <View
+              style={{
+                borderWidth: 1,
+                borderColor: "#D1D5DB",
+                borderRadius: 12,
+                overflow: "hidden",
+                backgroundColor: "#fff",
+              }}
+            >
               <Picker
                 selectedValue={gender}
                 onValueChange={(itemValue) => setGender(itemValue)}
-                style={styles.picker}
-                itemStyle={styles.pickerItem}
+                style={{ height: 48, width: "100%" }}
               >
                 {genders.map((g) => (
                   <Picker.Item key={g} label={g} value={g} />
                 ))}
               </Picker>
-              {/* Custom dropdown arrow for Android */}
-              {Platform.OS === 'android' && (
-                <View className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <Text className="text-lg text-gray-500">▾</Text>
-                </View>
-              )}
             </View>
           </View>
         </View>
-
-        {/* Height and Weight row (now TextInputs) */}
-        <View className="flex-row space-x-4">
-          <View className="flex-1">
-            <Text className="text-gray-700 text-sm mb-1">Height</Text>
+        {/* Row: Height & Weight */}
+        <View style={{ flexDirection: "row", gap: 16, marginBottom: 32 }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: "#374151", fontSize: 14, marginBottom: 4 }}>
+              Height
+            </Text>
             <TextInput
-              className="border border-gray-300 rounded-lg px-4 py-2 text-base"
+              style={{
+                borderWidth: 1,
+                borderColor: "#D1D5DB",
+                borderRadius: 12,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                fontSize: 16,
+                backgroundColor: "#fff",
+              }}
               value={height}
               onChangeText={setHeight}
               placeholder="e.g., 1.75m"
-              keyboardType="numeric" // Suggest numeric keyboard for height/weight
+              keyboardType="numeric"
+              placeholderTextColor="#9CA3AF"
             />
           </View>
-          <View className="flex-1">
-            <Text className="text-gray-700 text-sm mb-1">Weight</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: "#374151", fontSize: 14, marginBottom: 4 }}>
+              Weight
+            </Text>
             <TextInput
-              className="border border-gray-300 rounded-lg px-4 py-2 text-base"
+              style={{
+                borderWidth: 1,
+                borderColor: "#D1D5DB",
+                borderRadius: 12,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                fontSize: 16,
+                backgroundColor: "#fff",
+              }}
               value={weight}
               onChangeText={setWeight}
               placeholder="e.g., 65kg"
-              keyboardType="numeric" // Suggest numeric keyboard for height/weight
+              keyboardType="numeric"
+              placeholderTextColor="#9CA3AF"
             />
           </View>
         </View>
       </View>
 
       {/* Save button */}
-      <TouchableOpacity
-        className="bg-orange-500 rounded-2xl py-4 items-center"
-        onPress={handleSave}
-      >
-        <Text className="text-white text-lg font-semibold">Save</Text>
-      </TouchableOpacity>
+      <View style={{ paddingHorizontal: 16, marginBottom: 24 }}>
+        <TouchableOpacity
+          style={{
+            backgroundColor: "#FF6F2D",
+            borderRadius: 16,
+            paddingVertical: 16,
+            alignItems: "center",
+          }}
+          onPress={handleSave}
+        >
+          <Text style={{ color: "#fff", fontSize: 18, fontWeight: "bold" }}>
+            Save
+          </Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -190,7 +315,7 @@ const Profile = () => {
 const styles = StyleSheet.create({
   picker: {
     height: 40,
-    width: '100%',
+    width: "100%",
   },
   pickerItem: {
     // Optional: Add specific styles for picker items if needed

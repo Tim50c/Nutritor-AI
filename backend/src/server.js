@@ -34,11 +34,25 @@ app.use('/api/v1/chat', require('./routes/chatbotRoutes'));
 app.use('/api/v1/auth', require('./routes/authRoutes'));
 app.use('/api/v1/nutrition', require('./routes/nutritionRoutes'));
 
+// Initialize notification scheduler
+const { initializeScheduler } = require('./utils/notificationScheduler');
+
 const PORT = process.env.PORT || 5000;
 
 const server = app.listen(
   PORT,
-  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`)
+  () => {
+    console.log(`🚀 Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+    console.log('📱 Initializing notification scheduler...');
+    
+    // Initialize automatic notifications
+    try {
+      initializeScheduler();
+      console.log('✅ Notification scheduler initialized successfully');
+    } catch (error) {
+      console.error('❌ Failed to initialize notification scheduler:', error);
+    }
+  }
 );
 
 // Handle unhandled promise rejections

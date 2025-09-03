@@ -15,8 +15,7 @@ import { useRouter } from 'expo-router';
 import SettingsNavButton from '@/components/SettingsNavButton';
 import CustomButtonAuth from '@/components/CustomButtonAuth';
 import { icons } from '@/constants/icons';
-
-const placeholderAvatar = require('../../assets/images/placeholder.png'); 
+import { images } from '@/constants/images';
 
 const Settings = () => {
   const router = useRouter();
@@ -77,8 +76,8 @@ const Settings = () => {
           activeOpacity={0.8}
         >
           <Image
-            source={userProfile.avatar && typeof userProfile.avatar === 'string' ? { uri: userProfile.avatar } : placeholderAvatar}
-            className="w-16 h-16 rounded-full mr-4 bg-white"
+            source={userProfile.avatar && typeof userProfile.avatar === 'string' ? { uri: userProfile.avatar } : images.default_avatar}
+            className="w-20 h-20 rounded-full mr-4"
           />
           <View>
             <Text className="text-lg font-bold text-white">
@@ -94,9 +93,9 @@ const Settings = () => {
           <View className="h-px bg-gray-200 mx-5" />
           <SettingsNavButton label="Change Password" route="/settings/change-password" variant="light" />
           <View className="h-px bg-gray-200 mx-5" />
-          <SettingsNavButton label="Notification" route="/notifications" variant="light" />
+          <SettingsNavButton label="Notification" route="/settings/notification-settings" variant="light" />
           <View className="h-px bg-gray-200 mx-5" />
-          <SettingsNavButton label="Favorite" route="/settings/favorites" variant="light" />
+          <SettingsNavButton label="Favorites" route="/settings/favorites" variant="light" />
         </View>
 
         {/* Settings Group 2 */}

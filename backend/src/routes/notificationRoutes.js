@@ -2,25 +2,30 @@ const express = require('express');
 const router = express.Router();
 const { 
   getNotifications, 
-  createNotification,
-  sendNotification, 
-  updatePreferences, 
   markAsRead,
-  deleteNotification 
+  deleteNotification,
+  updateNotificationPreferences,
+  getNotificationPreferences,
+  triggerNotification,
+  sendTestNotificationController,
+  sendManualNotification,
 } = require('../controllers/notificationController');
 const authMiddleware = require('../middleware/authMiddleware');
 
 // Get all notifications for user
 router.get('/', authMiddleware, getNotifications);
 
-// Create a new notification (backend determines content)
-router.post('/create', authMiddleware, createNotification);
-
-// Send push notification (for future use)
-router.post('/send', authMiddleware, sendNotification);
+// Get notification preferences
+router.get('/preferences', authMiddleware, getNotificationPreferences);
 
 // Update notification preferences
-router.patch('/preferences', authMiddleware, updatePreferences);
+router.put('/preferences', authMiddleware, updateNotificationPreferences);
+
+// Send test notification
+router.post('/test', authMiddleware, sendTestNotificationController);
+
+// Send manual notification
+router.post('/send', authMiddleware, sendManualNotification);
 
 // Mark notification as read
 router.patch('/:id/read', authMiddleware, markAsRead);
