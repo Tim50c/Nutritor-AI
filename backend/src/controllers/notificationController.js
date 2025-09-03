@@ -30,7 +30,7 @@ const NotificationTemplates = {
 // @desc    Get notifications for a user
 // @route   GET /api/v1/notifications
 // @access  Private
-exports.getNotifications = async (req, res, next) => {
+const getNotifications = async (req, res, next) => {
   try {
     const { uid } = res.locals;
     console.log(`📋 Fetching notifications for user: ${uid}`);
@@ -160,7 +160,7 @@ exports.sendNotification = async (req, res, next) => {
 // @desc    Update notification preferences
 // @route   PATCH /api/v1/notifications/preferences
 // @access  Private
-exports.updatePreferences = async (req, res, next) => {
+const updateNotificationPreferences = async (req, res, next) => {
   try {
     const { uid } = res.locals;
     const { preferences } = req.body;
@@ -177,10 +177,45 @@ exports.updatePreferences = async (req, res, next) => {
   }
 };
 
+// @desc    Get notification preferences
+// @route   GET /api/v1/notifications/preferences
+// @access  Private
+const getNotificationPreferences = async (req, res, next) => {
+  try {
+    const { uid } = res.locals;
+
+    const userDoc = await db.collection('users').doc(uid).get();
+    
+    if (!userDoc.exists) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+
+    const userData = userDoc.data();
+    const preferences = userData.notificationPreferences || {
+      mealReminders: true,
+      weeklyReports: true,
+      achievements: true,
+      nutritionTips: true,
+      waterIntake: true,
+    };
+
+    res.status(200).json({
+      success: true,
+      data: { preferences },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+};
+
 // @desc    Mark notification as read
 // @route   PATCH /api/v1/notifications/:id/read
 // @access  Private
-exports.markAsRead = async (req, res, next) => {
+const markAsRead = async (req, res, next) => {
   try {
     const { uid } = res.locals;
     const { id } = req.params;
@@ -202,7 +237,7 @@ exports.markAsRead = async (req, res, next) => {
 // @desc    Delete a notification
 // @route   DELETE /api/v1/notifications/:id
 // @access  Private
-exports.deleteNotification = async (req, res, next) => {
+const deleteNotification = async (req, res, next) => {
   try {
     const { uid } = res.locals;
     const { id } = req.params;
@@ -224,7 +259,7 @@ exports.deleteNotification = async (req, res, next) => {
 // @desc    Trigger notifications based on user activity (called by other controllers)
 // @route   Used internally by other controllers
 // @access  Internal
-exports.triggerNotification = async (uid, type, data = {}) => {
+const triggerNotification = async (uid, type, data = {}) => {
   try {
     let notificationContent;
 
