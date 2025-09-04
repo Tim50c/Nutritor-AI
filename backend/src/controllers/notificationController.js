@@ -172,15 +172,57 @@ const updateNotificationPreferences = async (req, res, next) => {
     // Validate the preference structure
     const preferences = {};
     
+    // Helper function to validate time object
+    const validateTime = (time) => {
+      if (!time || typeof time !== 'object') return false;
+      const { hour, minute } = time;
+      return typeof hour === 'number' && 
+             typeof minute === 'number' && 
+             hour >= 0 && hour <= 23 && 
+             minute >= 0 && minute <= 59;
+    };
+
+    // Validate meal reminders
     if (mealReminders) {
+      if (typeof mealReminders !== 'object') {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Invalid mealReminders format' 
+        });
+      }
+
+      const { breakfast, lunch, dinner } = mealReminders;
+      ['breakfast', 'lunch', 'dinner'].forEach(meal => {
+        if (mealReminders[meal] && !validateTime(mealReminders[meal].time)) {
+          return res.status(400).json({ 
+            success: false, 
+            message: `Invalid time format for ${meal}` 
+          });
+        }
+      });
+      
       preferences.mealReminders = mealReminders;
     }
     
+    // Validate weekly progress
     if (weeklyProgress) {
+      if (!validateTime(weeklyProgress.time)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Invalid time format for weeklyProgress' 
+        });
+      }
       preferences.weeklyProgress = weeklyProgress;
     }
     
+    // Validate goal achievements
     if (goalAchievements) {
+      if (!validateTime(goalAchievements.time)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Invalid time format for goalAchievements' 
+        });
+      }
       preferences.goalAchievements = goalAchievements;
     }
 
@@ -235,28 +277,28 @@ const getNotificationPreferences = async (req, res, next) => {
         enabled: true,
         breakfast: {
           enabled: true,
-          time: 8,
+          time: { hour: 8, minute: 0 },
           days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
         },
         lunch: {
           enabled: true,
-          time: 12,
+          time: { hour: 12, minute: 0 },
           days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
         },
         dinner: {
           enabled: true,
-          time: 18,
+          time: { hour: 18, minute: 0 },
           days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
         }
       },
       weeklyProgress: {
         enabled: true,
-        time: 9,
+        time: { hour: 9, minute: 0 },
         day: 'sunday'
       },
       goalAchievements: {
         enabled: false,
-        time: 21,
+        time: { hour: 21, minute: 0 },
         days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
       }
     };
