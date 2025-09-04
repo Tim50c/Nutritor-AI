@@ -11,14 +11,12 @@ const NotificationTemplates = {
     type: 'meal_reminder',
     data: { mealType }
   }),
-
   weeklyProgress: (progress) => ({
     title: "📊 Weekly Progress",
     body: `You're ${progress}% towards your weekly nutrition goals!`,
     type: 'weekly_progress',
     data: { progress }
   }),
-
   customMessage: (title, message, data = {}) => ({
     title,
     body: message,
@@ -27,9 +25,9 @@ const NotificationTemplates = {
   })
 };
 
-// @desc    Get notifications for a user
-// @route   GET /api/v1/notifications
-// @access  Private
+// @desc Get notifications for a user
+// @route GET /api/v1/notifications
+// @access Private
 const getNotifications = async (req, res, next) => {
   try {
     const { uid } = res.locals;
@@ -41,14 +39,14 @@ const getNotifications = async (req, res, next) => {
       .collection('notifications')
       .orderBy('createdAt', 'desc')
       .get();
-    
+
     const notifications = notificationsSnapshot.docs.map(doc => {
       const notification = Notification.fromFirestore(doc);
       return {
         id: notification.id,
         title: notification.title,
         body: notification.body,
-        message: `${notification.title}: ${notification.body}`, // Combined message for frontend
+        message: `${notification.title}: ${notification.body}`,
         type: notification.type,
         read: notification.read,
         createdAt: notification.createdAt
@@ -56,17 +54,17 @@ const getNotifications = async (req, res, next) => {
     });
 
     console.log(`✅ Found ${notifications.length} notifications for user ${uid}`);
-    res.status(200).json({ success: true, data: notifications });
+    return res.status(200).json({ success: true, data: notifications }); // ✅ ADDED return
   } catch (error) {
     console.error('❌ Error fetching notifications:', error);
-    res.status(500).json({ success: false, error: 'Server error' });
+    return res.status(500).json({ success: false, error: 'Server error' }); // ✅ ADDED return
   }
 };
 
-// @desc    Create and store a notification for a user
-// @route   POST /api/v1/notifications/create
-// @access  Private
-exports.createNotification = async (req, res, next) => {
+// @desc Create and store a notification for a user
+// @route POST /api/v1/notifications/create
+// @access Private
+const createNotification = async (req, res, next) => { // ✅ FIXED: Changed exports.createNotification to const createNotification
   try {
     const { uid } = res.locals;
     const { type, data = {} } = req.body;
@@ -95,20 +93,20 @@ exports.createNotification = async (req, res, next) => {
         );
         break;
       default:
-        return res.status(400).json({ 
-          success: false, 
-          error: 'Invalid notification type' 
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid notification type'
         });
     }
 
     // Create notification document
     const notification = new Notification(
-      null, // id will be auto-generated
+      null,
       notificationContent.title,
       notificationContent.body,
-      notificationContent.data, // type parameter
-      false, // read status (unread by default)
-      new Date() // createdAt
+      notificationContent.data,
+      false,
+      new Date()
     );
 
     // Store in Firestore
@@ -118,24 +116,24 @@ exports.createNotification = async (req, res, next) => {
       .collection('notifications')
       .add(notification.toFirestore());
 
-    res.status(201).json({ 
-      success: true, 
-      data: { 
-        id: docRef.id, 
+    return res.status(201).json({ // ✅ ADDED return
+      success: true,
+      data: {
+        id: docRef.id,
         ...notification.toFirestore(),
         message: `${notificationContent.title}: ${notificationContent.body}`
       }
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ success: false, error: 'Server error' });
+    return res.status(500).json({ success: false, error: 'Server error' }); // ✅ ADDED return
   }
 };
 
-// @desc    Send a push notification (for future use)
-// @route   POST /api/v1/notifications/send
-// @access  Private
-exports.sendNotification = async (req, res, next) => {
+// @desc Send a push notification (for future use)
+// @route POST /api/v1/notifications/send
+// @access Private
+const sendNotification = async (req, res, next) => { // ✅ FIXED: Changed exports.sendNotification to const sendNotification
   try {
     const { uid } = res.locals;
     const { token, title, body } = req.body;
@@ -149,78 +147,82 @@ exports.sendNotification = async (req, res, next) => {
     };
 
     await messaging.send(message);
-
-    res.status(200).json({ success: true, data: {} });
+    return res.status(200).json({ success: true, data: {} }); // ✅ ADDED return
   } catch (error) {
     console.error(error);
-    res.status(500).json({ success: false, error: 'Server error' });
+    return res.status(500).json({ success: false, error: 'Server error' }); // ✅ ADDED return
   }
 };
 
-// @desc    Update notification preferences
-// @route   PATCH /api/v1/notifications/preferences
-// @access  Private
+// ✅ MAIN FIX: Update notification preferences
+// @route PATCH /api/v1/notifications/preferences
+// @access Private
 const updateNotificationPreferences = async (req, res, next) => {
   try {
     const uid = res.locals.uid || req.user?.uid;
+    
     if (!uid) {
       return res.status(401).json({ success: false, message: 'User not authenticated' });
     }
 
     const { mealReminders, weeklyProgress, goalAchievements } = req.body;
-
-    // Validate the preference structure
     const preferences = {};
-    
-    // Helper function to validate time object
+
+    // ✅ FIXED: Helper function to validate time object with hour and minute
     const validateTime = (time) => {
-      if (!time || typeof time !== 'object') return false;
+      if (!time || typeof time !== 'object') {
+        return false;
+      }
       const { hour, minute } = time;
-      return typeof hour === 'number' && 
-             typeof minute === 'number' && 
-             hour >= 0 && hour <= 23 && 
-             minute >= 0 && minute <= 59;
+      return (
+        typeof hour === 'number' && 
+        typeof minute === 'number' && 
+        hour >= 0 && hour <= 23 && 
+        minute >= 0 && minute <= 59
+      );
     };
 
-    // Validate meal reminders
+    // ✅ FIXED: Validate meal reminders - REMOVED forEach loop
     if (mealReminders) {
       if (typeof mealReminders !== 'object') {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'Invalid mealReminders format' 
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid mealReminders format'
         });
       }
 
-      const { breakfast, lunch, dinner } = mealReminders;
-      ['breakfast', 'lunch', 'dinner'].forEach(meal => {
-        if (mealReminders[meal] && !validateTime(mealReminders[meal].time)) {
-          return res.status(400).json({ 
-            success: false, 
-            message: `Invalid time format for ${meal}` 
-          });
+      // ✅ FIXED: Use for...of loop instead of forEach to allow proper returns
+      const meals = ['breakfast', 'lunch', 'dinner'];
+      for (const meal of meals) {
+        if (mealReminders[meal] && typeof mealReminders[meal].time !== 'undefined') {
+          if (!validateTime(mealReminders[meal].time)) {
+            return res.status(400).json({
+              success: false,
+              message: `Invalid time format for ${meal}. Expected object with hour (0-23) and minute (0-59).`
+            });
+          }
         }
-      });
-      
+      }
       preferences.mealReminders = mealReminders;
     }
-    
-    // Validate weekly progress
+
+    // ✅ FIXED: Validate weekly progress
     if (weeklyProgress) {
-      if (!validateTime(weeklyProgress.time)) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'Invalid time format for weeklyProgress' 
+      if (typeof weeklyProgress.time !== 'undefined' && !validateTime(weeklyProgress.time)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid time format for weeklyProgress. Expected object with hour (0-23) and minute (0-59).'
         });
       }
       preferences.weeklyProgress = weeklyProgress;
     }
-    
-    // Validate goal achievements
+
+    // ✅ FIXED: Validate goal achievements
     if (goalAchievements) {
-      if (!validateTime(goalAchievements.time)) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'Invalid time format for goalAchievements' 
+      if (typeof goalAchievements.time !== 'undefined' && !validateTime(goalAchievements.time)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid time format for goalAchievements. Expected object with hour (0-23) and minute (0-59).'
         });
       }
       preferences.goalAchievements = goalAchievements;
@@ -235,27 +237,29 @@ const updateNotificationPreferences = async (req, res, next) => {
     console.log(`✅ Updated notification preferences for user: ${uid}`);
     console.log('📋 New preferences:', JSON.stringify(preferences, null, 2));
 
-    res.status(200).json({
+    return res.status(200).json({ // ✅ ADDED return
       success: true,
       message: 'Notification preferences updated successfully',
       data: { preferences }
     });
+
   } catch (error) {
     console.error('Error updating notification preferences:', error);
-    res.status(500).json({ 
-      success: false, 
+    return res.status(500).json({ // ✅ ADDED return
+      success: false,
       message: 'Failed to update notification preferences',
-      error: error.message 
+      error: error.message
     });
   }
 };
 
-// @desc    Get notification preferences
-// @route   GET /api/v1/notifications/preferences
-// @access  Private
+// @desc Get notification preferences
+// @route GET /api/v1/notifications/preferences
+// @access Private
 const getNotificationPreferences = async (req, res, next) => {
   try {
     const uid = res.locals.uid || req.user?.uid;
+    
     if (!uid) {
       return res.status(401).json({ success: false, message: 'User not authenticated' });
     }
@@ -263,15 +267,15 @@ const getNotificationPreferences = async (req, res, next) => {
     const userDoc = await db.collection('users').doc(uid).get();
     
     if (!userDoc.exists) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'User not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
       });
     }
 
     const userData = userDoc.data();
     
-    // Return new preference structure with defaults
+    // Return preferences with hour and minute objects
     const preferences = userData.notificationPreferences || {
       mealReminders: {
         enabled: true,
@@ -303,23 +307,24 @@ const getNotificationPreferences = async (req, res, next) => {
       }
     };
 
-    res.status(200).json({
+    return res.status(200).json({ // ✅ ADDED return
       success: true,
-      data: { preferences },
+      data: { preferences }
     });
+
   } catch (error) {
     console.error('Error getting notification preferences:', error);
-    res.status(500).json({ 
-      success: false, 
+    return res.status(500).json({ // ✅ ADDED return
+      success: false,
       message: 'Failed to get notification preferences',
-      error: error.message 
+      error: error.message
     });
   }
 };
 
-// @desc    Mark notification as read
-// @route   PATCH /api/v1/notifications/:id/read
-// @access  Private
+// @desc Mark notification as read
+// @route PATCH /api/v1/notifications/:id/read
+// @access Private
 const markAsRead = async (req, res, next) => {
   try {
     const { uid } = res.locals;
@@ -332,16 +337,16 @@ const markAsRead = async (req, res, next) => {
       .doc(id)
       .update({ read: true, readAt: new Date() });
 
-    res.status(200).json({ success: true, data: {} });
+    return res.status(200).json({ success: true, data: {} }); // ✅ ADDED return
   } catch (error) {
     console.error(error);
-    res.status(500).json({ success: false, error: 'Server error' });
+    return res.status(500).json({ success: false, error: 'Server error' }); // ✅ ADDED return
   }
 };
 
-// @desc    Delete a notification
-// @route   DELETE /api/v1/notifications/:id
-// @access  Private
+// @desc Delete a notification
+// @route DELETE /api/v1/notifications/:id
+// @access Private
 const deleteNotification = async (req, res, next) => {
   try {
     const { uid } = res.locals;
@@ -354,21 +359,20 @@ const deleteNotification = async (req, res, next) => {
       .doc(id)
       .delete();
 
-    res.status(200).json({ success: true, data: {} });
+    return res.status(200).json({ success: true, data: {} }); // ✅ ADDED return
   } catch (error) {
     console.error(error);
-    res.status(500).json({ success: false, error: 'Server error' });
+    return res.status(500).json({ success: false, error: 'Server error' }); // ✅ ADDED return
   }
 };
 
-// @desc    Trigger notifications based on user activity (called by other controllers)
-// @route   Used internally by other controllers
-// @access  Internal
+// @desc Trigger notifications based on user activity (called by other controllers)
+// @route Used internally by other controllers
+// @access Internal
 const triggerNotification = async (uid, type, data = {}) => {
   try {
     let notificationContent;
 
-    // Backend logic determines what notification to create
     switch (type) {
       case 'meal_reminder':
         notificationContent = NotificationTemplates.mealReminder(data.mealType || 'Meal');
@@ -394,7 +398,6 @@ const triggerNotification = async (uid, type, data = {}) => {
         return false;
     }
 
-    // Create notification document
     const notification = new Notification(
       null,
       notificationContent.title,
@@ -404,7 +407,6 @@ const triggerNotification = async (uid, type, data = {}) => {
       false
     );
 
-    // Store in Firestore
     await db
       .collection('users')
       .doc(uid)
@@ -419,25 +421,23 @@ const triggerNotification = async (uid, type, data = {}) => {
   }
 };
 
-// @desc    Send test notification
-// @route   POST /api/v1/notifications/test
-// @access  Private
+// @desc Send test notification
+// @route POST /api/v1/notifications/test
+// @access Private
 const sendTestNotificationController = async (req, res) => {
   try {
     const uid = req.user.uid;
     const { title, body, type } = req.body;
 
-    // Use provided data or defaults
     const notificationData = {
       title: title || '🧪 Test Notification',
       body: body || 'This is a test notification from Nutritor AI!',
       type: type || { testType: 'manual' },
     };
 
-    // Send notification using helper function
     const notificationId = await sendNotificationToUser(uid, notificationData);
 
-    res.status(200).json({
+    return res.status(200).json({ // ✅ ADDED return
       success: true,
       message: 'Test notification sent successfully',
       data: {
@@ -447,7 +447,7 @@ const sendTestNotificationController = async (req, res) => {
     });
   } catch (error) {
     console.error('Error sending test notification:', error);
-    res.status(500).json({
+    return res.status(500).json({ // ✅ ADDED return
       success: false,
       message: 'Failed to send test notification',
       error: error.message,
@@ -455,9 +455,9 @@ const sendTestNotificationController = async (req, res) => {
   }
 };
 
-// @desc    Send manual notification to user
-// @route   POST /api/v1/notifications/send
-// @access  Private
+// @desc Send manual notification to user
+// @route POST /api/v1/notifications/send
+// @access Private
 const sendManualNotification = async (req, res) => {
   try {
     const uid = req.user.uid;
@@ -478,7 +478,7 @@ const sendManualNotification = async (req, res) => {
 
     const notificationId = await sendNotificationToUser(uid, notificationData);
 
-    res.status(200).json({
+    return res.status(200).json({ // ✅ ADDED return
       success: true,
       message: 'Notification sent successfully',
       data: {
@@ -488,7 +488,7 @@ const sendManualNotification = async (req, res) => {
     });
   } catch (error) {
     console.error('Error sending manual notification:', error);
-    res.status(500).json({
+    return res.status(500).json({ // ✅ ADDED return
       success: false,
       message: 'Failed to send notification',
       error: error.message,
@@ -498,6 +498,8 @@ const sendManualNotification = async (req, res) => {
 
 module.exports = {
   getNotifications,
+  createNotification, // ✅ ADDED missing export
+  sendNotification, // ✅ ADDED missing export
   markAsRead,
   deleteNotification,
   updateNotificationPreferences,
