@@ -76,7 +76,7 @@ const getDefaultMealTime = (mealType) => {
  */
 const calculateWeeklyProgress = async (uid) => {
   try {
-    const oneWeekAgo = new Date();
+    const oneWeekAgo = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Bangkok"}));
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
     
     // Get user's diet entries from the past week
@@ -108,7 +108,7 @@ const calculateWeeklyProgress = async (uid) => {
  */
 const checkDailyGoals = async (uid) => {
   try {
-    const today = new Date();
+    const today = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Bangkok"}));
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -175,7 +175,7 @@ const checkDailyGoals = async (uid) => {
  */
 const triggerMealReminders = async () => {
   try {
-    const now = new Date();
+    const now = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Bangkok"}));
     console.log(`🕐 Checking meal reminders at: ${now.toLocaleString('en-US', {timeZone: 'Asia/Bangkok'})}`);
     console.log(`🕐 Server time: ${now.getHours()}:${now.getMinutes()}, Day: ${now.getDay()}`);
     
@@ -238,7 +238,7 @@ const triggerWeeklyProgress = async () => {
   try {
     console.log('📊 Checking for weekly progress notifications...');
     const usersSnapshot = await db.collection('users').get();
-    const now = new Date();
+    const now = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Bangkok"}));
     const currentDay = now.getDay();
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes(); // ✅ ADD THIS
@@ -294,7 +294,7 @@ const checkGoalAchievements = async () => {
   try {
     console.log('🎯 Checking for goal achievement notifications...');
     const usersSnapshot = await db.collection('users').get();
-    const now = new Date();
+    const now = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Bangkok"}));
     const currentDay = now.getDay();
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
