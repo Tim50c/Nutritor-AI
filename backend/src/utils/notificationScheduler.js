@@ -1,7 +1,17 @@
 // backend/src/utils/notificationScheduler.js
+
 const cron = require('node-cron');
 const { db } = require('../config/firebase');
 const { createMealReminder, createWeeklyProgress, createGoalAchievement } = require('./notificationHelpers');
+
+/**
+ * Get Bangkok time properly
+ */
+const getBangkokTime = () => {
+  const utcNow = new Date();
+  const bangkokTime = new Date(utcNow.toLocaleString("en-US", {timeZone: "Asia/Bangkok"}));
+  return bangkokTime;
+};
 
 /**
  * Get all users who have meal reminders enabled
@@ -9,7 +19,6 @@ const { createMealReminder, createWeeklyProgress, createGoalAchievement } = requ
 const getUsersWithMealReminders = async () => {
   try {
     const usersSnapshot = await db.collection('users').get();
-    
     return usersSnapshot.docs
       .map(doc => ({ uid: doc.id, ...doc.data() }))
       .filter(user => user.notificationPreferences?.mealReminders?.enabled === true);
@@ -59,33 +68,22 @@ const shouldSendMealReminder = (user, mealType, currentDay, currentHour, current
 
   return false;
 };
-/**
- * Get default meal times
- */
-const getDefaultMealTime = (mealType) => {
-  const defaults = {
-    breakfast: 8,
-    lunch: 12,
-    dinner: 18
-  };
-  return defaults[mealType] || 12;
-};
 
 /**
  * Calculate user's weekly progress
  */
 const calculateWeeklyProgress = async (uid) => {
   try {
-    const oneWeekAgo = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Bangkok"}));
+    const bangkokNow = getBangkokTime();
+    const oneWeekAgo = new Date(bangkokNow);
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    
-    // Get user's diet entries from the past week
+
     const dietSnapshot = await db.collection('users')
       .doc(uid)
       .collection('diets')
       .where('createdAt', '>=', oneWeekAgo)
       .get();
-    
+
     const totalDays = 7;
     const daysWithEntries = new Set();
     
@@ -94,9 +92,9 @@ const calculateWeeklyProgress = async (uid) => {
       const dayKey = date.toDateString();
       daysWithEntries.add(dayKey);
     });
-    
+
     const progress = Math.round((daysWithEntries.size / totalDays) * 100);
-    return Math.min(progress, 100); // Cap at 100%
+    return Math.min(progress, 100);
   } catch (error) {
     console.error('Error calculating weekly progress:', error);
     return 0;
@@ -108,29 +106,26 @@ const calculateWeeklyProgress = async (uid) => {
  */
 const checkDailyGoals = async (uid) => {
   try {
-    const today = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Bangkok"}));
+    const bangkokNow = getBangkokTime();
+    const today = new Date(bangkokNow);
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    
-    // Get today's diet entries
+
     const dietSnapshot = await db.collection('users')
       .doc(uid)
       .collection('diets')
       .where('createdAt', '>=', today)
       .where('createdAt', '<', tomorrow)
       .get();
-    
-    // Get user's target nutrition
+
     const userDoc = await db.collection('users').doc(uid).get();
     const targetNutrition = userDoc.data()?.targetNutrition;
-    
     if (!targetNutrition) return null;
-    
-    // Calculate total nutrition for today
+
     let totalCalories = 0;
     let totalProtein = 0;
-    
+
     dietSnapshot.docs.forEach(doc => {
       const dietData = doc.data();
       if (dietData.foods && Array.isArray(dietData.foods)) {
@@ -142,10 +137,9 @@ const checkDailyGoals = async (uid) => {
         });
       }
     });
-    
+
     const achievements = [];
-    
-    // Check calorie goal
+
     if (totalCalories >= targetNutrition.calories && targetNutrition.calories > 0) {
       achievements.push({
         type: 'calories',
@@ -153,8 +147,7 @@ const checkDailyGoals = async (uid) => {
         achieved: totalCalories
       });
     }
-    
-    // Check protein goal
+
     if (totalProtein >= targetNutrition.protein && targetNutrition.protein > 0) {
       achievements.push({
         type: 'protein',
@@ -162,7 +155,7 @@ const checkDailyGoals = async (uid) => {
         achieved: totalProtein
       });
     }
-    
+
     return achievements;
   } catch (error) {
     console.error('Error checking daily goals:', error);
@@ -175,9 +168,10 @@ const checkDailyGoals = async (uid) => {
  */
 const triggerMealReminders = async () => {
   try {
-    const now = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Bangkok"}));
+    const now = getBangkokTime();
+    
     console.log(`🕐 Checking meal reminders at: ${now.toLocaleString('en-US', {timeZone: 'Asia/Bangkok'})}`);
-    console.log(`🕐 Server time: ${now.getHours()}:${now.getMinutes()}, Day: ${now.getDay()}`);
+    console.log(`🕐 Bangkok time: ${now.getHours()}:${now.getMinutes()}, Day: ${now.getDay()}`);
     
     const users = await getUsersWithMealReminders();
     console.log(`👥 Found ${users.length} users with meal reminders enabled`);
@@ -218,16 +212,16 @@ const triggerMealReminders = async () => {
 const shouldSendWeeklyProgress = (user, currentDay, currentHour, currentMinute) => {
   const preferences = user.notificationPreferences?.weeklyProgress;
   if (!preferences?.enabled) return false;
-  
+
   const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
   const todayName = dayNames[currentDay];
   if (preferences.day !== todayName) return false;
-  
+
   const timeObj = preferences.time;
   if (typeof timeObj === 'object' && timeObj.hour !== undefined) {
     return currentHour === timeObj.hour && currentMinute === timeObj.minute;
   }
-  
+
   return false;
 };
 
@@ -238,16 +232,19 @@ const triggerWeeklyProgress = async () => {
   try {
     console.log('📊 Checking for weekly progress notifications...');
     const usersSnapshot = await db.collection('users').get();
-    const now = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Bangkok"}));
+    
+    const now = getBangkokTime();
+    
     const currentDay = now.getDay();
     const currentHour = now.getHours();
-    const currentMinute = now.getMinutes(); // ✅ ADD THIS
-    
+    const currentMinute = now.getMinutes();
+
     let totalSent = 0;
+
     for (const userDoc of usersSnapshot.docs) {
       const uid = userDoc.id;
       const userData = userDoc.data();
-      
+
       if (shouldSendWeeklyProgress(userData, currentDay, currentHour, currentMinute)) {
         try {
           const progress = await calculateWeeklyProgress(uid);
@@ -259,7 +256,7 @@ const triggerWeeklyProgress = async () => {
         }
       }
     }
-    
+
     if (totalSent > 0) {
       console.log(`📊 Sent ${totalSent} weekly progress notifications`);
     }
@@ -274,16 +271,16 @@ const triggerWeeklyProgress = async () => {
 const shouldSendGoalAchievement = (user, currentDay, currentHour, currentMinute) => {
   const preferences = user.notificationPreferences?.goalAchievements;
   if (!preferences?.enabled) return false;
-  
+
   const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
   const todayName = dayNames[currentDay];
   if (!preferences.days?.includes(todayName)) return false;
-  
+
   const timeObj = preferences.time;
   if (typeof timeObj === 'object' && timeObj.hour !== undefined && timeObj.minute !== undefined) {
     return currentHour === timeObj.hour && currentMinute === timeObj.minute;
   }
-  
+
   return false;
 };
 
@@ -294,13 +291,15 @@ const checkGoalAchievements = async () => {
   try {
     console.log('🎯 Checking for goal achievement notifications...');
     const usersSnapshot = await db.collection('users').get();
-    const now = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Bangkok"}));
+    
+    const now = getBangkokTime();
+    
     const currentDay = now.getDay();
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
-    
+
     let totalSent = 0;
-    
+
     for (const userDoc of usersSnapshot.docs) {
       const uid = userDoc.id;
       const userData = userDoc.data();
@@ -308,7 +307,6 @@ const checkGoalAchievements = async () => {
       if (shouldSendGoalAchievement(userData, currentDay, currentHour, currentMinute)) {
         try {
           const achievements = await checkDailyGoals(uid);
-          
           if (achievements && achievements.length > 0) {
             for (const achievement of achievements) {
               await createGoalAchievement(uid, achievement.type, achievement.value);
@@ -321,7 +319,7 @@ const checkGoalAchievements = async () => {
         }
       }
     }
-    
+
     if (totalSent > 0) {
       console.log(`🎯 Sent ${totalSent} goal achievement notifications`);
     }
@@ -336,36 +334,31 @@ const checkGoalAchievements = async () => {
 const initializeScheduler = () => {
   console.log('🕐 Initializing notification scheduler...');
   
-  // Schedule all notifications to run every hour
-  // The functions will check user preferences for specific times and days
+  // Schedule all notifications to run every minute
   cron.schedule('* * * * *', async () => {
     await triggerMealReminders();
     await triggerWeeklyProgress();
     await checkGoalAchievements();
   });
-  
+
   console.log('✅ Notification scheduler initialized');
-  console.log('📅 All notifications: Checked every hour based on user preferences');
+  console.log('📅 All notifications: Checked every minute with Bangkok timezone');
   console.log('📱 Meal reminders: User-configurable times and days');
-  console.log('� Weekly progress: User-configurable day and time');
+  console.log('📊 Weekly progress: User-configurable day and time');
   console.log('🎯 Goal achievements: User-configurable days and time');
 };
 
 /**
  * Send test notification to a specific user (for testing)
- * @param {string} uid - User ID
- * @returns {Promise<string>} - Notification ID
  */
 const sendTestNotification = async (uid) => {
   try {
     const { sendNotificationToUser } = require('./notificationHelpers');
-    
     const testNotification = {
       title: '🧪 Test Notification',
       body: 'This is a test notification from Nutritor AI!',
       type: { testType: 'manual_test' },
     };
-    
     const notificationId = await sendNotificationToUser(uid, testNotification);
     console.log(`✅ Test notification sent to user ${uid}: ${notificationId}`);
     return notificationId;
