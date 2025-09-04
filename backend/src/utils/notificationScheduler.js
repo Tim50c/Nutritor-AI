@@ -23,22 +23,42 @@ const getUsersWithMealReminders = async () => {
  * Check if user wants meal reminder for specific meal and day
  */
 const shouldSendMealReminder = (user, mealType, currentDay, currentHour, currentMinute) => {
+  console.log(`🔍 Checking ${mealType} for user ${user.uid}:`);
+  
   const preferences = user.notificationPreferences?.mealReminders;
-  if (!preferences?.enabled) return false;
-  if (!preferences[mealType]?.enabled) return false;
-  
-  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  const todayName = dayNames[currentDay];
-  if (!preferences[mealType].days?.includes(todayName)) return false;
-  
-  const timeObj = preferences[mealType].time;
-  if (typeof timeObj === 'object' && timeObj.hour !== undefined) {
-    return currentHour === timeObj.hour && currentMinute === timeObj.minute;
+  if (!preferences?.enabled) {
+    console.log(`❌ Meal reminders not enabled`);
+    return false;
   }
   
+  if (!preferences[mealType]?.enabled) {
+    console.log(`❌ ${mealType} not enabled`);
+    return false;
+  }
+
+  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const todayName = dayNames[currentDay];
+  console.log(`📅 Today is: ${todayName} (${currentDay})`);
+  
+  const mealDays = preferences[mealType].days;
+  console.log(`📋 ${mealType} days:`, mealDays);
+  
+  if (!mealDays?.includes(todayName)) {
+    console.log(`❌ ${todayName} not in ${mealType} days`);
+    return false;
+  }
+
+  const timeObj = preferences[mealType].time;
+  console.log(`⏰ ${mealType} time: ${timeObj?.hour}:${timeObj?.minute}, Current: ${currentHour}:${currentMinute}`);
+  
+  if (typeof timeObj === 'object' && timeObj.hour !== undefined) {
+    const match = currentHour === timeObj.hour && currentMinute === timeObj.minute;
+    console.log(`✅ Time match: ${match}`);
+    return match;
+  }
+
   return false;
 };
-
 /**
  * Get default meal times
  */
@@ -155,19 +175,27 @@ const checkDailyGoals = async (uid) => {
  */
 const triggerMealReminders = async () => {
   try {
-    console.log('🕐 Checking for meal reminder notifications...');
-    const users = await getUsersWithMealReminders();
     const now = new Date();
+    console.log(`🕐 Checking meal reminders at: ${now.toLocaleString('en-US', {timeZone: 'Asia/Bangkok'})}`);
+    console.log(`🕐 Server time: ${now.getHours()}:${now.getMinutes()}, Day: ${now.getDay()}`);
+    
+    const users = await getUsersWithMealReminders();
+    console.log(`👥 Found ${users.length} users with meal reminders enabled`);
+    
     const currentHour = now.getHours();
-    const currentMinute = now.getMinutes(); // ✅ ADD THIS
+    const currentMinute = now.getMinutes();
     const currentDay = now.getDay();
     const mealTypes = ['breakfast', 'lunch', 'dinner'];
-    
+
     let totalSent = 0;
+
     for (const user of users) {
+      console.log(`\n👤 Checking user: ${user.uid}`);
+      
       for (const mealType of mealTypes) {
         if (shouldSendMealReminder(user, mealType, currentDay, currentHour, currentMinute)) {
           try {
+            console.log(`🚀 Sending ${mealType} reminder to user: ${user.uid}`);
             await createMealReminder(user.uid, mealType);
             console.log(`✅ ${mealType} reminder sent to user: ${user.uid}`);
             totalSent++;
@@ -177,10 +205,8 @@ const triggerMealReminders = async () => {
         }
       }
     }
-    
-    if (totalSent > 0) {
-      console.log(`📱 Sent ${totalSent} meal reminders to users`);
-    }
+
+    console.log(`📊 Total notifications sent: ${totalSent}`);
   } catch (error) {
     console.error('❌ Error triggering meal reminders:', error);
   }
