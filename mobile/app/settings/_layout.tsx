@@ -6,7 +6,7 @@ export default function SettingsLayout() {
   return (
     <Stack
       screenOptions={{
-        headerShown: true,
+        headerShown: false,
       }}
     >
       <Stack.Screen
@@ -19,36 +19,36 @@ export default function SettingsLayout() {
       <Stack.Screen
         name="profile"
         options={{
+          headerShown: false,
           title: "Profile",
-          header: ({ options }) => <CustomHeader title={options.title || ""} />,
         }}
       />
       <Stack.Screen
         name="change-password"
         options={{
+          headerShown: false,
           title: "Change Password",
-          header: ({ options }) => <CustomHeader title={options.title || ""} />,
       }}
       />
       <Stack.Screen
         name="notification-settings"
         options={{
+          headerShown: false,
           title: "Notification Settings",
-          header: ({ options }) => <CustomHeader title={options.title || ""} />,
       }}
       />
       <Stack.Screen
         name="favorites"
         options={{
+          headerShown: false,
           title: "Favorites",
-          header: ({ options }) => <CustomHeader title={options.title || ""} />,
         }}
       />
       <Stack.Screen
         name="more"
         options={{
+          headerShown: false,
           title: "More",
-          header: ({ options }) => <CustomHeader title={options.title || ""} />,
         }}
       />
     </Stack>
