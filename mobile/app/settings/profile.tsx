@@ -1,4 +1,5 @@
 import { images } from "@/constants/images";
+import { icons } from "@/constants/icons";
 import { useUser } from "@/context/UserContext";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
@@ -7,13 +8,14 @@ import React, { useState, useEffect } from "react";
 import {
   Image,
   KeyboardAvoidingView,
-  Text,
   TextInput,
   TouchableOpacity,
   View,
   Platform,
   ScrollView,
+  SafeAreaView,
 } from "react-native";
+import { Text } from "../../components/CustomText";
 import ModalDateTimePicker from "react-native-modal-datetime-picker";
 
 const genders = ["Male", "Female", "Other"];
@@ -138,17 +140,32 @@ const Profile = () => {
   };
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === "ios" ? "padding" : "height"} 
-      className="flex-1"
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
-    >
-      <ScrollView 
+    <SafeAreaView className="flex-1 bg-white">
+      {/* Header */}
+      <View className="flex-row items-center justify-between px-4 py-3">
+        <TouchableOpacity 
+          className="bg-black w-10 h-10 rounded-full justify-center items-center" 
+          onPress={() => router.back()}
+        >
+          <View style={{ transform: [{ rotate: '0deg' }] }}>
+            <icons.arrow width={20} height={20} color="#FFFFFF" />
+          </View>
+        </TouchableOpacity>
+        <Text className="text-xl font-bold text-black">Profile</Text>
+        <View className="w-10 h-10" />
+      </View>
+
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : "height"} 
         className="flex-1"
-        contentContainerStyle={{ flexGrow: 1 }}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
       >
+        <ScrollView 
+          className="flex-1"
+          contentContainerStyle={{ flexGrow: 1 }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
         {/* Avatar section */}
         <View className="items-center mb-6 pt-4">
           <View className="w-24 h-24 rounded-full bg-white items-center justify-center relative">
@@ -297,7 +314,8 @@ const Profile = () => {
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
