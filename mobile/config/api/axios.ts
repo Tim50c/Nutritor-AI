@@ -25,20 +25,16 @@ class AxiosService {
     });
 
     AxiosService.authInstance.interceptors.request.use(async (request) => {
-      let accessToken = await AuthStore.getAccessToken();
-      
-      // Get fresh token from Firebase if none exists
-      if (!accessToken && auth.currentUser) {
+      if (auth.currentUser) {
         try {
-          accessToken = await auth.currentUser.getIdToken(true);
-          await AuthStore.storeAccessToken(accessToken);
+          const token = await auth.currentUser.getIdToken(true); // always refresh
+          request.headers.Authorization = `Bearer ${token}`;
+          console.log("✅ Token added for UID:", auth.currentUser.uid);
         } catch (error) {
-          console.error("Failed to get fresh token:", error);
+          console.error("❌ Failed to fetch fresh token:", error);
         }
-      }
-      
-      if (accessToken) {
-        request.headers.Authorization = `Bearer ${accessToken}`;
+      } else {
+        console.warn("⚠️ No current user. Request may fail.");
       }
       return request;
     });

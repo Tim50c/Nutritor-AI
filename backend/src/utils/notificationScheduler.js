@@ -8,14 +8,11 @@ const { createMealReminder, createWeeklyProgress, createGoalAchievement } = requ
  */
 const getUsersWithMealReminders = async () => {
   try {
-    const usersSnapshot = await db.collection('users')
-      .where('notificationPreferences.mealReminders.enabled', '==', true)
-      .get();
+    const usersSnapshot = await db.collection('users').get();
     
-    return usersSnapshot.docs.map(doc => ({
-      uid: doc.id,
-      ...doc.data()
-    }));
+    return usersSnapshot.docs
+      .map(doc => ({ uid: doc.id, ...doc.data() }))
+      .filter(user => user.notificationPreferences?.mealReminders?.enabled === true);
   } catch (error) {
     console.error('Error getting users with meal reminders:', error);
     return [];
@@ -25,24 +22,21 @@ const getUsersWithMealReminders = async () => {
 /**
  * Check if user wants meal reminder for specific meal and day
  */
-const shouldSendMealReminder = (user, mealType, currentDay, currentHour) => {
+const shouldSendMealReminder = (user, mealType, currentDay, currentHour, currentMinute) => {
   const preferences = user.notificationPreferences?.mealReminders;
-  
   if (!preferences?.enabled) return false;
-  
-  // Check if this meal type is enabled
   if (!preferences[mealType]?.enabled) return false;
   
-  // Check if today is in allowed days
   const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
   const todayName = dayNames[currentDay];
-  
   if (!preferences[mealType].days?.includes(todayName)) return false;
   
-  // Check if current hour matches the scheduled time
-  const scheduledHour = preferences[mealType].time || getDefaultMealTime(mealType);
+  const timeObj = preferences[mealType].time;
+  if (typeof timeObj === 'object' && timeObj.hour !== undefined) {
+    return currentHour === timeObj.hour && currentMinute === timeObj.minute;
+  }
   
-  return currentHour === scheduledHour;
+  return false;
 };
 
 /**
@@ -165,14 +159,14 @@ const triggerMealReminders = async () => {
     const users = await getUsersWithMealReminders();
     const now = new Date();
     const currentHour = now.getHours();
-    const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
-    
+    const currentMinute = now.getMinutes(); // ✅ ADD THIS
+    const currentDay = now.getDay();
     const mealTypes = ['breakfast', 'lunch', 'dinner'];
-    let totalSent = 0;
     
+    let totalSent = 0;
     for (const user of users) {
       for (const mealType of mealTypes) {
-        if (shouldSendMealReminder(user, mealType, currentDay, currentHour)) {
+        if (shouldSendMealReminder(user, mealType, currentDay, currentHour, currentMinute)) {
           try {
             await createMealReminder(user.uid, mealType);
             console.log(`✅ ${mealType} reminder sent to user: ${user.uid}`);
@@ -195,21 +189,20 @@ const triggerMealReminders = async () => {
 /**
  * Check if user wants weekly progress notification
  */
-const shouldSendWeeklyProgress = (user, currentDay, currentHour) => {
+const shouldSendWeeklyProgress = (user, currentDay, currentHour, currentMinute) => {
   const preferences = user.notificationPreferences?.weeklyProgress;
-  
   if (!preferences?.enabled) return false;
   
-  // Check if today is the scheduled day
   const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
   const todayName = dayNames[currentDay];
-  
   if (preferences.day !== todayName) return false;
   
-  // Check if current hour matches the scheduled time
-  const scheduledHour = preferences.time || 9; // Default to 9 AM
+  const timeObj = preferences.time;
+  if (typeof timeObj === 'object' && timeObj.hour !== undefined) {
+    return currentHour === timeObj.hour && currentMinute === timeObj.minute;
+  }
   
-  return currentHour === scheduledHour;
+  return false;
 };
 
 /**
@@ -222,14 +215,14 @@ const triggerWeeklyProgress = async () => {
     const now = new Date();
     const currentDay = now.getDay();
     const currentHour = now.getHours();
+    const currentMinute = now.getMinutes(); // ✅ ADD THIS
     
     let totalSent = 0;
-    
     for (const userDoc of usersSnapshot.docs) {
       const uid = userDoc.id;
       const userData = userDoc.data();
       
-      if (shouldSendWeeklyProgress(userData, currentDay, currentHour)) {
+      if (shouldSendWeeklyProgress(userData, currentDay, currentHour, currentMinute)) {
         try {
           const progress = await calculateWeeklyProgress(uid);
           await createWeeklyProgress(uid, progress);

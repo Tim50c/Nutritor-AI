@@ -46,9 +46,34 @@ export type Notification = {
 };
 
 export type NotificationPreferences = {
-  mealReminders: boolean;
-  goalMilestones: boolean;
-  planRecommendations: boolean;
+  mealReminders: {
+    enabled: boolean;
+    breakfast: {
+      enabled: boolean;
+      time: { hour: number; minute: number }; // Updated to object
+      days: string[]; // ['monday', 'tuesday', etc.]
+    };
+    lunch: {
+      enabled: boolean;
+      time: { hour: number; minute: number }; // Updated to object
+      days: string[];
+    };
+    dinner: {
+      enabled: boolean;
+      time: { hour: number; minute: number }; // Updated to object
+      days: string[];
+    };
+  };
+  weeklyProgress: {
+    enabled: boolean;
+    time: { hour: number; minute: number }; // Updated to object
+    day: string; // 'sunday', 'monday', etc.
+  };
+  goalAchievements: {
+    enabled: boolean;
+    time: { hour: number; minute: number }; // Updated to object
+    days: string[]; // Days of week to check
+  };
 };
 
 interface NotificationContextType {
@@ -81,9 +106,66 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const isFirstLoadRef = useRef(true);
 
   const [preferences, setPreferences] = useState<NotificationPreferences>({
-    mealReminders: true,
-    goalMilestones: false,
-    planRecommendations: true,
+    mealReminders: {
+      enabled: true,
+      breakfast: {
+        enabled: true,
+        time: { hour: 8, minute: 0 }, // Updated to object
+        days: [
+          "monday",
+          "tuesday",
+          "wednesday",
+          "thursday",
+          "friday",
+          "saturday",
+          "sunday",
+        ],
+      },
+      lunch: {
+        enabled: true,
+        time: { hour: 12, minute: 0 }, // Updated to object
+        days: [
+          "monday",
+          "tuesday",
+          "wednesday",
+          "thursday",
+          "friday",
+          "saturday",
+          "sunday",
+        ],
+      },
+      dinner: {
+        enabled: true,
+        time: { hour: 18, minute: 0 }, // Updated to object
+        days: [
+          "monday",
+          "tuesday",
+          "wednesday",
+          "thursday",
+          "friday",
+          "saturday",
+          "sunday",
+        ],
+      },
+    },
+    weeklyProgress: {
+      enabled: true,
+      time: { hour: 9, minute: 0 }, // Updated to object
+      day: "sunday",
+    },
+    goalAchievements: {
+      enabled: true,
+      time: { hour: 21, minute: 0 }, // Updated to object
+      days: [
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday",
+      ],
+    },
   });
 
   const hasUnread = notifications.some((n) => !n.read);
@@ -92,44 +174,63 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const registerForPushNotificationsAsync = async () => {
     let token;
 
-    if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('default', {
-        name: 'default',
+    if (Platform.OS === "android") {
+      await Notifications.setNotificationChannelAsync("default", {
+        name: "default",
         importance: Notifications.AndroidImportance.MAX,
         vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#FF231F7C',
+        lightColor: "#FF231F7C",
       });
     }
 
     if (Device.isDevice) {
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      const { status: existingStatus } =
+        await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
-      
-      if (existingStatus !== 'granted') {
+
+      if (existingStatus !== "granted") {
         const { status } = await Notifications.requestPermissionsAsync();
         finalStatus = status;
       }
-      
-      if (finalStatus !== 'granted') {
-        console.warn('Failed to get push token for push notification!');
-        return;
+
+      if (finalStatus !== "granted") {
+        console.warn("Failed to get push token for push notification!");
+        return null;
       }
-      
+
       // Get Expo push token
       try {
-        const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
+        const projectId =
+          Constants.expoConfig?.extra?.eas?.projectId ??
+          Constants.easConfig?.projectId;
         if (!projectId) {
-          throw new Error('Project ID not found');
+          console.error("❌ Project ID not found in config");
+          return null;
         }
-        token = (await Notifications.getExpoPushTokenAsync({
+
+        console.log("🔑 Getting Expo push token with project ID:", projectId);
+
+        // Try to get push token, but don't fail if Firebase isn't initialized
+        const tokenData = await Notifications.getExpoPushTokenAsync({
           projectId,
-        })).data;
-        console.log('✅ Expo push token:', token);
+        });
+        token = tokenData.data;
+        console.log(
+          "✅ Expo push token obtained:",
+          token.substring(0, 50) + "..."
+        );
       } catch (e: any) {
-        token = `${e}`;
+        console.error("❌ Error getting Expo push token:", e);
+        // If it's a Firebase initialization error, return a mock token for development
+        if (e.message.includes("FirebaseApp is not initialized")) {
+          console.warn("⚠️ Using development mode - Firebase not initialized");
+          return "development-token-" + Date.now();
+        }
+        return null;
       }
     } else {
-      console.warn('Must use physical device for Push Notifications');
+      console.warn("Must use physical device for Push Notifications");
+      return null;
     }
 
     return token;
@@ -139,26 +240,57 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let isMounted = true;
 
-    // Register for push notifications
-    registerForPushNotificationsAsync().then(async (token) => {
-      if (token && auth.currentUser) {
-        // Save token to user document
-        await updateDoc(doc(db, 'users', auth.currentUser.uid), {
-          expoPushToken: token,
-          platform: Platform.OS,
-        });
+    // Register for push notifications when user is authenticated
+    const setupPushNotifications = async () => {
+      try {
+        if (auth.currentUser) {
+          console.log(
+            "🚀 Setting up push notifications for user:",
+            auth.currentUser.uid
+          );
+          const token = await registerForPushNotificationsAsync();
+
+          if (token && token !== "undefined") {
+            console.log(
+              "💾 Saving push token to Firestore:",
+              token.substring(0, 50) + "..."
+            );
+            // Save token to user document
+            await updateDoc(doc(db, "users", auth.currentUser.uid), {
+              expoPushToken: token,
+              platform: Platform.OS,
+              lastTokenUpdate: new Date(),
+            });
+            console.log("✅ Push token saved successfully");
+          } else {
+            console.warn("⚠️ No valid push token received");
+          }
+        }
+      } catch (error) {
+        console.error("❌ Error setting up push notifications:", error);
       }
-    });
+    };
+
+    setupPushNotifications();
 
     // Listen for notification responses (when user taps notification)
-    const notificationListener = Notifications.addNotificationReceivedListener(notification => {
-      console.log('📱 Notification received:', notification.request.content.title);
-    });
+    const notificationListener = Notifications.addNotificationReceivedListener(
+      (notification) => {
+        console.log(
+          "📱 Notification received:",
+          notification.request.content.title
+        );
+      }
+    );
 
-    const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
-      console.log('👆 Notification tapped:', response.notification.request.content.title);
-      // You can handle navigation here based on notification data
-    });
+    const responseListener =
+      Notifications.addNotificationResponseReceivedListener((response) => {
+        console.log(
+          "👆 Notification tapped:",
+          response.notification.request.content.title
+        );
+        // You can handle navigation here based on notification data
+      });
 
     return () => {
       isMounted = false;
@@ -175,7 +307,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           title: notification.title || "Nutritor AI",
           body: notification.body || "You have a new notification",
           data: notification.type || {},
-          sound: 'default',
+          sound: "default",
         },
         trigger: null, // Show immediately
       });
@@ -209,7 +341,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       const unsubscribe = onSnapshot(
         q,
         (snapshot) => {
-          console.log(`📱 Firestore snapshot received, changes:`, snapshot.docChanges().length);
+          console.log(
+            `📱 Firestore snapshot received, changes:`,
+            snapshot.docChanges().length
+          );
 
           snapshot.docChanges().forEach((change: DocumentChange) => {
             const data = change.doc.data();
@@ -247,7 +382,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             };
           });
 
-          console.log(`📋 Setting ${allNotifications.length} notifications in state`);
+          console.log(
+            `📋 Setting ${allNotifications.length} notifications in state`
+          );
           setNotifications(allNotifications);
           isFirstLoadRef.current = false;
         },
@@ -273,16 +410,126 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   // Auto-start listener when user authentication state changes
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        console.log(`🚀 User authenticated, starting Firestore listener for:`, user.uid);
+        console.log(
+          `🚀 User authenticated, starting Firestore listener for:`,
+          user.uid
+        );
         console.log("📧 User email:", user.email);
+
+        // Load user's notification preferences from backend
+        try {
+          const response = await fetch(
+            `${process.env.EXPO_PUBLIC_API_URL}/api/v1/notifications/preferences`,
+            {
+              method: "GET",
+              headers: {
+                Authorization: `Bearer ${await user.getIdToken()}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data.preferences) {
+              console.log("📋 Loaded notification preferences from backend");
+              setPreferences(data.data.preferences);
+            }
+          } else {
+            console.warn(
+              "⚠️ Failed to load notification preferences from backend"
+            );
+          }
+        } catch (error) {
+          console.error("❌ Error loading notification preferences:", error);
+        }
+
+        // Register for push notifications for the new user
+        try {
+          const token = await registerForPushNotificationsAsync();
+          if (token && token !== "undefined") {
+            console.log("💾 Updating push token for authenticated user");
+            await updateDoc(doc(db, "users", user.uid), {
+              expoPushToken: token,
+              platform: Platform.OS,
+              lastTokenUpdate: new Date(),
+            });
+            console.log("✅ Push token updated for user:", user.uid);
+          }
+        } catch (error) {
+          console.error("❌ Error updating push token:", error);
+        }
+
         isFirstLoadRef.current = true;
         startListening();
       } else {
         console.log(`🚫 User not authenticated, stopping listener`);
         stopListening();
         setNotifications([]);
+        setPreferences({
+          mealReminders: {
+            enabled: true,
+            breakfast: {
+              enabled: true,
+              time: { hour: 8, minute: 0 }, // Updated to object
+              days: [
+                "monday",
+                "tuesday",
+                "wednesday",
+                "thursday",
+                "friday",
+                "saturday",
+                "sunday",
+              ],
+            },
+            lunch: {
+              enabled: true,
+              time: { hour: 12, minute: 0 }, // Updated to object
+              days: [
+                "monday",
+                "tuesday",
+                "wednesday",
+                "thursday",
+                "friday",
+                "saturday",
+                "sunday",
+              ],
+            },
+            dinner: {
+              enabled: true,
+              time: { hour: 18, minute: 0 }, // Updated to object
+              days: [
+                "monday",
+                "tuesday",
+                "wednesday",
+                "thursday",
+                "friday",
+                "saturday",
+                "sunday",
+              ],
+            },
+          },
+          weeklyProgress: {
+            enabled: true,
+            time: { hour: 9, minute: 0 }, // Updated to object
+            day: "sunday",
+          },
+          goalAchievements: {
+            enabled: true,
+            time: { hour: 21, minute: 0 }, // Updated to object
+            days: [
+              "monday",
+              "tuesday",
+              "wednesday",
+              "thursday",
+              "friday",
+              "saturday",
+              "sunday",
+            ],
+          },
+        });
         isFirstLoadRef.current = true;
       }
     });
@@ -297,16 +544,16 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     try {
       const user = auth.currentUser;
       if (user) {
-        await updateDoc(doc(db, 'users', user.uid, 'notifications', id), {
+        await updateDoc(doc(db, "users", user.uid, "notifications", id), {
           read: true,
         });
       }
-      
+
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, read: true } : n))
       );
     } catch (error) {
-      console.error('❌ Error marking notification as read:', error);
+      console.error("❌ Error marking notification as read:", error);
     }
   }, []);
 
@@ -314,15 +561,50 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     async (newPreferences: Partial<NotificationPreferences>) => {
       try {
         const user = auth.currentUser;
-        if (user) {
-          await updateDoc(doc(db, 'users', user.uid), {
-            notificationPreferences: { ...preferences, ...newPreferences },
-          });
+        if (!user) {
+          console.error("❌ No authenticated user found");
+          return;
         }
-        
-        setPreferences((prev) => ({ ...prev, ...newPreferences }));
+
+        const updatedPreferences = { ...preferences, ...newPreferences };
+
+        // Update backend via API
+        const response = await fetch(
+          `https://nutritor-ai.onrender.com/api/v1/notifications/preferences`,
+          {
+            method: "PATCH",
+            headers: {
+              Authorization: `Bearer ${await user.getIdToken()}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(updatedPreferences),
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            console.log("✅ Notification preferences updated on backend");
+            setPreferences(updatedPreferences);
+          } else {
+            console.error(
+              "❌ Failed to update preferences on backend:",
+              data.message
+            );
+          }
+        } else {
+          console.error(
+            "❌ Failed to update preferences - HTTP error:",
+            response.status
+          );
+        }
+
+        // Also update Firestore directly as backup
+        await updateDoc(doc(db, "users", user.uid), {
+          notificationPreferences: updatedPreferences,
+        });
       } catch (error) {
-        console.error('❌ Error updating notification preferences:', error);
+        console.error("❌ Error updating notification preferences:", error);
       }
     },
     [preferences]

@@ -39,10 +39,12 @@ class NotificationService {
   // PATCH /notifications/preferences
   public async updatePreferences(preferences: NotificationPreferencesModel): Promise<NotificationPreferencesModel> {
     try {
+      console.log("🔄 Sending preferences to backend:", JSON.stringify(preferences, null, 2));
       const response = await authInstance.patch("/notifications/preferences", preferences);
+      console.log("✅ Backend response:", response.data);
       return response.data as NotificationPreferencesModel;
     } catch (error: any) {
-      console.log(error);
+      console.error("❌ Error updating preferences:", error.response?.data || error.message);
       throw new Error("An error occurred while updating notification preferences.");
     }
   }
