@@ -162,18 +162,49 @@ exports.sendNotification = async (req, res, next) => {
 // @access  Private
 const updateNotificationPreferences = async (req, res, next) => {
   try {
-    const { uid } = res.locals;
-    const { preferences } = req.body;
+    const uid = res.locals.uid || req.user?.uid;
+    if (!uid) {
+      return res.status(401).json({ success: false, message: 'User not authenticated' });
+    }
 
-    await db
-      .collection('users')
-      .doc(uid)
-      .update({ notificationPreferences: preferences });
+    const { mealReminders, weeklyProgress, goalAchievements } = req.body;
 
-    res.status(200).json({ success: true, data: {} });
+    // Validate the preference structure
+    const preferences = {};
+    
+    if (mealReminders) {
+      preferences.mealReminders = mealReminders;
+    }
+    
+    if (weeklyProgress) {
+      preferences.weeklyProgress = weeklyProgress;
+    }
+    
+    if (goalAchievements) {
+      preferences.goalAchievements = goalAchievements;
+    }
+
+    // Update user document with new preferences
+    await db.collection('users').doc(uid).update({
+      notificationPreferences: preferences,
+      updatedAt: new Date()
+    });
+
+    console.log(`✅ Updated notification preferences for user: ${uid}`);
+    console.log('📋 New preferences:', JSON.stringify(preferences, null, 2));
+
+    res.status(200).json({
+      success: true,
+      message: 'Notification preferences updated successfully',
+      data: { preferences }
+    });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, error: 'Server error' });
+    console.error('Error updating notification preferences:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to update notification preferences',
+      error: error.message 
+    });
   }
 };
 
@@ -182,7 +213,10 @@ const updateNotificationPreferences = async (req, res, next) => {
 // @access  Private
 const getNotificationPreferences = async (req, res, next) => {
   try {
-    const { uid } = res.locals;
+    const uid = res.locals.uid || req.user?.uid;
+    if (!uid) {
+      return res.status(401).json({ success: false, message: 'User not authenticated' });
+    }
 
     const userDoc = await db.collection('users').doc(uid).get();
     
@@ -194,6 +228,8 @@ const getNotificationPreferences = async (req, res, next) => {
     }
 
     const userData = userDoc.data();
+    
+    // Return new preference structure with defaults
     const preferences = userData.notificationPreferences || {
       mealReminders: {
         enabled: true,
@@ -219,7 +255,7 @@ const getNotificationPreferences = async (req, res, next) => {
         day: 'sunday'
       },
       goalAchievements: {
-        enabled: true,
+        enabled: false,
         time: 21,
         days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
       }
@@ -230,8 +266,12 @@ const getNotificationPreferences = async (req, res, next) => {
       data: { preferences },
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, error: 'Server error' });
+    console.error('Error getting notification preferences:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to get notification preferences',
+      error: error.message 
+    });
   }
 };
 
