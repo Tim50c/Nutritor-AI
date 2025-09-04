@@ -2,15 +2,14 @@
 import React, { useState, useEffect } from 'react';
 import { 
   View, 
-  Text, 
   SafeAreaView, 
   StyleSheet, 
   ScrollView, 
   TouchableOpacity, 
-  Image,
   Alert,
   ActivityIndicator
 } from 'react-native';
+import { Text } from '../../components/CustomText';
 import { useRouter } from 'expo-router';
 import { useOnboarding } from '../../context/OnboardingContext';
 import { auth } from '../../config/firebase';
@@ -18,8 +17,7 @@ import apiClient from '../../utils/apiClients';
 
 import CustomButtonAuth from '../../components/CustomButtonAuth';
 import FormField from '../../components/FormField';
-
-const backArrowIcon = require('../../assets/images/back-arrow.png');
+import { icons } from '../../constants/icons';
 
 export default function NutritionScreen() {
   const router = useRouter();
@@ -114,13 +112,15 @@ export default function NutritionScreen() {
       <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                <Image source={backArrowIcon} style={styles.backButtonIcon} resizeMode="contain" />
+                <View style={{ transform: [{ rotate: '0deg' }] }}>
+                    <icons.arrow width={20} height={20} color="#FFFFFF" />
+                </View>
             </TouchableOpacity>
         </View>
 
         <Text style={styles.title}>Your Daily Nutrition Goals</Text>
         <Text style={styles.subtitle}>
-          We've calculated these targets based on your profile. Feel free to adjust them.
+          We&apos;ve calculated these targets based on your profile. Feel free to adjust them.
         </Text>
 
         <View>
@@ -183,11 +183,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  backButtonIcon: {
-    width: 20,
-    height: 20,
-    tintColor: '#FFFFFF',
   },
   title: {
     fontSize: 24,

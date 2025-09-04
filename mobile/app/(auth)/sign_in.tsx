@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
 import {
   View,
-  Text,
   ScrollView,
   TouchableOpacity,
   Alert,
   Platform,
   Image,
 } from "react-native";
+import { Text } from '../../components/CustomText';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Link, useRouter } from "expo-router";
 import {
@@ -361,7 +361,7 @@ export default function SignIn() {
             }}
           >
             <Text style={{ color: "#6B7280", fontSize: 14 }}>
-              Don't have an account?{" "}
+              Don&apos;t have an account?{" "}
             </Text>
             <Link href="./sign_up">
               <Text

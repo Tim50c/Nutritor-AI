@@ -1,5 +1,6 @@
 import React from "react";
-import { View, Text } from "react-native";
+import { View } from "react-native";
+import { Text } from '../../components/CustomText';
 import { useNotificationContext } from "@/context/NotificationContext";
 import Toggle from "@/components/Toggle";
 

@@ -1,42 +1,103 @@
-import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, Image, Platform, StyleSheet } from "react-native";
-import { Picker } from '@react-native-picker/picker';
-import DateTimePicker from '@react-native-community/datetimepicker'; // Import DateTimePicker
-import { useUser } from "@/context/UserContext";
-import { useRouter } from "expo-router";
 import { images } from "@/constants/images";
+import { useUser } from "@/context/UserContext";
+import { Ionicons } from "@expo/vector-icons";
+import { Picker } from "@react-native-picker/picker";
+import { useRouter } from "expo-router";
+import React, { useState, useEffect } from "react";
+import {
+  Image,
+  KeyboardAvoidingView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  Platform,
+  ScrollView,
+} from "react-native";
+import ModalDateTimePicker from "react-native-modal-datetime-picker";
 
-const genders = ["Male", "Female"]; // Gender options restricted to Male and Female
+const genders = ["Male", "Female", "Other"];
 
 const Profile = () => {
   const { userProfile, setUserProfile } = useUser();
   const router = useRouter();
 
-  // Initialize state with userProfile data or default values if userProfile is null/undefined
-  const [name, setName] = useState(userProfile ? `${userProfile.firstname} ${userProfile.lastname}` : "");
-  const [email, setEmail] = useState(userProfile?.email || "");
-  // For DOB, store as Date object internally for the picker, display as string
-  const [dob, setDob] = useState(userProfile?.dob || ""); // Still string for display
-  const [selectedDate, setSelectedDate] = useState(new Date()); // Date object for DateTimePicker
-  const [showDatePicker, setShowDatePicker] = useState(false); // State to control date picker visibility
+  // Helper to convert Firestore Timestamp to Date object
+  const getDateFromDob = (dobValue: any): Date => {
+    if (!dobValue) return new Date();
+    
+    // Firestore Timestamp object
+    if (typeof dobValue === "object" && "_seconds" in dobValue) {
+      return new Date(dobValue._seconds * 1000);
+    }
+    
+    // String in DD-MM-YYYY format
+    if (typeof dobValue === "string" && dobValue.includes("-")) {
+      const [day, month, year] = dobValue.split("-");
+      return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    }
+    
+    // Fallback to current date
+    return new Date();
+  };
 
-  const [gender, setGender] = useState(userProfile?.gender || genders[0]);
-  const [height, setHeight] = useState(userProfile?.height || ""); // Changed to TextInput, so default empty
-  const [weight, setWeight] = useState(userProfile?.weightCurrent || ""); // Changed to TextInput, so default empty
+  // Helper to convert Firestore Timestamp to display string
+  const getDobString = (dobValue: any): string => {
+    if (!dobValue) return "";
+    
+    // Firestore Timestamp object
+    if (typeof dobValue === "object" && "_seconds" in dobValue) {
+      const date = new Date(dobValue._seconds * 1000);
+      return date
+        .toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        })
+        .replace(/\//g, "-");
+    }
+    
+    // Already a string
+    if (typeof dobValue === "string") {
+      return dobValue;
+    }
+    
+    return "";
+  };
+
+  // Initialize state with userProfile data or default values
+  const [name, setName] = useState(
+    userProfile ? `${userProfile.firstname || ""} ${userProfile.lastname || ""}`.trim() : ""
+  );
+  const [email, setEmail] = useState(userProfile?.email || "");
+  const [dob, setDob] = useState(getDobString(userProfile?.dob));
+  const [selectedDate, setSelectedDate] = useState(getDateFromDob(userProfile?.dob));
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [gender, setGender] = useState<string>(userProfile?.gender || genders[0]);
+  const [height, setHeight] = useState(userProfile?.height?.toString() || "");
+  const [weight, setWeight] = useState(userProfile?.weightCurrent?.toString() || "");
+
+  // Update selectedDate when dob changes
+  useEffect(() => {
+    if (userProfile?.dob) {
+      setSelectedDate(getDateFromDob(userProfile.dob));
+    }
+  }, [userProfile?.dob]);
 
   // Function to handle date selection from the calendar
-  const onChangeDate = (event: any, selectedDate: Date | undefined) => {
-    const currentDate = selectedDate || selectedDate;
-    setShowDatePicker(Platform.OS === 'ios'); // Hide picker on Android immediately, on iOS it's part of the modal
-    if (currentDate) {
-      setSelectedDate(currentDate);
-      // Format date for display and storage
-      setDob(currentDate.toLocaleDateString('en-GB', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      }).replace(/\//g, '-')); // Format as DD-MM-YYYY
+  const onChangeDate = (selectedDate: Date) => {
+    if (selectedDate) {
+      setSelectedDate(selectedDate);
+      const formattedDate = selectedDate
+        .toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        })
+        .replace(/\//g, "-");
+      setDob(formattedDate);
     }
+    setShowDatePicker(false);
   };
 
   const showMode = () => {
@@ -44,157 +105,200 @@ const Profile = () => {
   };
 
   const handleSave = () => {
+    // Validate required fields
+    if (!name.trim()) {
+      // You might want to show an alert here
+      return;
+    }
+
     // Update userProfile context with new profile data
     if (userProfile) {
-      const nameParts = name.split(' ');
-      const firstname = nameParts[0] || '';
-      const lastname = nameParts.slice(1).join(' ') || '';
-      
+      const nameParts = name.trim().split(" ");
+      const firstname = nameParts[0] || "";
+      const lastname = nameParts.slice(1).join(" ") || "";
+
+      // Convert height and weight to numbers if they're valid
+      const heightValue = height ? parseFloat(height) : null;
+      const weightValue = weight ? parseFloat(weight) : null;
+
       setUserProfile({
         ...userProfile,
         firstname,
         lastname,
-        email,
+        email: email.trim(),
         dob, // dob is already formatted as DD-MM-YYYY
-        gender: gender as "Male" | "Female" | "Other" | null,
-        height,
-        weightCurrent: weight,
+        gender: gender as "Male" | "Female" | "Other",
+        height: heightValue?.toString() || null,
+        weightCurrent: weightValue?.toString() || null,
       });
     }
+    
     // Navigate back to the previous screen
     router.back();
   };
 
   return (
-    <View className="flex-1 bg-white px-4 pt-4">
-      {/* Profile avatar section */}
-      <View className="items-center mb-6">
-        {/* Use a placeholder image or a default avatar if userProfile.avatar is not available */}
-        <Image
-          source={{ uri: userProfile?.avatar || images.placeholder }}
-          className="w-24 h-24 rounded-full mb-2"
-        />
-        {/* Avatar edit button placeholder */}
-        <View className="absolute bottom-2 right-[calc(50%-12px)] translate-x-1/2 bg-gray-200 rounded-full p-2">
-          <Text className="text-gray-600">🖉</Text>
-        </View>
-      </View>
-
-      {/* Form fields section */}
-      <View className="space-y-4 mb-6">
-        {/* Name input */}
-        <View>
-          <Text className="text-gray-700 text-sm mb-1">Name</Text>
-          <TextInput
-            className="border border-gray-300 rounded-lg px-4 py-2 text-base"
-            value={name}
-            onChangeText={setName}
-            placeholder="Name"
-          />
-        </View>
-
-        {/* Email input */}
-        <View>
-          <Text className="text-gray-700 text-sm mb-1">Email</Text>
-          <TextInput
-            className="border border-gray-300 rounded-lg px-4 py-2 text-base"
-            value={email}
-            onChangeText={setEmail}
-            placeholder="Email"
-            keyboardType="email-address"
-          />
-        </View>
-
-        {/* DOB and Gender row */}
-        <View className="flex-row space-x-4">
-          <View className="flex-1">
-            <Text className="text-gray-700 text-sm mb-1">DOB</Text>
-            {/* TouchableOpacity to trigger date picker */}
-            <TouchableOpacity onPress={showMode} className="relative border border-gray-300 rounded-lg px-4 py-2">
-              <Text className="text-base text-gray-800">{dob || "DD-MM-YYYY"}</Text>
-              <Text className="absolute right-3 top-1/2 -translate-y-1/2 text-lg text-gray-500">
-                ▾
-              </Text>
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === "ios" ? "padding" : "height"} 
+      className="flex-1"
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+    >
+      <ScrollView 
+        className="flex-1"
+        contentContainerStyle={{ flexGrow: 1 }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Avatar section */}
+        <View className="items-center mb-6 pt-4">
+          <View className="w-24 h-24 rounded-full bg-white items-center justify-center relative">
+            <Image
+              source={
+                userProfile?.avatar
+                  ? { uri: userProfile.avatar }
+                  : images.default_avatar
+              }
+              className="w-20 h-20 rounded-full"
+            />
+            <TouchableOpacity className="absolute right-2 bottom-2 bg-white rounded-2xl p-1 border border-gray-300">
+              <Ionicons name="pencil" size={16} color="#6B7280" />
             </TouchableOpacity>
-            {showDatePicker && (
-              <DateTimePicker
-                testID="dateTimePicker"
-                value={selectedDate}
-                mode="date"
-                display="default" // or 'spinner' or 'calendar'
-                onChange={onChangeDate}
-              />
-            )}
           </View>
-          <View className="flex-1">
-            <Text className="text-gray-700 text-sm mb-1">Gender</Text>
-            {/* Picker for Gender */}
-            <View className="border border-gray-300 rounded-lg overflow-hidden">
-              <Picker
-                selectedValue={gender}
-                onValueChange={(itemValue) => setGender(itemValue)}
-                style={styles.picker}
-                itemStyle={styles.pickerItem}
+        </View>
+
+        {/* Form fields */}
+        <View className="px-4 flex-1">
+          {/* Name */}
+          <View className="mb-4">
+            <Text className="text-gray-700 text-sm mb-1">Name</Text>
+            <TextInput
+              className="border border-gray-300 rounded-xl px-4 py-3 text-base bg-white"
+              value={name}
+              onChangeText={setName}
+              placeholder="Enter your name"
+              placeholderTextColor="#9CA3AF"
+              returnKeyType="next"
+            />
+          </View>
+
+          {/* Email */}
+          <View className="mb-4">
+            <Text className="text-gray-700 text-sm mb-1">Email</Text>
+            <TextInput
+              className="border border-gray-300 rounded-xl px-4 py-3 text-base bg-white"
+              value={email}
+              onChangeText={setEmail}
+              placeholder="Enter your email"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              placeholderTextColor="#9CA3AF"
+              returnKeyType="next"
+            />
+          </View>
+
+          {/* Row: DOB & Gender */}
+          <View className="flex-row gap-4 mb-4">
+            {/* DOB */}
+            <View className="flex-1">
+              <Text className="text-gray-700 text-sm mb-1">Date of Birth</Text>
+              <TouchableOpacity
+                onPress={showMode}
+                className="border border-gray-300 rounded-xl px-4 py-3 bg-white flex-row items-center justify-between min-h-[48px]"
               >
-                {genders.map((g) => (
-                  <Picker.Item key={g} label={g} value={g} />
-                ))}
-              </Picker>
-              {/* Custom dropdown arrow for Android */}
-              {Platform.OS === 'android' && (
-                <View className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <Text className="text-lg text-gray-500">▾</Text>
-                </View>
-              )}
+                <Text
+                  className={`text-base flex-1 ${
+                    dob ? "text-gray-900" : "text-gray-400"
+                  }`}
+                >
+                  {dob || "DD-MM-YYYY"}
+                </Text>
+                <Ionicons name="calendar-outline" size={18} color="#9CA3AF" />
+              </TouchableOpacity>
+              
+              <ModalDateTimePicker
+                isVisible={showDatePicker}
+                mode="date"
+                date={selectedDate}
+                onConfirm={onChangeDate}
+                onCancel={() => setShowDatePicker(false)}
+                display="spinner"
+                confirmTextIOS="Confirm"
+                cancelTextIOS="Cancel"
+                maximumDate={new Date()} // Prevent selecting future dates
+              />
+            </View>
+
+            {/* Gender */}
+            <View className="flex-1">
+              <Text className="text-gray-700 text-sm mb-1">Gender</Text>
+              <View className="border border-gray-300 rounded-xl bg-white min-h-[48px] justify-center overflow-hidden">
+                <Picker
+                  selectedValue={gender}
+                  onValueChange={(itemValue: string) => setGender(itemValue)}
+                  className="h-12 w-full"
+                  dropdownIconColor="#9CA3AF"
+                  mode="dropdown"
+                  style={{
+                    height: Platform.OS === "ios" ? 48 : 48,
+                    width: "100%",
+                  }}
+                  itemStyle={{
+                    fontSize: 16,
+                    height: Platform.OS === "ios" ? 48 : undefined,
+                  }}
+                >
+                  {genders.map((g) => (
+                    <Picker.Item key={g} label={g} value={g} />
+                  ))}
+                </Picker>
+              </View>
+            </View>
+          </View>
+
+          {/* Row: Height & Weight */}
+          <View className="flex-row gap-4 mb-8">
+            {/* Height */}
+            <View className="flex-1">
+              <Text className="text-gray-700 text-sm mb-1">Height (m)</Text>
+              <TextInput
+                className="border border-gray-300 rounded-xl px-4 py-3 text-base bg-white"
+                value={height}
+                onChangeText={setHeight}
+                placeholder="e.g., 1.75"
+                keyboardType="numeric"
+                placeholderTextColor="#9CA3AF"
+                returnKeyType="next"
+              />
+            </View>
+
+            {/* Weight */}
+            <View className="flex-1">
+              <Text className="text-gray-700 text-sm mb-1">Weight (kg)</Text>
+              <TextInput
+                className="border border-gray-300 rounded-xl px-4 py-3 text-base bg-white"
+                value={weight}
+                onChangeText={setWeight}
+                placeholder="e.g., 65"
+                keyboardType="numeric"
+                placeholderTextColor="#9CA3AF"
+                returnKeyType="done"
+              />
             </View>
           </View>
         </View>
 
-        {/* Height and Weight row (now TextInputs) */}
-        <View className="flex-row space-x-4">
-          <View className="flex-1">
-            <Text className="text-gray-700 text-sm mb-1">Height</Text>
-            <TextInput
-              className="border border-gray-300 rounded-lg px-4 py-2 text-base"
-              value={height}
-              onChangeText={setHeight}
-              placeholder="e.g., 1.75m"
-              keyboardType="numeric" // Suggest numeric keyboard for height/weight
-            />
-          </View>
-          <View className="flex-1">
-            <Text className="text-gray-700 text-sm mb-1">Weight</Text>
-            <TextInput
-              className="border border-gray-300 rounded-lg px-4 py-2 text-base"
-              value={weight}
-              onChangeText={setWeight}
-              placeholder="e.g., 65kg"
-              keyboardType="numeric" // Suggest numeric keyboard for height/weight
-            />
-          </View>
+        {/* Save button */}
+        <View className="px-4 mb-6 mt-auto">
+          <TouchableOpacity
+            className="bg-orange-500 rounded-2xl py-4 items-center"
+            onPress={handleSave}
+          >
+            <Text className="text-white text-lg font-bold">Save</Text>
+          </TouchableOpacity>
         </View>
-      </View>
-
-      {/* Save button */}
-      <TouchableOpacity
-        className="bg-orange-500 rounded-2xl py-4 items-center"
-        onPress={handleSave}
-      >
-        <Text className="text-white text-lg font-semibold">Save</Text>
-      </TouchableOpacity>
-    </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
-
-// Basic StyleSheet for Picker due to some className limitations or specific styling needs for Picker
-const styles = StyleSheet.create({
-  picker: {
-    height: 40,
-    width: '100%',
-  },
-  pickerItem: {
-    // Optional: Add specific styles for picker items if needed
-  },
-});
 
 export default Profile;

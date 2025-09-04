@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, TouchableOpacity } from "react-native";
+import { Text } from './CustomText';
 import { useDietContext } from "@/context/DietContext";
 
 function getMonthName(year: number, month: number) {

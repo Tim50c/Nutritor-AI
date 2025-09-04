@@ -2,11 +2,11 @@
 import React, { useMemo } from "react";
 import {
   View,
-  Text,
   useWindowDimensions,
   ScrollView,
   StyleSheet,
 } from "react-native";
+import { Text } from './CustomText';
 import { BarChart } from "react-native-gifted-charts";
 import {
   format,

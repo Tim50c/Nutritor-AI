@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { Text } from './CustomText';
 import { RulerPicker } from 'react-native-ruler-picker';
 import ToggleSelector from './ToggleSelector';
 

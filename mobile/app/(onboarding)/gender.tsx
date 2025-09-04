@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, SafeAreaView, TouchableOpacity, Image, ImageSourcePropType } from 'react-native'; // Import ImageSourcePropType
+import { View, SafeAreaView, TouchableOpacity, Image, ImageSourcePropType } from 'react-native'; // Import ImageSourcePropType
+import { Text } from '../../components/CustomText';
 import { useRouter } from 'expo-router';
 import { useOnboarding } from '../../context/OnboardingContext';
 

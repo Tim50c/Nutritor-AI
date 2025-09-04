@@ -1,4 +1,5 @@
-import { View, Text } from "react-native";
+import { View } from "react-native";
+import { Text } from './CustomText';
 import { Svg, Path } from "react-native-svg";
 import { useDietContext } from "@/context/DietContext";
 

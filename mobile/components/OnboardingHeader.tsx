@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Image } from 'react-native';
+import { View, TouchableOpacity, Image } from 'react-native';
+import { Text } from './CustomText';
 import { useRouter } from 'expo-router';
 import {Ionicons} from "@expo/vector-icons";
 import { icons } from '@/constants/icons';
