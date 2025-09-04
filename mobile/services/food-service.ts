@@ -33,7 +33,7 @@ class FoodService {
       const suggestions = response.data.data.suggestions as FoodModel[];
       return suggestions;
     } catch (error: any) {
-      throw new Error("An error occurred while getting food suggestions.");
+      throw new Error("An error occurred while getting food suggestions: " + error.message);
     }
   }
 }

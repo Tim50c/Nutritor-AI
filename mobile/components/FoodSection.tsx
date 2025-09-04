@@ -1,5 +1,5 @@
 import { View } from "react-native";
-import { Text } from './CustomText';
+import { Text } from "./CustomText";
 import FoodSuggestionCard from "./FoodSuggestionCard";
 
 interface FoodItem {
@@ -19,7 +19,12 @@ interface FoodSectionProps {
   onToggleFavorite?: (foodId: string) => void;
 }
 
-export default function FoodSection({ title, foods, isFavorite, onToggleFavorite }: FoodSectionProps) {
+export default function FoodSection({
+  title,
+  foods,
+  isFavorite,
+  onToggleFavorite,
+}: FoodSectionProps) {
   return (
     <View className="mb-6">
       {title && (
@@ -30,10 +35,12 @@ export default function FoodSection({ title, foods, isFavorite, onToggleFavorite
       <View className="px-4">
         {foods.map((food) => (
           <FoodSuggestionCard
-            key={food.id}
+            key={food.id + Math.random().toString(36).substring(7)} // Ensure unique key
             food={food}
             isFavorite={isFavorite ? isFavorite(food.id) : false}
-            onToggleFavorite={onToggleFavorite ? () => onToggleFavorite(food.id) : undefined}
+            onToggleFavorite={
+              onToggleFavorite ? () => onToggleFavorite(food.id) : undefined
+            }
           />
         ))}
       </View>
