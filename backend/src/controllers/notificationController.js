@@ -195,11 +195,34 @@ const getNotificationPreferences = async (req, res, next) => {
 
     const userData = userDoc.data();
     const preferences = userData.notificationPreferences || {
-      mealReminders: true,
-      weeklyReports: true,
-      achievements: true,
-      nutritionTips: true,
-      waterIntake: true,
+      mealReminders: {
+        enabled: true,
+        breakfast: {
+          enabled: true,
+          time: 8,
+          days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+        },
+        lunch: {
+          enabled: true,
+          time: 12,
+          days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+        },
+        dinner: {
+          enabled: true,
+          time: 18,
+          days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+        }
+      },
+      weeklyProgress: {
+        enabled: true,
+        time: 9,
+        day: 'sunday'
+      },
+      goalAchievements: {
+        enabled: true,
+        time: 21,
+        days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+      }
     };
 
     res.status(200).json({

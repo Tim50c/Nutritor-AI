@@ -9,7 +9,7 @@ const { createMealReminder, createWeeklyProgress, createGoalAchievement } = requ
 const getUsersWithMealReminders = async () => {
   try {
     const usersSnapshot = await db.collection('users')
-      .where('notificationPreferences.mealReminders', '==', true)
+      .where('notificationPreferences.mealReminders.enabled', '==', true)
       .get();
     
     return usersSnapshot.docs.map(doc => ({
@@ -20,6 +20,41 @@ const getUsersWithMealReminders = async () => {
     console.error('Error getting users with meal reminders:', error);
     return [];
   }
+};
+
+/**
+ * Check if user wants meal reminder for specific meal and day
+ */
+const shouldSendMealReminder = (user, mealType, currentDay, currentHour) => {
+  const preferences = user.notificationPreferences?.mealReminders;
+  
+  if (!preferences?.enabled) return false;
+  
+  // Check if this meal type is enabled
+  if (!preferences[mealType]?.enabled) return false;
+  
+  // Check if today is in allowed days
+  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const todayName = dayNames[currentDay];
+  
+  if (!preferences[mealType].days?.includes(todayName)) return false;
+  
+  // Check if current hour matches the scheduled time
+  const scheduledHour = preferences[mealType].time || getDefaultMealTime(mealType);
+  
+  return currentHour === scheduledHour;
+};
+
+/**
+ * Get default meal times
+ */
+const getDefaultMealTime = (mealType) => {
+  const defaults = {
+    breakfast: 8,
+    lunch: 12,
+    dinner: 18
+  };
+  return defaults[mealType] || 12;
 };
 
 /**
@@ -128,24 +163,29 @@ const triggerMealReminders = async () => {
   try {
     console.log('🕐 Checking for meal reminder notifications...');
     const users = await getUsersWithMealReminders();
-    const currentHour = new Date().getHours();
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
     
-    let mealType = null;
-    if (currentHour === 8) mealType = 'breakfast';
-    else if (currentHour === 12) mealType = 'lunch';
-    else if (currentHour === 18) mealType = 'dinner';
+    const mealTypes = ['breakfast', 'lunch', 'dinner'];
+    let totalSent = 0;
     
-    if (mealType) {
-      console.log(`📱 Sending ${mealType} reminders to ${users.length} users`);
-      
-      for (const user of users) {
-        try {
-          await createMealReminder(user.uid, mealType);
-          console.log(`✅ ${mealType} reminder sent to user: ${user.uid}`);
-        } catch (error) {
-          console.error(`❌ Failed to send ${mealType} reminder to user ${user.uid}:`, error);
+    for (const user of users) {
+      for (const mealType of mealTypes) {
+        if (shouldSendMealReminder(user, mealType, currentDay, currentHour)) {
+          try {
+            await createMealReminder(user.uid, mealType);
+            console.log(`✅ ${mealType} reminder sent to user: ${user.uid}`);
+            totalSent++;
+          } catch (error) {
+            console.error(`❌ Failed to send ${mealType} reminder to user ${user.uid}:`, error);
+          }
         }
       }
+    }
+    
+    if (totalSent > 0) {
+      console.log(`📱 Sent ${totalSent} meal reminders to users`);
     }
   } catch (error) {
     console.error('❌ Error triggering meal reminders:', error);
@@ -153,23 +193,56 @@ const triggerMealReminders = async () => {
 };
 
 /**
+ * Check if user wants weekly progress notification
+ */
+const shouldSendWeeklyProgress = (user, currentDay, currentHour) => {
+  const preferences = user.notificationPreferences?.weeklyProgress;
+  
+  if (!preferences?.enabled) return false;
+  
+  // Check if today is the scheduled day
+  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const todayName = dayNames[currentDay];
+  
+  if (preferences.day !== todayName) return false;
+  
+  // Check if current hour matches the scheduled time
+  const scheduledHour = preferences.time || 9; // Default to 9 AM
+  
+  return currentHour === scheduledHour;
+};
+
+/**
  * Trigger weekly progress notifications
  */
 const triggerWeeklyProgress = async () => {
   try {
-    console.log('📊 Sending weekly progress notifications...');
+    console.log('📊 Checking for weekly progress notifications...');
     const usersSnapshot = await db.collection('users').get();
+    const now = new Date();
+    const currentDay = now.getDay();
+    const currentHour = now.getHours();
+    
+    let totalSent = 0;
     
     for (const userDoc of usersSnapshot.docs) {
       const uid = userDoc.id;
+      const userData = userDoc.data();
       
-      try {
-        const progress = await calculateWeeklyProgress(uid);
-        await createWeeklyProgress(uid, progress);
-        console.log(`✅ Weekly progress notification sent to user: ${uid} (${progress}%)`);
-      } catch (error) {
-        console.error(`❌ Failed to send weekly progress to user ${uid}:`, error);
+      if (shouldSendWeeklyProgress(userData, currentDay, currentHour)) {
+        try {
+          const progress = await calculateWeeklyProgress(uid);
+          await createWeeklyProgress(uid, progress);
+          console.log(`✅ Weekly progress notification sent to user: ${uid} (${progress}%)`);
+          totalSent++;
+        } catch (error) {
+          console.error(`❌ Failed to send weekly progress to user ${uid}:`, error);
+        }
       }
+    }
+    
+    if (totalSent > 0) {
+      console.log(`📊 Sent ${totalSent} weekly progress notifications`);
     }
   } catch (error) {
     console.error('❌ Error triggering weekly progress:', error);
@@ -177,28 +250,61 @@ const triggerWeeklyProgress = async () => {
 };
 
 /**
+ * Check if user wants goal achievement notification
+ */
+const shouldSendGoalAchievement = (user, currentDay, currentHour) => {
+  const preferences = user.notificationPreferences?.goalAchievements;
+  
+  if (!preferences?.enabled) return false;
+  
+  // Check if today is in allowed days
+  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const todayName = dayNames[currentDay];
+  
+  if (!preferences.days?.includes(todayName)) return false;
+  
+  // Check if current hour matches the scheduled time
+  const scheduledHour = preferences.time || 21; // Default to 9 PM
+  
+  return currentHour === scheduledHour;
+};
+
+/**
  * Check and notify goal achievements
  */
 const checkGoalAchievements = async () => {
   try {
-    console.log('🎯 Checking for goal achievements...');
+    console.log('🎯 Checking for goal achievement notifications...');
     const usersSnapshot = await db.collection('users').get();
+    const now = new Date();
+    const currentDay = now.getDay();
+    const currentHour = now.getHours();
+    
+    let totalSent = 0;
     
     for (const userDoc of usersSnapshot.docs) {
       const uid = userDoc.id;
+      const userData = userDoc.data();
       
-      try {
-        const achievements = await checkDailyGoals(uid);
-        
-        if (achievements && achievements.length > 0) {
-          for (const achievement of achievements) {
-            await createGoalAchievement(uid, achievement.type, achievement.value);
-            console.log(`🎉 Goal achievement notification sent to user: ${uid} (${achievement.type})`);
+      if (shouldSendGoalAchievement(userData, currentDay, currentHour)) {
+        try {
+          const achievements = await checkDailyGoals(uid);
+          
+          if (achievements && achievements.length > 0) {
+            for (const achievement of achievements) {
+              await createGoalAchievement(uid, achievement.type, achievement.value);
+              console.log(`🎉 Goal achievement notification sent to user: ${uid} (${achievement.type})`);
+              totalSent++;
+            }
           }
+        } catch (error) {
+          console.error(`❌ Failed to check goals for user ${uid}:`, error);
         }
-      } catch (error) {
-        console.error(`❌ Failed to check goals for user ${uid}:`, error);
       }
+    }
+    
+    if (totalSent > 0) {
+      console.log(`🎯 Sent ${totalSent} goal achievement notifications`);
     }
   } catch (error) {
     console.error('❌ Error checking goal achievements:', error);
@@ -211,25 +317,19 @@ const checkGoalAchievements = async () => {
 const initializeScheduler = () => {
   console.log('🕐 Initializing notification scheduler...');
   
-  // Schedule meal reminders every hour
+  // Schedule all notifications to run every hour
+  // The functions will check user preferences for specific times and days
   cron.schedule('0 * * * *', () => {
     triggerMealReminders();
-  });
-  
-  // Schedule weekly progress every Sunday at 9 AM
-  cron.schedule('0 9 * * 0', () => {
     triggerWeeklyProgress();
-  });
-  
-  // Schedule goal achievement checks every day at 9 PM
-  cron.schedule('0 21 * * *', () => {
     checkGoalAchievements();
   });
   
   console.log('✅ Notification scheduler initialized');
-  console.log('📅 Meal reminders: Every hour (8 AM, 12 PM, 6 PM)');
-  console.log('📅 Weekly progress: Sundays at 9 AM');
-  console.log('📅 Goal achievements: Daily at 9 PM');
+  console.log('📅 All notifications: Checked every hour based on user preferences');
+  console.log('📱 Meal reminders: User-configurable times and days');
+  console.log('� Weekly progress: User-configurable day and time');
+  console.log('🎯 Goal achievements: User-configurable days and time');
 };
 
 /**
