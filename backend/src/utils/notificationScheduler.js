@@ -245,21 +245,20 @@ const triggerWeeklyProgress = async () => {
 /**
  * Check if user wants goal achievement notification
  */
-const shouldSendGoalAchievement = (user, currentDay, currentHour) => {
+const shouldSendGoalAchievement = (user, currentDay, currentHour, currentMinute) => {
   const preferences = user.notificationPreferences?.goalAchievements;
-  
   if (!preferences?.enabled) return false;
   
-  // Check if today is in allowed days
   const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
   const todayName = dayNames[currentDay];
-  
   if (!preferences.days?.includes(todayName)) return false;
   
-  // Check if current hour matches the scheduled time
-  const scheduledHour = preferences.time || 21; // Default to 9 PM
+  const timeObj = preferences.time;
+  if (typeof timeObj === 'object' && timeObj.hour !== undefined && timeObj.minute !== undefined) {
+    return currentHour === timeObj.hour && currentMinute === timeObj.minute;
+  }
   
-  return currentHour === scheduledHour;
+  return false;
 };
 
 /**
@@ -272,14 +271,15 @@ const checkGoalAchievements = async () => {
     const now = new Date();
     const currentDay = now.getDay();
     const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
     
     let totalSent = 0;
     
     for (const userDoc of usersSnapshot.docs) {
       const uid = userDoc.id;
       const userData = userDoc.data();
-      
-      if (shouldSendGoalAchievement(userData, currentDay, currentHour)) {
+
+      if (shouldSendGoalAchievement(userData, currentDay, currentHour, currentMinute)) {
         try {
           const achievements = await checkDailyGoals(uid);
           
@@ -312,10 +312,10 @@ const initializeScheduler = () => {
   
   // Schedule all notifications to run every hour
   // The functions will check user preferences for specific times and days
-  cron.schedule('0 * * * *', () => {
-    triggerMealReminders();
-    triggerWeeklyProgress();
-    checkGoalAchievements();
+  cron.schedule('* * * * *', async () => {
+    await triggerMealReminders();
+    await triggerWeeklyProgress();
+    await checkGoalAchievements();
   });
   
   console.log('✅ Notification scheduler initialized');
