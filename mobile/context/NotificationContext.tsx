@@ -1,3 +1,4 @@
+// mobile/context/NotificationContext.tsx
 import React, {
   createContext,
   useContext,
@@ -8,6 +9,9 @@ import React, {
   useRef,
 } from "react";
 import * as Notifications from "expo-notifications";
+import * as Device from "expo-device";
+import Constants from "expo-constants";
+import { Platform } from "react-native";
 import { auth, db } from "../config/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import {
@@ -16,6 +20,8 @@ import {
   orderBy,
   onSnapshot,
   DocumentChange,
+  updateDoc,
+  doc,
 } from "firebase/firestore";
 
 // Configure local notification behavior
@@ -82,36 +88,86 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const hasUnread = notifications.some((n) => !n.read);
 
-  // Request notification permissions (local only)
-  useEffect(() => {
-    const requestPermissions = async () => {
-      try {
-        const { status } = await Notifications.getPermissionsAsync();
-        if (status !== "granted") {
-          const { status: newStatus } =
-            await Notifications.requestPermissionsAsync({
-              ios: {
-                allowAlert: true,
-                allowBadge: true,
-                allowSound: true,
-              },
-            });
-          if (newStatus !== "granted") {
-            console.warn("Local notification permissions not granted");
-          } else {
-            console.log("✅ Local notification permissions granted");
-          }
-        } else {
-          console.log("✅ Local notification permissions already granted");
-        }
-      } catch (error) {
-        console.error("❌ Error requesting notification permissions:", error);
+  // Register for push notifications with Expo
+  const registerForPushNotificationsAsync = async () => {
+    let token;
+
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync('default', {
+        name: 'default',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#FF231F7C',
+      });
+    }
+
+    if (Device.isDevice) {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
       }
+      
+      if (finalStatus !== 'granted') {
+        console.warn('Failed to get push token for push notification!');
+        return;
+      }
+      
+      // Get Expo push token
+      try {
+        const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
+        if (!projectId) {
+          throw new Error('Project ID not found');
+        }
+        token = (await Notifications.getExpoPushTokenAsync({
+          projectId,
+        })).data;
+        console.log('✅ Expo push token:', token);
+      } catch (e: any) {
+        token = `${e}`;
+      }
+    } else {
+      console.warn('Must use physical device for Push Notifications');
+    }
+
+    return token;
+  };
+
+  // Setup notification listeners
+  useEffect(() => {
+    let isMounted = true;
+
+    // Register for push notifications
+    registerForPushNotificationsAsync().then(async (token) => {
+      if (token && auth.currentUser) {
+        // Save token to user document
+        await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+          expoPushToken: token,
+          platform: Platform.OS,
+        });
+      }
+    });
+
+    // Listen for notification responses (when user taps notification)
+    const notificationListener = Notifications.addNotificationReceivedListener(notification => {
+      console.log('📱 Notification received:', notification.request.content.title);
+    });
+
+    const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
+      console.log('👆 Notification tapped:', response.notification.request.content.title);
+      // You can handle navigation here based on notification data
+    });
+
+    return () => {
+      isMounted = false;
+      Notifications.removeNotificationSubscription(notificationListener);
+      Notifications.removeNotificationSubscription(responseListener);
     };
-    requestPermissions();
   }, []);
 
-  // Trigger local notification only (no push notifications)
+  // Trigger local notification
   const triggerLocalNotification = useCallback(async (notification: any) => {
     try {
       await Notifications.scheduleNotificationAsync({
@@ -119,16 +175,17 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           title: notification.title || "Nutritor AI",
           body: notification.body || "You have a new notification",
           data: notification.type || {},
+          sound: 'default',
         },
         trigger: null, // Show immediately
       });
-      console.log("✅ Local notification triggered:", notification.title);
+      console.log(`✅ Local notification triggered:`, notification.title);
     } catch (error) {
       console.error("❌ Error triggering local notification:", error);
     }
   }, []);
 
-  // Start listening to Firestore notifications
+  // Start Firestore listener
   const startListening = useCallback(() => {
     const currentUser = auth.currentUser;
     if (!currentUser) {
@@ -137,7 +194,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
 
     const uid = currentUser.uid;
-    console.log("🔥 Starting Firestore listener for logged-in user:", uid);
+    console.log(`🔥 Starting Firestore listener for user:`, uid);
     console.log("📧 User email:", currentUser.email);
 
     // Stop existing listener
@@ -152,12 +209,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       const unsubscribe = onSnapshot(
         q,
         (snapshot) => {
-          console.log(
-            "📱 Firestore snapshot received, changes:",
-            snapshot.docChanges().length
-          );
-
-          const newNotifications: Notification[] = [];
+          console.log(`📱 Firestore snapshot received, changes:`, snapshot.docChanges().length);
 
           snapshot.docChanges().forEach((change: DocumentChange) => {
             const data = change.doc.data();
@@ -173,16 +225,15 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
             if (change.type === "added") {
               console.log("➕ New notification added:", notification.title);
-              newNotifications.push(notification);
 
-              // Only trigger local notification for new docs (not on initial load)
+              // Trigger local notification for new notifications (not on first load)
               if (!isFirstLoadRef.current) {
                 triggerLocalNotification(notification);
               }
             }
           });
 
-          // Update state with all notifications (filter for specific types if needed)
+          // Update state with all notifications
           const allNotifications = snapshot.docs.map((doc) => {
             const data = doc.data();
             return {
@@ -196,10 +247,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             };
           });
 
-          // Show all notifications without filtering since backend sends object types
-          console.log(
-            `📋 Setting ${allNotifications.length} notifications in state`
-          );
+          console.log(`📋 Setting ${allNotifications.length} notifications in state`);
           setNotifications(allNotifications);
           isFirstLoadRef.current = false;
         },
@@ -214,10 +262,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
   }, [triggerLocalNotification]);
 
-  // Stop listening to Firestore
+  // Stop listening
   const stopListening = useCallback(() => {
     if (unsubscribeRef.current) {
-      console.log("🛑 Stopping Firestore listener");
+      console.log(`🛑 Stopping Firestore listener`);
       unsubscribeRef.current();
       unsubscribeRef.current = null;
     }
@@ -227,51 +275,70 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (user) {
-        console.log(
-          "🚀 User authenticated, starting Firestore listener for:",
-          user.uid
-        );
+        console.log(`🚀 User authenticated, starting Firestore listener for:`, user.uid);
         console.log("📧 User email:", user.email);
-        // Reset first load flag when new user logs in
         isFirstLoadRef.current = true;
         startListening();
       } else {
-        console.log("� User not authenticated, stopping Firestore listener");
+        console.log(`🚫 User not authenticated, stopping listener`);
         stopListening();
         setNotifications([]);
         isFirstLoadRef.current = true;
       }
     });
 
-    // Cleanup on unmount
     return () => {
       unsubscribeAuth();
       stopListening();
     };
   }, [startListening, stopListening]);
 
-  const markAsRead = useCallback((id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-    );
+  const markAsRead = useCallback(async (id: string) => {
+    try {
+      const user = auth.currentUser;
+      if (user) {
+        await updateDoc(doc(db, 'users', user.uid, 'notifications', id), {
+          read: true,
+        });
+      }
+      
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+      );
+    } catch (error) {
+      console.error('❌ Error marking notification as read:', error);
+    }
   }, []);
 
   const updatePreferences = useCallback(
-    (newPreferences: Partial<NotificationPreferences>) => {
-      setPreferences((prev) => ({ ...prev, ...newPreferences }));
+    async (newPreferences: Partial<NotificationPreferences>) => {
+      try {
+        const user = auth.currentUser;
+        if (user) {
+          await updateDoc(doc(db, 'users', user.uid), {
+            notificationPreferences: { ...preferences, ...newPreferences },
+          });
+        }
+        
+        setPreferences((prev) => ({ ...prev, ...newPreferences }));
+      } catch (error) {
+        console.error('❌ Error updating notification preferences:', error);
+      }
     },
-    []
+    [preferences]
   );
 
-  // Refresh notifications from API (fallback)
   const refreshNotifications = useCallback(async () => {
     try {
-      console.log("Refreshing notifications...");
-      // API fallback can be implemented here if needed
+      console.log(`🔄 Refreshing notifications...`);
+      stopListening();
+      setTimeout(() => {
+        startListening();
+      }, 1000);
     } catch (error) {
-      console.error("Error refreshing notifications:", error);
+      console.error("❌ Error refreshing notifications:", error);
     }
-  }, []);
+  }, [startListening, stopListening]);
 
   return (
     <NotificationContext.Provider
