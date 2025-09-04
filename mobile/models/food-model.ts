@@ -9,6 +9,7 @@ interface FoodModel extends BaseModel {
   nutrition: NutritionModel;
   source?: string;
   userId?: string;
+  addedAt: Date | string | number;
 }
 
 export default FoodModel;

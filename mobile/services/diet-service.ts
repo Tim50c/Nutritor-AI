@@ -1,6 +1,7 @@
 import { authInstance } from "@/config/api/axios";
-import { IAddDietInput, IDietsInput } from "@/interfaces";
+import {BaseResponse, IAddDietInput, IDietsInput} from "@/interfaces";
 import { DietModel } from "@/models";
+import {AuthStore} from "@/stores";
 
 class DietService {
   private static instance: DietService;
@@ -14,11 +15,15 @@ class DietService {
     return this.instance;
   }
 
-  public async getDiets(input: IDietsInput): Promise<DietModel[]> {
+  public async getDiets(input: IDietsInput): Promise<BaseResponse<DietModel>> {
     try {
-      const response = await authInstance.get(`/diet/${input.date}`);
+      console.log(input.date)
+      const response = await authInstance.get(`/diet?date=${input.date}`);
+      console.log("Foods: " + response.data.data.foods);
+      console.log("Access Token:" + await AuthStore.getAccessToken());
 
-      return response.data as DietModel[];
+
+      return response.data as BaseResponse<DietModel>;
     } catch (error: any) {
       console.error("Error getting diets:", error);
       throw new Error("An error occurred while getting the diets.");
@@ -30,6 +35,8 @@ class DietService {
       const response = await authInstance.post(`/diet`, {
         foodId: input.foodId,
       });
+
+
 
       return response.data as DietModel[];
     } catch (error: any) {

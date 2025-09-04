@@ -18,6 +18,7 @@ class FoodService {
       const response = await authInstance.get(`/foods/${input.foodId}`);
       return response.data as FoodDetailsModel;
     } catch (error: any) {
+      console.log(error);
       throw new Error("An error occurred while getting food details.");
     }
   }

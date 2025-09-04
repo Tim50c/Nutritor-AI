@@ -10,5 +10,6 @@ import IFoodDetailsInput from "./food-details-input";
 import IFoodSuggestionsInput from "./food-suggestions-input";
 import IProfileUpdateInput from "./profile-update-input";
 import IChangePasswordInput from "./change-password-input";
+import BaseResponse from "@/interfaces/base-response";
 
-export { IAddDietInput, IDietsInput, IHomeInput, IFavoriteInput, INotificationInput, IDeleteNotificationInput, IAnalysisWeightInput, ISearchFoodsInput, IFoodDetailsInput, IFoodSuggestionsInput, IProfileUpdateInput, IChangePasswordInput }
+export { IAddDietInput, IDietsInput, IHomeInput, IFavoriteInput, INotificationInput, IDeleteNotificationInput, IAnalysisWeightInput, ISearchFoodsInput, BaseResponse, IFoodDetailsInput, IFoodSuggestionsInput, IProfileUpdateInput, IChangePasswordInput }
