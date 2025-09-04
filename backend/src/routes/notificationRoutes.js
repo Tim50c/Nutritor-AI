@@ -19,7 +19,7 @@ router.get('/', authMiddleware, getNotifications);
 router.get('/preferences', authMiddleware, getNotificationPreferences);
 
 // Update notification preferences
-router.put('/preferences', authMiddleware, updateNotificationPreferences);
+router.patch('/preferences', authMiddleware, updateNotificationPreferences);
 
 // Send test notification
 router.post('/test', authMiddleware, sendTestNotificationController);
