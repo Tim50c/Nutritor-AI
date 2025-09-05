@@ -50,7 +50,6 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>{type === "hour" ? "Hour" : "Minute"}</Text>
       <View style={styles.selectorContainer}>
         <View style={styles.indicator} />
         <ScrollView
@@ -119,7 +118,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 122, 255, 0.1)",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#007AFF",
+    borderColor: "#ff5a16",
     zIndex: -1,
   },
   item: {
@@ -135,7 +134,7 @@ const styles = StyleSheet.create({
   selectedText: {
     fontWeight: "500",
     fontSize: 16,
-    color: "#007AFF",
+    color: "#ff5a16",
   },
 });
 

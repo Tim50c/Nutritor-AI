@@ -61,10 +61,37 @@ const NotificationSettings: React.FC = () => {
   };
 
   const toggleSection = (section: string) => {
+    // Check if the section's main toggle is enabled before allowing expansion
+    let isToggleEnabled = false;
+    if (section === 'meals') {
+      isToggleEnabled = mealReminders.enabled;
+    } else if (section === 'weekly') {
+      isToggleEnabled = weeklyProgress.enabled;
+    } else if (section === 'goals') {
+      isToggleEnabled = goalAchievements.enabled;
+    }
+
+    // If the toggle is off, don't allow expansion and don't rotate arrow
+    if (!isToggleEnabled) {
+      return;
+    }
+
     const isExpanding = expandedSection !== section;
+    const previousSection = expandedSection;
+    
     setExpandedSection(isExpanding ? section : null);
 
-    // Rotate arrow animation
+    // If there was a previously expanded section and we're opening a new one, close the previous one
+    if (previousSection && previousSection !== section && isExpanding) {
+      Animated.timing(rotationValues[previousSection as keyof typeof rotationValues], {
+        toValue: 0,
+        duration: 300,
+        easing: Easing.bezier(0.4, 0, 0.2, 1),
+        useNativeDriver: true,
+      }).start();
+    }
+
+    // Animate the current section's arrow
     Animated.timing(rotationValues[section as keyof typeof rotationValues], {
       toValue: isExpanding ? 1 : 0,
       duration: 300,

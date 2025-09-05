@@ -56,7 +56,7 @@ export default function HomeTopBar() {
         <View>
           <Text className="text-sm text-gray-500">Welcome</Text>
           {/* --- FIX 3.2: Combine firstname and lastname for the full name --- */}
-          <Text className="text-base font-semibold">{`${userProfile.firstname} ${userProfile.lastname}`}</Text>
+          <Text className="text-base font-bold">{`${userProfile.firstname} ${userProfile.lastname}`}</Text>
         </View>
       </View>
 

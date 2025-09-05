@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useRef} from "react";
-import {View, TextInput, TouchableOpacity, FlatList, Image, Platform, KeyboardAvoidingView, ScrollView} from "react-native";
+import {View, TextInput, TouchableOpacity, FlatList, Image, Platform, KeyboardAvoidingView, ScrollView, SafeAreaView} from "react-native";
 import { Text } from '../components/CustomText';
 import {useRouter} from "expo-router";
 import {useDietContext, DietFood} from "@/context/DietContext";
@@ -55,11 +55,28 @@ const Search = () => {
   const showFallback = searchText.trim() === "" && filteredFoods.length === 0;
 
   return (
-    <KeyboardAvoidingView
-      className="flex-1 bg-white"
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
-      <ScrollView className="flex-1 px-4 pt-6" keyboardShouldPersistTaps="handled">
+    <SafeAreaView className="flex-1 bg-white">
+      {/* Header */}
+      <View className="flex-row items-center justify-between px-4 py-3">
+        <TouchableOpacity
+          className="bg-black w-10 h-10 rounded-full justify-center items-center"
+          onPress={() => router.back()}
+        >
+          <View style={{ transform: [{ rotate: "0deg" }] }}>
+            <icons.arrow width={20} height={20} color="#FFFFFF" />
+          </View>
+        </TouchableOpacity>
+        <Text className="text-xl font-bold text-black">
+          Search
+        </Text>
+        <View className="w-10 h-10" />
+      </View>
+
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <ScrollView className="flex-1 px-4 pt-6" keyboardShouldPersistTaps="handled">
         {/* Search input bar with filter button */}
         <View className="flex-row items-center mb-4">
           <View className="flex-1 flex-row items-center bg-gray-100 rounded-xl px-3 py-2 mr-3">
@@ -126,7 +143,8 @@ const Search = () => {
           />
         )}
       </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 

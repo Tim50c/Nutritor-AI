@@ -82,7 +82,7 @@ const GoalAchievementsSection = ({
             }}
           >
             <Text style={{ fontSize: 16, color: "#333" }}>Check Time</Text>
-            <Text style={{ fontSize: 16, color: "#007AFF", fontWeight: "500" }}>
+            <Text style={{ fontSize: 16, color: "#ff5a16", fontWeight: "500" }}>
               {formatTime(goalAchievements.time)}
             </Text>
           </TouchableOpacity>
@@ -125,7 +125,7 @@ const GoalAchievementsSection = ({
                     justifyContent: "center",
                     alignItems: "center",
                     backgroundColor: (goalAchievements.days || []).includes(day)
-                      ? "#007AFF"
+                      ? "#ff5a16"
                       : "#f0f0f0",
                   }}
                 >

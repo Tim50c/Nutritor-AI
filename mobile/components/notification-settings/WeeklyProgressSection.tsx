@@ -84,7 +84,7 @@ const WeeklyProgressSection = ({
             <Text style={{ fontSize: 16, color: "#333" }}>
               Notification Time
             </Text>
-            <Text style={{ fontSize: 16, color: "#007AFF", fontWeight: "500" }}>
+            <Text style={{ fontSize: 16, color: "#ff5a16", fontWeight: "500" }}>
               {formatTime(weeklyProgress.time)}
             </Text>
           </TouchableOpacity>
@@ -123,7 +123,7 @@ const WeeklyProgressSection = ({
                     justifyContent: "center",
                     alignItems: "center",
                     backgroundColor:
-                      weeklyProgress.day === day ? "#007AFF" : "#f0f0f0",
+                      weeklyProgress.day === day ? "#ff5a16" : "#f0f0f0",
                   }}
                 >
                   <Text
