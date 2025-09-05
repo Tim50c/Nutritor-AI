@@ -1,10 +1,10 @@
 import { authInstance } from "@/config/api/axios";
-import { IAddDietInput, IDietsInput } from "@/interfaces";
+import { BaseResponse, IAddDietInput, IDietsInput } from "@/interfaces";
 import { DietModel } from "@/models";
 
 class DietService {
   private static instance: DietService;
-  
+
   private constructor() {}
 
   public static getInstance(): DietService {
@@ -14,11 +14,10 @@ class DietService {
     return this.instance;
   }
 
-  public async getDiets(input: IDietsInput): Promise<DietModel[]> {
+  public async getDiets(input: IDietsInput): Promise<BaseResponse<DietModel>> {
     try {
-      const response = await authInstance.get(`/diet/${input.date}`);
-
-      return response.data as DietModel[];
+      const response = await authInstance.get(`/diet?date=${input.date}`);
+      return response.data as BaseResponse<DietModel>;
     } catch (error: any) {
       console.error("Error getting diets:", error);
       throw new Error("An error occurred while getting the diets.");
@@ -38,7 +37,9 @@ class DietService {
     }
   }
 
-  public async removeFoodFromTodayDiet(input: IAddDietInput): Promise<DietModel[]> {
+  public async removeFoodFromTodayDiet(
+    input: IAddDietInput
+  ): Promise<DietModel[]> {
     try {
       const response = await authInstance.delete(`/diet/${input.foodId}`);
 
@@ -59,11 +60,11 @@ class DietService {
       console.log("🍎 Starting getConsumedNutrition call:", {
         date,
         url: `/diet/nutrition?date=${date}`,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       const response = await authInstance.get(`/diet/nutrition?date=${date}`);
-      
+
       if (response.data.success) {
         return response.data.data.consumedNutrition;
       } else {
@@ -73,10 +74,10 @@ class DietService {
     } catch (error: any) {
       console.log("❌ Error fetching consumed nutrition:", {
         message: error.message,
-        status: error.response?.status || 'No response',
-        statusText: error.response?.statusText || 'No status text',
+        status: error.response?.status || "No response",
+        statusText: error.response?.statusText || "No status text",
         url: `/diet/nutrition?date=${date}`,
-        responseData: error.response?.data || 'No response data',
+        responseData: error.response?.data || "No response data",
         hasResponse: !!error.response,
         errorType: error.constructor.name,
         code: error.code,
@@ -84,17 +85,19 @@ class DietService {
           name: error.name,
           message: error.message,
           code: error.code,
-          config: error.config ? {
-            url: error.config.url,
-            method: error.config.method,
-            headers: error.config.headers
-          } : 'No config'
-        }
+          config: error.config
+            ? {
+                url: error.config.url,
+                method: error.config.method,
+                headers: error.config.headers,
+              }
+            : "No config",
+        },
       });
       // Return zero nutrition on error
       return { calories: 0, protein: 0, carbs: 0, fat: 0 };
     }
   }
-};
+}
 
 export default DietService.getInstance();

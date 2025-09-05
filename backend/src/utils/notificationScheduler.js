@@ -1,8 +1,18 @@
 // backend/src/utils/notificationScheduler.js
 
+
 const cron = require('node-cron');
 const { db } = require('../config/firebase');
 const { createMealReminder, createWeeklyProgress, createGoalAchievement } = require('./notificationHelpers');
+
+/**
+ * Get Bangkok time properly
+ */
+const getBangkokTime = () => {
+  const utcNow = new Date();
+  const bangkokTime = new Date(utcNow.toLocaleString("en-US", {timeZone: "Asia/Bangkok"}));
+  return bangkokTime;
+};
 
 /**
  * Get Bangkok time properly
@@ -76,13 +86,17 @@ const calculateWeeklyProgress = async (uid) => {
   try {
     const bangkokNow = getBangkokTime();
     const oneWeekAgo = new Date(bangkokNow);
+    const bangkokNow = getBangkokTime();
+    const oneWeekAgo = new Date(bangkokNow);
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
 
     const dietSnapshot = await db.collection('users')
       .doc(uid)
       .collection('diets')
       .where('createdAt', '>=', oneWeekAgo)
       .get();
+
 
     const totalDays = 7;
     const daysWithEntries = new Set();
@@ -93,7 +107,9 @@ const calculateWeeklyProgress = async (uid) => {
       daysWithEntries.add(dayKey);
     });
 
+
     const progress = Math.round((daysWithEntries.size / totalDays) * 100);
+    return Math.min(progress, 100);
     return Math.min(progress, 100);
   } catch (error) {
     console.error('Error calculating weekly progress:', error);
@@ -108,9 +124,12 @@ const checkDailyGoals = async (uid) => {
   try {
     const bangkokNow = getBangkokTime();
     const today = new Date(bangkokNow);
+    const bangkokNow = getBangkokTime();
+    const today = new Date(bangkokNow);
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
+
 
     const dietSnapshot = await db.collection('users')
       .doc(uid)
@@ -119,12 +138,15 @@ const checkDailyGoals = async (uid) => {
       .where('createdAt', '<', tomorrow)
       .get();
 
+
     const userDoc = await db.collection('users').doc(uid).get();
     const targetNutrition = userDoc.data()?.targetNutrition;
     if (!targetNutrition) return null;
 
+
     let totalCalories = 0;
     let totalProtein = 0;
+
 
     dietSnapshot.docs.forEach(doc => {
       const dietData = doc.data();
@@ -138,7 +160,9 @@ const checkDailyGoals = async (uid) => {
       }
     });
 
+
     const achievements = [];
+
 
     if (totalCalories >= targetNutrition.calories && targetNutrition.calories > 0) {
       achievements.push({
@@ -148,6 +172,7 @@ const checkDailyGoals = async (uid) => {
       });
     }
 
+
     if (totalProtein >= targetNutrition.protein && targetNutrition.protein > 0) {
       achievements.push({
         type: 'protein',
@@ -155,6 +180,7 @@ const checkDailyGoals = async (uid) => {
         achieved: totalProtein
       });
     }
+
 
     return achievements;
   } catch (error) {
@@ -204,14 +230,17 @@ const shouldSendWeeklyProgress = (user, currentDay, currentHour, currentMinute) 
   const preferences = user.notificationPreferences?.weeklyProgress;
   if (!preferences?.enabled) return false;
 
+
   const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
   const todayName = dayNames[currentDay];
   if (preferences.day !== todayName) return false;
+
 
   const timeObj = preferences.time;
   if (typeof timeObj === 'object' && timeObj.hour !== undefined) {
     return currentHour === timeObj.hour && currentMinute === timeObj.minute;
   }
+
 
   return false;
 };
@@ -225,15 +254,22 @@ const triggerWeeklyProgress = async () => {
     
     const now = getBangkokTime();
     
+    
+    const now = getBangkokTime();
+    
     const currentDay = now.getDay();
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
 
+    const currentMinute = now.getMinutes();
+
     let totalSent = 0;
+
 
     for (const userDoc of usersSnapshot.docs) {
       const uid = userDoc.id;
       const userData = userDoc.data();
+
 
       if (shouldSendWeeklyProgress(userData, currentDay, currentHour, currentMinute)) {
         try {
@@ -258,14 +294,17 @@ const shouldSendGoalAchievement = (user, currentDay, currentHour, currentMinute)
   const preferences = user.notificationPreferences?.goalAchievements;
   if (!preferences?.enabled) return false;
 
+
   const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
   const todayName = dayNames[currentDay];
   if (!preferences.days?.includes(todayName)) return false;
+
 
   const timeObj = preferences.time;
   if (typeof timeObj === 'object' && timeObj.hour !== undefined && timeObj.minute !== undefined) {
     return currentHour === timeObj.hour && currentMinute === timeObj.minute;
   }
+
 
   return false;
 };
@@ -279,11 +318,16 @@ const checkGoalAchievements = async () => {
     
     const now = getBangkokTime();
     
+    
+    const now = getBangkokTime();
+    
     const currentDay = now.getDay();
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
 
+
     let totalSent = 0;
+
 
     for (const userDoc of usersSnapshot.docs) {
       const uid = userDoc.id;
@@ -316,15 +360,19 @@ const initializeScheduler = () => {
   console.log('🕐 Initializing notification scheduler...');
   
   // Schedule all notifications to run every minute
+  // Schedule all notifications to run every minute
   cron.schedule('* * * * *', async () => {
     await triggerMealReminders();
     await triggerWeeklyProgress();
     await checkGoalAchievements();
   });
 
+
   console.log('✅ Notification scheduler initialized');
   console.log('📅 All notifications: Checked every minute with Bangkok timezone');
+  console.log('📅 All notifications: Checked every minute with Bangkok timezone');
   console.log('📱 Meal reminders: User-configurable times and days');
+  console.log('📊 Weekly progress: User-configurable day and time');
   console.log('📊 Weekly progress: User-configurable day and time');
   console.log('🎯 Goal achievements: User-configurable days and time');
 };

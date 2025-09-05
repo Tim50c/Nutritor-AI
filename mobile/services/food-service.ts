@@ -18,6 +18,7 @@ class FoodService {
       const response = await authInstance.get(`/foods/${input.foodId}`);
       return response.data as FoodDetailsModel;
     } catch (error: any) {
+      console.log(error);
       throw new Error("An error occurred while getting food details.");
     }
   }
@@ -32,7 +33,7 @@ class FoodService {
       const suggestions = response.data.data.suggestions as FoodModel[];
       return suggestions;
     } catch (error: any) {
-      throw new Error("An error occurred while getting food suggestions.");
+      throw new Error("An error occurred while getting food suggestions: " + error.message);
     }
   }
 }
