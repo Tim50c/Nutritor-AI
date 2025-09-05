@@ -11,7 +11,7 @@ import React, {
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
-import { Platform } from "react-native";
+import { Platform, AppState } from "react-native";
 import { auth, db } from "../config/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import {
@@ -91,11 +91,10 @@ const defaultPreferences: NotificationPreferences = {
 // Configure local notification behavior
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
-    shouldShowBanner: true, // iOS specific
-    shouldShowList: true, // iOS specific
+    shouldShowBanner: true, 
+    shouldShowList: true, 
     ios: {
       _displayInForeground: true,
     },
@@ -358,7 +357,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   // Trigger local notification
   const triggerLocalNotification = useCallback(async (notification: any) => {
-    if (Platform.OS === "ios" || Platform.OS === "web") {
+    // ✅ Now works for both iOS and Android when app is active
+    if (AppState.currentState === 'active') {
       try {
         await Notifications.scheduleNotificationAsync({
           content: {
@@ -369,7 +369,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           },
           trigger: null, // Show immediately
         });
-        console.log(`✅ Local notification triggered:`, notification.title);
+        console.log(`✅ Local notification triggered for ${Platform.OS}:`, notification.title);
       } catch (error) {
         console.error("❌ Error triggering local notification:", error);
       }
