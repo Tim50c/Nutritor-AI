@@ -2,9 +2,9 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/config/firebase";
+import { StatusBar } from "expo-status-bar";
 
 import "./global.css";
-import { StatusBar } from "expo-status-bar";
 import CustomHeader from "@/components/CustomHeader";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { UserProvider, useUser, defaultUser } from "@/context/UserContext";
@@ -173,7 +173,7 @@ function RootLayoutNav() {
         name="search"
         options={{
           title: "Search",
-          header: ({ options }) => <CustomHeader title={options.title || ""} />,
+          headerShown: false,
         }}
       />
     </Stack>
@@ -233,7 +233,7 @@ export default function RootLayout() {
       <UserProvider>
         <DietProvider>
           <NotificationProvider>
-            <StatusBar style="auto" />
+            <StatusBar style="inverted" />
             <RootLayoutNav />
           </NotificationProvider>
         </DietProvider>

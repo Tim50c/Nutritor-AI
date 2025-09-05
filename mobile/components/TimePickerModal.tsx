@@ -48,6 +48,7 @@ const TimePickerModal: React.FC<TimePickerModalProps> = ({
               selectedValue={selectedHour}
               onValueChange={(hour) => onTimeChange(hour, selectedMinute)}
             />
+            <Text style={styles.separator}>:</Text>
             <TimeSelector
               type="minute"
               selectedValue={selectedMinute}
@@ -88,7 +89,8 @@ const styles = StyleSheet.create({
   modalContent: {
     backgroundColor: "white",
     borderRadius: 15,
-    padding: 24,
+    paddingHorizontal: 32,
+    paddingVertical: 32,
     width: "85%",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -98,47 +100,58 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 24,
+    marginTop: 16,
   },
   headerText: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#333",
+    color: "#000000",
     marginBottom: 12,
   },
   headerLine: {
     width: 50,
     height: 3,
-    backgroundColor: "#007AFF",
+    backgroundColor: "#ff5a16",
     borderRadius: 2,
   },
   selectorsContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
     paddingHorizontal: 20,
-    height: 135, // Exactly 3 visible items (ITEM_HEIGHT * 3)
+    height: 110,
     marginTop: 8,
-    marginBottom: 16,
+    marginBottom: 0,
+  },
+  separator: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#ff5a16",
+    alignSelf: "center",
+    marginHorizontal: 8,
+    marginTop: -8,
   },
   buttonsContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 20,
+    justifyContent: "center",
+    marginTop: 32,
+    marginBottom: 16,
+    paddingHorizontal: 8,
   },
   button: {
-    paddingVertical: 12,
-    paddingHorizontal: 24,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
     borderRadius: 8,
-    flex: 1,
     alignItems: "center",
+    minWidth: 120,
   },
   cancelButton: {
     backgroundColor: "#f0f0f0",
-    marginRight: 10,
+    marginRight: 16,
   },
   saveButton: {
-    backgroundColor: "#007AFF",
-    marginLeft: 10,
+    backgroundColor: "#ff5a16",
+    marginLeft: 16,
   },
   cancelButtonText: {
     color: "#666",

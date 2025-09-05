@@ -54,12 +54,7 @@ const NotificationsScreen = () => {
           </View>
         </TouchableOpacity>
         <Text className="text-xl font-bold text-black">Notifications</Text>
-        <TouchableOpacity 
-          className="bg-black w-10 h-10 rounded-full justify-center items-center" 
-          onPress={() => router.back()}
-        >
-          <icons.close width={20} height={20} color="#FFFFFF" />
-        </TouchableOpacity>
+        <View className="w-10 h-10" />
       </View>
       
       {hasNotifications ? (

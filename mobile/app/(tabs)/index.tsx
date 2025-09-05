@@ -14,7 +14,9 @@ export default function HomeScreen() {
   if (loading) {
     return (
       <View className="flex-1 bg-gray-50 pt-8">
-        <HomeTopBar />
+        <View className="mt-3">
+          <HomeTopBar />
+        </View>
         <ScrollView>
           <View className="pt-6">
             <TodaySummary loading={true} />
@@ -28,7 +30,9 @@ export default function HomeScreen() {
 
   return (
     <View className="flex-1 bg-gray-50 pt-8">
-      <HomeTopBar />
+      <View className="mt-3">
+        <HomeTopBar />
+      </View>
       <ScrollView showsVerticalScrollIndicator={false}>
         <View className="pt-6">
           <TodaySummary />
