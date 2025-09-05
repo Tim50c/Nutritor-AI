@@ -42,29 +42,37 @@ const getUsersWithMealReminders = async () => {
 /**
  * Check if user wants meal reminder for specific meal and day
  */
-const shouldSendMealReminder = (user, mealType, currentDay, currentHour, currentMinute) => {
+const shouldSendMealReminder = (user, mealType, currentDay, currentHour, currentMinute) => {  
+  // Check if meal reminders are enabled globally
   const preferences = user.notificationPreferences?.mealReminders;
   if (!preferences?.enabled) {
-    console.log(`❌ Meal reminders not enabled`);
+    console.log(`❌ Global meal reminders not enabled for user ${user.uid}`);
     return false;
   }
   
-  if (!preferences[mealType]?.enabled) {
-    console.log(`❌ ${mealType} not enabled`);
+  // Get specific meal preferences
+  const mealPreferences = preferences[mealType];
+  if (!mealPreferences?.enabled) {
+    console.log(`❌ ${mealType} reminders not enabled for user ${user.uid}`);
     return false;
   }
 
-  const todayName = DAY_NAMES[currentDay];  
-  const mealDays = preferences[mealType].days;
-
-  if (!mealDays?.includes(todayName)) {
-    console.log(`❌ ${todayName} not in ${mealType} days`);
+  // Check if the current day is in the meal's active days
+  const todayName = DAY_NAMES[currentDay];
+  if (!Array.isArray(mealPreferences.days)) {
+    console.log(`❌ No days configured for ${mealType} reminders (user ${user.uid})`);
     return false;
   }
 
-  const timeObj = preferences[mealType].time;
+  if (!mealPreferences.days.includes(todayName)) {
+    console.log(`❌ ${todayName} not in active days for ${mealType} (user ${user.uid})`);
+    return false;
+  }
 
-  return isMatchingTime(timeObj, currentHour, currentMinute);
+  // Check if it's the right time for the reminder
+  const timeMatch = isMatchingTime(mealPreferences.time, currentHour, currentMinute);
+  
+  return timeMatch;
 };
 
 /**
