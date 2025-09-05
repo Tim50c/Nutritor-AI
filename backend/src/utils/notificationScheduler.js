@@ -49,21 +49,22 @@ const shouldSendMealReminder = (user, mealType, currentDay, currentHour, current
     return false;
   }
   
-  const mealPreferences = preferences[mealType];
-  if (!mealPreferences?.enabled) {
+  if (!preferences[mealType]?.enabled) {
     console.log(`❌ ${mealType} not enabled`);
     return false;
   }
 
-  const todayName = DAY_NAMES[currentDay];
-  const mealDays = mealPreferences.days;
-  
-  if (!Array.isArray(mealDays) || !mealDays.includes(todayName)) {
-    console.log(`❌ ${todayName} not in ${mealType} days:`, mealDays);
+  const todayName = DAY_NAMES[currentDay];  
+  const mealDays = preferences[mealType].days;
+
+  if (!mealDays?.includes(todayName)) {
+    console.log(`❌ ${todayName} not in ${mealType} days`);
     return false;
   }
 
-  return isMatchingTime(mealPreferences.time, currentHour, currentMinute);
+  const timeObj = preferences[mealType].time;
+
+  return isMatchingTime(timeObj, currentHour, currentMinute);
 };
 
 /**
