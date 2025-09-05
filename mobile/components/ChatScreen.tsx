@@ -392,9 +392,9 @@ const ChatScreen = () => {
           <View style={styles.startContainer}>
             <View style={styles.startBox}>
               <icons.chatIcon width={60} height={60} className="mb-5" />
-              <Text style={styles.startTitle}>Hello Nice to see you here!</Text>
+              <Text style={styles.startTitle} className="mt-3">Hello! Nice to see you here!</Text>
               <Text style={styles.startSubtitle}>
-                By pressing the &#34;Start chat&#34; button you agree to have
+                By pressing the &#34;Start chat&#34; button, you agree to have
                 your personal data processed as described in our{" "}
                 <Text
                   style={styles.privacyLink}
