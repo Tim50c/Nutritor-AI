@@ -3,8 +3,7 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/config/firebase";
 import { StatusBar } from "expo-status-bar";
-import { Platform, StatusBar as RNStatusBar } from "react-native";
-
+import { Platform, StatusBar as RNStatusBar, View, ActivityIndicator } from "react-native";
 import "./global.css";
 import CustomHeader from "@/components/CustomHeader";
 import { NotificationProvider } from "@/context/NotificationContext";
@@ -146,7 +145,11 @@ function RootLayoutNav() {
   }, [user, userProfile, isAuthLoading, isLoadingProfile, segments, router]);
 
   if (isAuthLoading || isLoadingProfile) {
-    return null;
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'white' }}>
+        <ActivityIndicator size="large" color="#ff5a16" />
+      </View>
+    );
   }
 
   return (

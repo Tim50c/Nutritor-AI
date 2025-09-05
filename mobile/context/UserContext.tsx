@@ -17,7 +17,7 @@ export type User = {
   weightGoal: number | null;
   targetNutrition?: NutritionModel;
   onboardingComplete: boolean;
-  unitPreferences: { // <-- Add this object
+  unitPreferences: {
     weight: 'kg' | 'lbs';
     height: 'cm' | 'ft';
   };
@@ -89,14 +89,17 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       const token = await user.getIdToken();
       const API_URL = process.env.EXPO_PUBLIC_API_URL;
       
-      const response = await fetch(`${API_URL}/profile`, {
+      const response = await fetch(`${API_URL}/api/v1/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch user profile');
+        // If response is not ok, try to read it as text to see the HTML error
+        const errorText = await response.text();
+        console.error("Failed to fetch profile. Server responded with:", errorText);
+        throw new Error(`Server error: ${response.status} ${response.statusText}`);
       }
 
       const result = await response.json();
