@@ -2,7 +2,7 @@ import BaseModel from "./base-model";
 import NutritionModel from "@/models/nutrition-model";
 
 interface AnalysisStats {
-  date: string;
+  period: string;
   calories: number;
   protein: number;
   carbs: number;
