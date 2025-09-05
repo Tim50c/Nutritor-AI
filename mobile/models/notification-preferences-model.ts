@@ -1,32 +1,37 @@
-interface NotificationPreferencesModel {
-  mealReminders: {
-    enabled: boolean;
-    breakfast: {
-      enabled: boolean;
-      time: { hour: number; minute: number; };
-      days: string[];
-    };
-    lunch: {
-      enabled: boolean;
-      time: { hour: number; minute: number; };
-      days: string[];
-    };
-    dinner: {
-      enabled: boolean;
-      time: { hour: number; minute: number; };
-      days: string[];
-    };
-  };
-  weeklyProgress: {
-    enabled: boolean;
-    time: { hour: number; minute: number; };
-    day: string;
-  };
-  goalAchievements: {
-    enabled: boolean;
-    time: { hour: number; minute: number; };
-    days: string[];
-  };
+export interface TimePreference {
+  hour: number;
+  minute: number;
+}
+
+export interface MealSetting {
+  enabled: boolean;
+  time: TimePreference;
+  days: string[];
+}
+
+export interface MealReminders {
+  enabled: boolean;
+  breakfast: MealSetting;
+  lunch: MealSetting;
+  dinner: MealSetting;
+}
+
+export interface WeeklyProgress {
+  enabled: boolean;
+  time: TimePreference;
+  day: string;
+}
+
+export interface GoalAchievements {
+  enabled: boolean;
+  time: TimePreference;
+  days: string[];
+}
+
+export interface NotificationPreferencesModel {
+  mealReminders: MealReminders;
+  weeklyProgress: WeeklyProgress;
+  goalAchievements: GoalAchievements;
 }
 
 export default NotificationPreferencesModel;

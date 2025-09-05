@@ -27,11 +27,13 @@ import {
 // Configure local notification behavior
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
+    shouldShowBanner: true,   // iOS specific
+    shouldShowList: true,     // iOS specific
+    ios: {
+      _displayInForeground: true,
+    },
   }),
 });
 
@@ -359,8 +361,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             };
 
             if (change.type === "added") {
-              console.log("➕ New notification added:", notification.title);
-
               // Trigger local notification for new notifications (not on first load)
               if (!isFirstLoadRef.current) {
                 triggerLocalNotification(notification);
