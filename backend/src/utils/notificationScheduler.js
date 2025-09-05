@@ -15,15 +15,6 @@ const getBangkokTime = () => {
 };
 
 /**
- * Get Bangkok time properly
- */
-const getBangkokTime = () => {
-  const utcNow = new Date();
-  const bangkokTime = new Date(utcNow.toLocaleString("en-US", {timeZone: "Asia/Bangkok"}));
-  return bangkokTime;
-};
-
-/**
  * Get all users who have meal reminders enabled
  */
 const getUsersWithMealReminders = async () => {
@@ -86,8 +77,6 @@ const calculateWeeklyProgress = async (uid) => {
   try {
     const bangkokNow = getBangkokTime();
     const oneWeekAgo = new Date(bangkokNow);
-    const bangkokNow = getBangkokTime();
-    const oneWeekAgo = new Date(bangkokNow);
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
 
@@ -122,8 +111,6 @@ const calculateWeeklyProgress = async (uid) => {
  */
 const checkDailyGoals = async (uid) => {
   try {
-    const bangkokNow = getBangkokTime();
-    const today = new Date(bangkokNow);
     const bangkokNow = getBangkokTime();
     const today = new Date(bangkokNow);
     today.setHours(0, 0, 0, 0);
@@ -254,13 +241,8 @@ const triggerWeeklyProgress = async () => {
     
     const now = getBangkokTime();
     
-    
-    const now = getBangkokTime();
-    
     const currentDay = now.getDay();
     const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
-
     const currentMinute = now.getMinutes();
 
     let totalSent = 0;
@@ -315,10 +297,7 @@ const shouldSendGoalAchievement = (user, currentDay, currentHour, currentMinute)
 const checkGoalAchievements = async () => {
   try {
     const usersSnapshot = await db.collection('users').get();
-    
-    const now = getBangkokTime();
-    
-    
+
     const now = getBangkokTime();
     
     const currentDay = now.getDay();
@@ -372,7 +351,6 @@ const initializeScheduler = () => {
   console.log('📅 All notifications: Checked every minute with Bangkok timezone');
   console.log('📅 All notifications: Checked every minute with Bangkok timezone');
   console.log('📱 Meal reminders: User-configurable times and days');
-  console.log('📊 Weekly progress: User-configurable day and time');
   console.log('📊 Weekly progress: User-configurable day and time');
   console.log('🎯 Goal achievements: User-configurable days and time');
 };
