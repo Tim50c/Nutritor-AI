@@ -3,6 +3,7 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/config/firebase";
 import { StatusBar } from "expo-status-bar";
+import { Platform, StatusBar as RNStatusBar } from "react-native";
 
 import "./global.css";
 import CustomHeader from "@/components/CustomHeader";
@@ -149,7 +150,15 @@ function RootLayoutNav() {
   }
 
   return (
-    <Stack>
+    <Stack
+      screenOptions={{
+        // ✅ Add this to prevent Android status bar overlay
+        contentStyle: {
+          paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight : 0,
+        },
+        headerShown: false, // Default header setting
+      }}
+    >
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -233,7 +242,10 @@ export default function RootLayout() {
       <UserProvider>
         <DietProvider>
           <NotificationProvider>
-            <StatusBar style="inverted" />
+            <StatusBar 
+              style="dark" 
+              backgroundColor="white"
+            />
             <RootLayoutNav />
           </NotificationProvider>
         </DietProvider>
