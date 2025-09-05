@@ -37,6 +37,8 @@ exports.registerUserProfile = async (req, res) => {
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       onboardingComplete: false,
+      avatar: null,
+      unitPreferences: { weight: 'kg', height: 'cm' },
     };
 
     await db.collection('users').doc(uid).set(newUserProfile);

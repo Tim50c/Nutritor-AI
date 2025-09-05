@@ -1,84 +1,141 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
-import { auth } from "../config/firebase"; // <-- 1. Import Firebase auth
+import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import { auth } from "../config/firebase";
 import NutritionModel from "@/models/nutrition-model";
+import { onAuthStateChanged, User as FirebaseAuthUser } from "firebase/auth";
 
-// 1. Define a type that MATCHES your Firestore user document
+// 1. Define a type that accurately reflects the backend data model
 export type User = {
   id: string;
   firstname: string;
   lastname: string;
   email: string;
-  avatar: any | null;
-  dob: string;
+  avatar: string | null;
+  dob: any; 
   gender: "Male" | "Female" | "Other" | null;
-  height: string | null;
-  weightCurrent: string | null;
-  weightGoal: string | null;
+  height: number | null; // Stored as cm
+  weightCurrent: number | null; // Stored as kg
+  weightGoal: number | null;
   targetNutrition?: NutritionModel;
   onboardingComplete: boolean;
-  password?: string; // hashed password
+  unitPreferences: { // <-- Add this object
+    weight: 'kg' | 'lbs';
+    height: 'cm' | 'ft';
+  };
 };
 
-// 2. Define the type for the context's value
+// Default user object for fallback scenarios
+export const defaultUser: User = {
+  id: '',
+  firstname: '',
+  lastname: '',
+  email: '',
+  avatar: null,
+  dob: null,
+  gender: null,
+  height: null,
+  weightCurrent: null,
+  weightGoal: null,
+  onboardingComplete: false,
+  unitPreferences: {
+    weight: 'kg',
+    height: 'cm',
+  },
+};
+
 type UserContextType = {
   userProfile: User | null;
   setUserProfile: (profile: User | null) => void;
   isLoadingProfile: boolean;
-  logout: () => Promise<void>; // <-- 2. Add logout to the type definition
+  logout: () => Promise<void>;
+  refetchUserProfile: () => void; // Add a refetch function
 };
 
-// 3. Create the context with a default state
 const UserContext = createContext<UserContextType>({
   userProfile: null,
   setUserProfile: () => {},
   isLoadingProfile: true,
-  logout: async () => {}, // <-- 3. Add a default async function
+  logout: async () => {},
+  refetchUserProfile: () => {}, // Default empty function
 });
 
-// 4. Create the custom hook to use the context
 export const useUser = () => useContext(UserContext);
 
-export const defaultUser: User = {
-  id: "default-id",
-  firstname: "Jane",
-  lastname: "Cooper",
-  email: "janecooper@email.com",
-  avatar: require("@/assets/images/placeholder.png"),
-  dob: "21-05-2003",
-  gender: "Male",
-  height: "1.70m",
-  weightCurrent: "56kg",
-  weightGoal: "60kg",
-  onboardingComplete: true,
-  password: "",
-};
-
-// 5. Create the Provider component
 export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [userProfile, setUserProfile] = useState<User | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseAuthUser | null>(null);
 
-  const handleSetUserProfile = (profile: User | null) => {
-    setUserProfile(profile);
-    setIsLoadingProfile(false);
+  // Effect to listen for authentication changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setFirebaseUser(user); // Store the current firebase user
+      if (user) {
+        // User is signed in, fetch their profile from our backend
+        fetchUserProfile(user);
+      } else {
+        // User is signed out, clear profile
+        setUserProfile(null);
+        setIsLoadingProfile(false);
+      }
+    });
+
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
+  }, []);
+
+  const fetchUserProfile = async (user: FirebaseAuthUser) => {
+    setIsLoadingProfile(true);
+    try {
+      const token = await user.getIdToken();
+      const API_URL = process.env.EXPO_PUBLIC_API_URL;
+      
+      const response = await fetch(`${API_URL}/profile`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch user profile');
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        setUserProfile(result.data);
+      } else {
+        throw new Error(result.error || 'Could not get user data');
+      }
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      setUserProfile(null); // Clear profile on error
+    } finally {
+      setIsLoadingProfile(false);
+    }
   };
 
-  // <-- 4. Implement the logout function
   const handleLogout = async () => {
     try {
-      await auth.signOut(); // Sign out from Firebase
-      handleSetUserProfile(null); // Clear the user profile in the app state
+      await auth.signOut();
+      setUserProfile(null); // This is handled by onAuthStateChanged, but good for immediate feedback
     } catch (error) {
       console.error("Error signing out: ", error);
-      // You could optionally re-throw the error or handle it here
+    }
+  };
+
+  // Function to allow manual refetching from other components if needed
+  const handleRefetch = () => {
+    if (firebaseUser) {
+        fetchUserProfile(firebaseUser);
     }
   };
 
   const value = {
     userProfile,
-    setUserProfile: handleSetUserProfile,
+    setUserProfile,
     isLoadingProfile,
-    logout: handleLogout, // <-- 5. Provide the logout function in the context value
+    logout: handleLogout,
+    refetchUserProfile: handleRefetch,
   };
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
