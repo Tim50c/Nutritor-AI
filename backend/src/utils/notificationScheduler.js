@@ -44,26 +44,26 @@ const getUsersWithMealReminders = async () => {
  */
 const shouldSendMealReminder = (user, mealType, currentDay, currentHour, currentMinute) => {
   const preferences = user.notificationPreferences?.mealReminders;
-  const todayName = DAY_NAMES[currentDay];
-  const mealDays = preferences[mealType].days;
-
   if (!preferences?.enabled) {
     console.log(`❌ Meal reminders not enabled`);
     return false;
   }
   
-  if (!preferences[mealType]?.enabled) {
+  const mealPreferences = preferences[mealType];
+  if (!mealPreferences?.enabled) {
     console.log(`❌ ${mealType} not enabled`);
     return false;
   }
 
-  if (!mealDays?.includes(todayName)) {
-    console.log(`❌ ${todayName} not in ${mealType} days`);
+  const todayName = DAY_NAMES[currentDay];
+  const mealDays = mealPreferences.days;
+  
+  if (!Array.isArray(mealDays) || !mealDays.includes(todayName)) {
+    console.log(`❌ ${todayName} not in ${mealType} days:`, mealDays);
     return false;
   }
 
-  const timeObj = preferences[mealType].time;
-  return isMatchingTime(timeObj, currentHour, currentMinute);
+  return isMatchingTime(mealPreferences.time, currentHour, currentMinute);
 };
 
 /**
