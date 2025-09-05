@@ -187,6 +187,8 @@ const triggerMealReminders = async () => {
     const now = getBangkokTime();
     const users = await getUsersWithMealReminders();
 
+    console.log(`\n📱 Checking meal reminders for ${users.length} users...`);
+    
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
     const currentDay = now.getDay();
@@ -305,17 +307,26 @@ const checkGoalAchievements = async () => {
 /**
  * Initialize notification scheduler
  */
+let schedulerInitialized = false;
+
 const initializeScheduler = () => {
+  if (schedulerInitialized) {
+    console.log('⚠️ Notification scheduler already running, skipping initialization');
+    return;
+  }
+
   console.log('🕐 Initializing notification scheduler...');
   
   // Schedule all notifications to run every minute
-  cron.schedule('* * * * *', async () => {
+  const job = cron.schedule('* * * * *', async () => {
+    console.log('\n📅 Running scheduled notification checks...');
     await triggerMealReminders();
     await triggerWeeklyProgress();
     await checkGoalAchievements();
+    console.log('✅ Finished notification checks\n');
   });
 
-
+  schedulerInitialized = true;
   console.log('✅ Notification scheduler initialized');
   console.log('📅 All notifications: Checked every minute with Bangkok timezone');
   console.log('📱 Meal reminders: User-configurable times and days');
