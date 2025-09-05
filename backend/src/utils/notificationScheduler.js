@@ -1,9 +1,19 @@
 // backend/src/utils/notificationScheduler.js
 
-
 const cron = require('node-cron');
 const { db } = require('../config/firebase');
 const { createMealReminder, createWeeklyProgress, createGoalAchievement } = require('./notificationHelpers');
+
+// Constants
+const DAY_NAMES = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+// Utility functions
+const isMatchingTime = (timeObj, currentHour, currentMinute) => {
+  if (typeof timeObj === 'object' && timeObj.hour !== undefined && timeObj.minute !== undefined) {
+    return currentHour === timeObj.hour && currentMinute === timeObj.minute;
+  }
+  return false;
+};
 
 /**
  * Get Bangkok time properly
@@ -46,8 +56,7 @@ const shouldSendMealReminder = (user, mealType, currentDay, currentHour, current
     return false;
   }
 
-  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  const todayName = dayNames[currentDay];
+  const todayName = DAY_NAMES[currentDay];
   console.log(`📅 Today is: ${todayName} (${currentDay})`);
   
   const mealDays = preferences[mealType].days;
@@ -61,13 +70,9 @@ const shouldSendMealReminder = (user, mealType, currentDay, currentHour, current
   const timeObj = preferences[mealType].time;
   console.log(`⏰ ${mealType} time: ${timeObj?.hour}:${timeObj?.minute}, Current: ${currentHour}:${currentMinute}`);
   
-  if (typeof timeObj === 'object' && timeObj.hour !== undefined) {
-    const match = currentHour === timeObj.hour && currentMinute === timeObj.minute;
-    console.log(`✅ Time match: ${match}`);
-    return match;
-  }
-
-  return false;
+  const match = isMatchingTime(timeObj, currentHour, currentMinute);
+  console.log(`✅ Time match: ${match}`);
+  return match;
 };
 
 /**
@@ -98,7 +103,6 @@ const calculateWeeklyProgress = async (uid) => {
 
 
     const progress = Math.round((daysWithEntries.size / totalDays) * 100);
-    return Math.min(progress, 100);
     return Math.min(progress, 100);
   } catch (error) {
     console.error('Error calculating weekly progress:', error);
@@ -217,19 +221,10 @@ const shouldSendWeeklyProgress = (user, currentDay, currentHour, currentMinute) 
   const preferences = user.notificationPreferences?.weeklyProgress;
   if (!preferences?.enabled) return false;
 
-
-  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  const todayName = dayNames[currentDay];
+  const todayName = DAY_NAMES[currentDay];
   if (preferences.day !== todayName) return false;
 
-
-  const timeObj = preferences.time;
-  if (typeof timeObj === 'object' && timeObj.hour !== undefined) {
-    return currentHour === timeObj.hour && currentMinute === timeObj.minute;
-  }
-
-
-  return false;
+  return isMatchingTime(preferences.time, currentHour, currentMinute);
 };
 
 /**
@@ -276,19 +271,10 @@ const shouldSendGoalAchievement = (user, currentDay, currentHour, currentMinute)
   const preferences = user.notificationPreferences?.goalAchievements;
   if (!preferences?.enabled) return false;
 
-
-  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  const todayName = dayNames[currentDay];
+  const todayName = DAY_NAMES[currentDay];
   if (!preferences.days?.includes(todayName)) return false;
 
-
-  const timeObj = preferences.time;
-  if (typeof timeObj === 'object' && timeObj.hour !== undefined && timeObj.minute !== undefined) {
-    return currentHour === timeObj.hour && currentMinute === timeObj.minute;
-  }
-
-
-  return false;
+  return isMatchingTime(preferences.time, currentHour, currentMinute);
 };
 
 /**
@@ -348,7 +334,6 @@ const initializeScheduler = () => {
 
 
   console.log('✅ Notification scheduler initialized');
-  console.log('📅 All notifications: Checked every minute with Bangkok timezone');
   console.log('📅 All notifications: Checked every minute with Bangkok timezone');
   console.log('📱 Meal reminders: User-configurable times and days');
   console.log('📊 Weekly progress: User-configurable day and time');
