@@ -1,9 +1,8 @@
-import React from "react";
-import {ScrollView} from "react-native";
-import { Text } from '@/components/CustomText';
 import DietCalendar from "@/components/DietCalendar";
-import DietSummary from "@/components/DietSummary";
 import DietFoodList from "@/components/DietFoodList";
+import DietSummary from "@/components/DietSummary";
+import React from "react";
+import { ScrollView } from "react-native";
 
 const DietScreen = () => {
   return (

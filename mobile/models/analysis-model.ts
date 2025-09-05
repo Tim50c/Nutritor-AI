@@ -10,10 +10,10 @@ interface AnalysisStats {
 }
 
 interface AnalysisModel extends BaseModel {
-  goalWeight: number;
+  weightGoal: number;
   currentWeight: number;
-  nutritionConsumed: NutritionModel;
   bmi: number;
+  totalNutrition: NutritionModel;
   dailyStats: AnalysisStats[];
   weeklyStats: AnalysisStats[];
   monthlyStats: AnalysisStats[];

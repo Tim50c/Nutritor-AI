@@ -1,5 +1,5 @@
 import { authInstance } from "@/config/api/axios";
-import { IAnalysisWeightInput } from "@/interfaces";
+import { BaseResponse, IAnalysisWeightInput } from "@/interfaces";
 import { AnalysisModel } from "@/models";
 
 class AnalysisService {
@@ -13,10 +13,10 @@ class AnalysisService {
     return AnalysisService.instance;
   }
 
-  public async getAnalysis(): Promise<AnalysisModel> {
+  public async getAnalysis(): Promise<BaseResponse<AnalysisModel>> {
     try {
       const response = await authInstance.get("/analysis");
-      return response.data as AnalysisModel;
+      return response.data as BaseResponse<AnalysisModel>;
     } catch (error: any) {
       console.log(error);
       throw new Error("An error occurred while getting the analysis.");
