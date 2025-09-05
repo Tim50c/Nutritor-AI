@@ -43,9 +43,10 @@ const getUsersWithMealReminders = async () => {
  * Check if user wants meal reminder for specific meal and day
  */
 const shouldSendMealReminder = (user, mealType, currentDay, currentHour, currentMinute) => {
-  console.log(`🔍 Checking ${mealType} for user ${user.uid}:`);
-  
   const preferences = user.notificationPreferences?.mealReminders;
+  const todayName = DAY_NAMES[currentDay];
+  const mealDays = preferences[mealType].days;
+
   if (!preferences?.enabled) {
     console.log(`❌ Meal reminders not enabled`);
     return false;
@@ -56,23 +57,13 @@ const shouldSendMealReminder = (user, mealType, currentDay, currentHour, current
     return false;
   }
 
-  const todayName = DAY_NAMES[currentDay];
-  console.log(`📅 Today is: ${todayName} (${currentDay})`);
-  
-  const mealDays = preferences[mealType].days;
-  console.log(`📋 ${mealType} days:`, mealDays);
-  
   if (!mealDays?.includes(todayName)) {
     console.log(`❌ ${todayName} not in ${mealType} days`);
     return false;
   }
 
   const timeObj = preferences[mealType].time;
-  console.log(`⏰ ${mealType} time: ${timeObj?.hour}:${timeObj?.minute}, Current: ${currentHour}:${currentMinute}`);
-  
-  const match = isMatchingTime(timeObj, currentHour, currentMinute);
-  console.log(`✅ Time match: ${match}`);
-  return match;
+  return isMatchingTime(timeObj, currentHour, currentMinute);
 };
 
 /**
@@ -84,13 +75,11 @@ const calculateWeeklyProgress = async (uid) => {
     const oneWeekAgo = new Date(bangkokNow);
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
-
     const dietSnapshot = await db.collection('users')
       .doc(uid)
       .collection('diets')
       .where('createdAt', '>=', oneWeekAgo)
       .get();
-
 
     const totalDays = 7;
     const daysWithEntries = new Set();
@@ -100,7 +89,6 @@ const calculateWeeklyProgress = async (uid) => {
       const dayKey = date.toDateString();
       daysWithEntries.add(dayKey);
     });
-
 
     const progress = Math.round((daysWithEntries.size / totalDays) * 100);
     return Math.min(progress, 100);
@@ -121,7 +109,6 @@ const checkDailyGoals = async (uid) => {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-
     const dietSnapshot = await db.collection('users')
       .doc(uid)
       .collection('diets')
@@ -129,15 +116,12 @@ const checkDailyGoals = async (uid) => {
       .where('createdAt', '<', tomorrow)
       .get();
 
-
     const userDoc = await db.collection('users').doc(uid).get();
     const targetNutrition = userDoc.data()?.targetNutrition;
     if (!targetNutrition) return null;
 
-
     let totalCalories = 0;
     let totalProtein = 0;
-
 
     dietSnapshot.docs.forEach(doc => {
       const dietData = doc.data();
@@ -151,9 +135,7 @@ const checkDailyGoals = async (uid) => {
       }
     });
 
-
     const achievements = [];
-
 
     if (totalCalories >= targetNutrition.calories && targetNutrition.calories > 0) {
       achievements.push({
@@ -163,7 +145,6 @@ const checkDailyGoals = async (uid) => {
       });
     }
 
-
     if (totalProtein >= targetNutrition.protein && targetNutrition.protein > 0) {
       achievements.push({
         type: 'protein',
@@ -171,8 +152,6 @@ const checkDailyGoals = async (uid) => {
         achieved: totalProtein
       });
     }
-
-
     return achievements;
   } catch (error) {
     console.error('Error checking daily goals:', error);
@@ -186,15 +165,12 @@ const checkDailyGoals = async (uid) => {
 const triggerMealReminders = async () => {
   try {
     const now = getBangkokTime();
-
     const users = await getUsersWithMealReminders();
-    
+
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
     const currentDay = now.getDay();
     const mealTypes = ['breakfast', 'lunch', 'dinner'];
-
-    let totalSent = 0;
 
     for (const user of users) {      
       for (const mealType of mealTypes) {
@@ -202,7 +178,6 @@ const triggerMealReminders = async () => {
           try {
             await createMealReminder(user.uid, mealType);
             console.log(`✅ ${mealType} reminder sent to user: ${user.uid}`);
-            totalSent++;
           } catch (error) {
             console.error(`❌ Failed to send ${mealType} reminder to user ${user.uid}:`, error);
           }
@@ -233,15 +208,11 @@ const shouldSendWeeklyProgress = (user, currentDay, currentHour, currentMinute) 
 const triggerWeeklyProgress = async () => {
   try {
     const usersSnapshot = await db.collection('users').get();
-    
     const now = getBangkokTime();
-    
+
     const currentDay = now.getDay();
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
-
-    let totalSent = 0;
-
 
     for (const userDoc of usersSnapshot.docs) {
       const uid = userDoc.id;
@@ -253,7 +224,6 @@ const triggerWeeklyProgress = async () => {
           const progress = await calculateWeeklyProgress(uid);
           await createWeeklyProgress(uid, progress);
           console.log(`✅ Weekly progress notification sent to user: ${uid} (${progress}%)`);
-          totalSent++;
         } catch (error) {
           console.error(`❌ Failed to send weekly progress to user ${uid}:`, error);
         }
@@ -283,16 +253,11 @@ const shouldSendGoalAchievement = (user, currentDay, currentHour, currentMinute)
 const checkGoalAchievements = async () => {
   try {
     const usersSnapshot = await db.collection('users').get();
-
     const now = getBangkokTime();
     
     const currentDay = now.getDay();
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
-
-
-    let totalSent = 0;
-
 
     for (const userDoc of usersSnapshot.docs) {
       const uid = userDoc.id;
@@ -305,7 +270,6 @@ const checkGoalAchievements = async () => {
             for (const achievement of achievements) {
               await createGoalAchievement(uid, achievement.type, achievement.value);
               console.log(`🎉 Goal achievement notification sent to user: ${uid} (${achievement.type})`);
-              totalSent++;
             }
           }
         } catch (error) {
@@ -324,7 +288,6 @@ const checkGoalAchievements = async () => {
 const initializeScheduler = () => {
   console.log('🕐 Initializing notification scheduler...');
   
-  // Schedule all notifications to run every minute
   // Schedule all notifications to run every minute
   cron.schedule('* * * * *', async () => {
     await triggerMealReminders();
