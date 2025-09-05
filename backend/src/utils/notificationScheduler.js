@@ -43,8 +43,12 @@ const getUsersWithMealReminders = async () => {
  * Check if user wants meal reminder for specific meal and day
  */
 const shouldSendMealReminder = (user, mealType, currentDay, currentHour, currentMinute) => {  
+  console.log(`\n🔍 Checking ${mealType} reminder for user ${user.uid}`);
+  
   // Check if meal reminders are enabled globally
   const preferences = user.notificationPreferences?.mealReminders;
+  console.log(`📋 User preferences:`, JSON.stringify(preferences, null, 2));
+  
   if (!preferences?.enabled) {
     console.log(`❌ Global meal reminders not enabled for user ${user.uid}`);
     return false;
@@ -52,6 +56,8 @@ const shouldSendMealReminder = (user, mealType, currentDay, currentHour, current
   
   // Get specific meal preferences
   const mealPreferences = preferences[mealType];
+  console.log(`📋 ${mealType} preferences:`, JSON.stringify(mealPreferences, null, 2));
+  
   if (!mealPreferences?.enabled) {
     console.log(`❌ ${mealType} reminders not enabled for user ${user.uid}`);
     return false;
@@ -59,18 +65,23 @@ const shouldSendMealReminder = (user, mealType, currentDay, currentHour, current
 
   // Check if the current day is in the meal's active days
   const todayName = DAY_NAMES[currentDay];
+  console.log(`📅 Checking for day: ${todayName}`);
+  
   if (!Array.isArray(mealPreferences.days)) {
     console.log(`❌ No days configured for ${mealType} reminders (user ${user.uid})`);
     return false;
   }
 
+  console.log(`📅 Configured days:`, mealPreferences.days);
   if (!mealPreferences.days.includes(todayName)) {
     console.log(`❌ ${todayName} not in active days for ${mealType} (user ${user.uid})`);
     return false;
   }
 
   // Check if it's the right time for the reminder
+  console.log(`⏰ Checking time: Current ${currentHour}:${currentMinute}, Target:`, mealPreferences.time);
   const timeMatch = isMatchingTime(mealPreferences.time, currentHour, currentMinute);
+  console.log(timeMatch ? '✅ Time matches!' : '❌ Time does not match');
   
   return timeMatch;
 };
