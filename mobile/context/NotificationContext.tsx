@@ -23,14 +23,79 @@ import {
   updateDoc,
   doc,
 } from "firebase/firestore";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const defaultPreferences: NotificationPreferences = {
+  mealReminders: {
+    enabled: true,
+    breakfast: {
+      enabled: true,
+      time: { hour: 8, minute: 0 },
+      days: [
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday",
+      ],
+    },
+    lunch: {
+      enabled: true,
+      time: { hour: 12, minute: 0 },
+      days: [
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday",
+      ],
+    },
+    dinner: {
+      enabled: true,
+      time: { hour: 18, minute: 0 },
+      days: [
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday",
+      ],
+    },
+  },
+  weeklyProgress: {
+    enabled: true,
+    time: { hour: 9, minute: 0 },
+    day: "sunday",
+  },
+  goalAchievements: {
+    enabled: true,
+    time: { hour: 21, minute: 0 },
+    days: [
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+      "saturday",
+      "sunday",
+    ],
+  },
+};
 
 // Configure local notification behavior
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
+    shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
-    shouldShowBanner: true,   // iOS specific
-    shouldShowList: true,     // iOS specific
+    shouldShowBanner: true, // iOS specific
+    shouldShowList: true, // iOS specific
     ios: {
       _displayInForeground: true,
     },
@@ -104,73 +169,63 @@ export function useNotificationContext() {
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [preferences, setPreferences] =
+    useState<NotificationPreferences>(defaultPreferences);
+  const [loading, setLoading] = useState(true);
+
   const unsubscribeRef = useRef<(() => void) | null>(null);
   const isFirstLoadRef = useRef(true);
-
-  const [preferences, setPreferences] = useState<NotificationPreferences>({
-    mealReminders: {
-      enabled: true,
-      breakfast: {
-        enabled: true,
-        time: { hour: 8, minute: 0 }, // Updated to object
-        days: [
-          "monday",
-          "tuesday",
-          "wednesday",
-          "thursday",
-          "friday",
-          "saturday",
-          "sunday",
-        ],
-      },
-      lunch: {
-        enabled: true,
-        time: { hour: 12, minute: 0 }, // Updated to object
-        days: [
-          "monday",
-          "tuesday",
-          "wednesday",
-          "thursday",
-          "friday",
-          "saturday",
-          "sunday",
-        ],
-      },
-      dinner: {
-        enabled: true,
-        time: { hour: 18, minute: 0 }, // Updated to object
-        days: [
-          "monday",
-          "tuesday",
-          "wednesday",
-          "thursday",
-          "friday",
-          "saturday",
-          "sunday",
-        ],
-      },
-    },
-    weeklyProgress: {
-      enabled: true,
-      time: { hour: 9, minute: 0 }, // Updated to object
-      day: "sunday",
-    },
-    goalAchievements: {
-      enabled: true,
-      time: { hour: 21, minute: 0 }, // Updated to object
-      days: [
-        "monday",
-        "tuesday",
-        "wednesday",
-        "thursday",
-        "friday",
-        "saturday",
-        "sunday",
-      ],
-    },
-  });
+  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingUpdatesRef = useRef<Partial<NotificationPreferences>>({});
 
   const hasUnread = notifications.some((n) => !n.read);
+
+  //  Debounced batch updates
+  const debouncedUpdatePreferences = useCallback(
+    (newPreferences: Partial<NotificationPreferences>) => {
+      // Merge with pending updates
+      Object.assign(pendingUpdatesRef.current, newPreferences);
+
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+      }
+
+      updateTimeoutRef.current = setTimeout(async () => {
+        const updates = { ...pendingUpdatesRef.current };
+        pendingUpdatesRef.current = {}; // Clear pending
+
+        try {
+          const user = auth.currentUser;
+          if (!user) return;
+
+          const finalPreferences = { ...preferences, ...updates };
+
+          // Background API call (non-blocking)
+          fetch(
+            `${process.env.EXPO_PUBLIC_API_URL}/api/v1/notifications/preferences`,
+            {
+              method: "PATCH",
+              headers: {
+                Authorization: `Bearer ${await user.getIdToken()}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(finalPreferences),
+            }
+          ).catch(console.error); // Silent fail for better UX
+
+          // Update Firestore as backup
+          await updateDoc(doc(db, "users", user.uid), {
+            notificationPreferences: finalPreferences,
+          });
+
+          console.log("✅ Preferences synced to backend");
+        } catch (error) {
+          console.error("❌ Error syncing preferences:", error);
+        }
+      }, 1000); // Batch updates every 1 second
+    },
+    [preferences]
+  );
 
   // Register for push notifications with Expo
   const registerForPushNotificationsAsync = async () => {
@@ -303,33 +358,31 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   // Trigger local notification
   const triggerLocalNotification = useCallback(async (notification: any) => {
-    try {
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: notification.title || "Nutritor AI",
-          body: notification.body || "You have a new notification",
-          data: notification.type || {},
-          sound: "default",
-        },
-        trigger: null, // Show immediately
-      });
-      console.log(`✅ Local notification triggered:`, notification.title);
-    } catch (error) {
-      console.error("❌ Error triggering local notification:", error);
+    if (Platform.OS === "ios" || Platform.OS === "web") {
+      try {
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: notification.title || "Nutritor AI",
+            body: notification.body || "You have a new notification",
+            data: notification.type || {},
+            sound: "default",
+          },
+          trigger: null, // Show immediately
+        });
+        console.log(`✅ Local notification triggered:`, notification.title);
+      } catch (error) {
+        console.error("❌ Error triggering local notification:", error);
+      }
     }
   }, []);
 
-  // Start Firestore listener
+  // Efficient Firestore listener with batching
   const startListening = useCallback(() => {
     const currentUser = auth.currentUser;
-    if (!currentUser) {
-      console.warn("Cannot start listening: No user is logged in");
-      return;
-    }
+    if (!currentUser) return;
 
     const uid = currentUser.uid;
-    console.log(`🔥 Starting Firestore listener for user:`, uid);
-    console.log("📧 User email:", currentUser.email);
+    console.log(`🔥 Starting optimized Firestore listener for:`, uid);
 
     // Stop existing listener
     if (unsubscribeRef.current) {
@@ -340,64 +393,82 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       const notificationsRef = collection(db, "users", uid, "notifications");
       const q = query(notificationsRef, orderBy("createdAt", "desc"));
 
-      const unsubscribe = onSnapshot(
-        q,
-        (snapshot) => {
-          console.log(
-            `📱 Firestore snapshot received, changes:`,
-            snapshot.docChanges().length
-          );
+      // Batch changes to prevent excessive re-renders
+      let batchTimeout: NodeJS.Timeout | null = null;
+      const pendingChanges: any[] = [];
 
-          snapshot.docChanges().forEach((change: DocumentChange) => {
-            const data = change.doc.data();
-            const notification = {
-              id: change.doc.id,
-              title: data.title,
-              body: data.body,
-              message: data.message || `${data.title}: ${data.body}`,
-              read: data.read || false,
-              type: data.type,
-              createdAt: data.createdAt,
-            };
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        // Collect all changes
+        snapshot.docChanges().forEach((change) => {
+          const data = change.doc.data();
+          const notification = {
+            id: change.doc.id,
+            title: data.title,
+            body: data.body,
+            message: data.message || `${data.title}: ${data.body}`,
+            read: data.read || false,
+            type: data.type,
+            createdAt: data.createdAt,
+          };
 
-            if (change.type === "added") {
-              // Trigger local notification for new notifications (not on first load)
-              if (!isFirstLoadRef.current) {
-                triggerLocalNotification(notification);
-              }
+          if (change.type === "added") {
+            pendingChanges.push({ type: "add", notification });
+
+            // Trigger local notification for new ones (not on first load)
+            if (!isFirstLoadRef.current) {
+              triggerLocalNotification(notification);
             }
-          });
+          } else if (change.type === "modified") {
+            pendingChanges.push({ type: "modify", notification });
+          }
+        });
 
-          // Update state with all notifications
-          const allNotifications = snapshot.docs.map((doc) => {
-            const data = doc.data();
-            return {
-              id: doc.id,
-              title: data.title,
-              body: data.body,
-              message: data.message || `${data.title}: ${data.body}`,
-              read: data.read || false,
-              type: data.type,
-              createdAt: data.createdAt,
-            };
-          });
+        // Batch process changes every 200ms
+        if (batchTimeout) clearTimeout(batchTimeout);
 
-          console.log(
-            `📋 Setting ${allNotifications.length} notifications in state`
-          );
-          setNotifications(allNotifications);
-          isFirstLoadRef.current = false;
-        },
-        (error) => {
-          console.error("❌ Firestore listener error:", error);
-        }
-      );
+        batchTimeout = setTimeout(() => {
+          if (pendingChanges.length > 0) {
+            setNotifications((prev) => {
+              let updated = [...prev];
+
+              pendingChanges.forEach(({ type, notification }) => {
+                if (type === "add") {
+                  // Add if not exists
+                  if (!updated.find((n) => n.id === notification.id)) {
+                    updated.unshift(notification);
+                  }
+                } else if (type === "modify") {
+                  // Update existing
+                  const index = updated.findIndex(
+                    (n) => n.id === notification.id
+                  );
+                  if (index >= 0) {
+                    updated[index] = notification;
+                  }
+                }
+              });
+
+              // Sort by createdAt and limit to recent 100 for performance
+              return updated
+                .sort(
+                  (a, b) =>
+                    (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)
+                )
+                .slice(0, 100);
+            });
+
+            pendingChanges.length = 0; // Clear
+            setLoading(false);
+            isFirstLoadRef.current = false;
+          }
+        }, 200);
+      });
 
       unsubscribeRef.current = unsubscribe;
     } catch (error) {
-      console.error("❌ Error setting up Firestore listener:", error);
+      console.error("❌ Error setting up optimized Firestore listener:", error);
     }
-  }, [triggerLocalNotification]);
+  }, []);
 
   // Stop listening
   const stopListening = useCallback(() => {
@@ -406,6 +477,22 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       unsubscribeRef.current();
       unsubscribeRef.current = null;
     }
+  }, []);
+
+  // Load cached preferences on startup
+  useEffect(() => {
+    const loadCachedPreferences = async () => {
+      try {
+        const cached = await AsyncStorage.getItem("notification_preferences");
+        if (cached) {
+          setPreferences(JSON.parse(cached));
+        }
+      } catch (error) {
+        console.error("Failed to load cached preferences:", error);
+      }
+    };
+
+    loadCachedPreferences();
   }, []);
 
   // Auto-start listener when user authentication state changes
@@ -541,6 +628,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, [startListening, stopListening]);
 
   const markAsRead = useCallback(async (id: string) => {
+    // Immediate UI update
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+    );
+
+    // Background sync
     try {
       const user = auth.currentUser;
       if (user) {
@@ -548,67 +641,49 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           read: true,
         });
       }
-
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-      );
     } catch (error) {
       console.error("❌ Error marking notification as read:", error);
+      // Revert optimistic update on failure
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, read: false } : n))
+      );
     }
   }, []);
 
+  // Optimistic updates with caching
   const updatePreferences = useCallback(
     async (newPreferences: Partial<NotificationPreferences>) => {
+      // Immediate optimistic update for smooth UX
+      const updatedPreferences = { ...preferences, ...newPreferences };
+      setPreferences(updatedPreferences);
+
+      // Cache locally for offline access
       try {
-        const user = auth.currentUser;
-        if (!user) {
-          console.error("❌ No authenticated user found");
-          return;
-        }
-
-        const updatedPreferences = { ...preferences, ...newPreferences };
-
-        // Update backend via API
-        const response = await fetch(
-          `https://nutritor-ai.onrender.com/api/v1/notifications/preferences`,
-          {
-            method: "PATCH",
-            headers: {
-              Authorization: `Bearer ${await user.getIdToken()}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(updatedPreferences),
-          }
+        await AsyncStorage.setItem(
+          "notification_preferences",
+          JSON.stringify(updatedPreferences)
         );
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success) {
-            console.log("✅ Notification preferences updated on backend");
-            setPreferences(updatedPreferences);
-          } else {
-            console.error(
-              "❌ Failed to update preferences on backend:",
-              data.message
-            );
-          }
-        } else {
-          console.error(
-            "❌ Failed to update preferences - HTTP error:",
-            response.status
-          );
-        }
-
-        // Also update Firestore directly as backup
-        await updateDoc(doc(db, "users", user.uid), {
-          notificationPreferences: updatedPreferences,
-        });
       } catch (error) {
-        console.error("❌ Error updating notification preferences:", error);
+        console.error("Failed to cache preferences:", error);
       }
+
+      // Schedule debounced backend sync
+      debouncedUpdatePreferences(newPreferences);
     },
-    [preferences]
+    [preferences, debouncedUpdatePreferences]
   );
+
+  // Cleanup
+  useEffect(() => {
+    return () => {
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+      }
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+      }
+    };
+  }, []);
 
   const refreshNotifications = useCallback(async () => {
     try {
@@ -622,19 +697,20 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
   }, [startListening, stopListening]);
 
+  const value = {
+    notifications,
+    hasUnread: notifications.some((n) => !n.read),
+    preferences,
+    markAsRead,
+    updatePreferences, 
+    startListening,
+    stopListening,
+    refreshNotifications,
+    loading,
+  };
+
   return (
-    <NotificationContext.Provider
-      value={{
-        notifications,
-        hasUnread,
-        preferences,
-        markAsRead,
-        updatePreferences,
-        startListening,
-        stopListening,
-        refreshNotifications,
-      }}
-    >
+    <NotificationContext.Provider value={value}>
       {children}
     </NotificationContext.Provider>
   );
