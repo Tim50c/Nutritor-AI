@@ -2,7 +2,7 @@ import BaseModel from "./base-model";
 import NutritionModel from "@/models/nutrition-model";
 
 interface AnalysisStats {
-  date: string;
+  period: string;
   calories: number;
   protein: number;
   carbs: number;
@@ -10,10 +10,10 @@ interface AnalysisStats {
 }
 
 interface AnalysisModel extends BaseModel {
-  goalWeight: number;
+  weightGoal: number;
   currentWeight: number;
-  nutritionConsumed: NutritionModel;
   bmi: number;
+  totalNutrition: NutritionModel;
   dailyStats: AnalysisStats[];
   weeklyStats: AnalysisStats[];
   monthlyStats: AnalysisStats[];

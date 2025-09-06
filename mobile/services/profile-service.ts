@@ -1,5 +1,5 @@
 import { authInstance } from "@/config/api/axios";
-import { IProfileUpdateInput } from "@/interfaces";
+import { BaseResponse, IProfileUpdateInput } from "@/interfaces";
 import { ProfileModel } from "@/models";
 
 class ProfileService {
@@ -13,10 +13,10 @@ class ProfileService {
     return ProfileService.instance;
   }
 
-  public async getProfile(): Promise<ProfileModel> {
+  public async getProfile(): Promise<BaseResponse<ProfileModel>> {
     try {
       const response = await authInstance.get("/profile");
-      return response.data as ProfileModel;
+      return response.data as BaseResponse<ProfileModel>;
     } catch (error: any) {
       console.log(error);
       throw new Error("An error occurred while getting the profile.");

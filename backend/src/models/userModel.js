@@ -1,5 +1,7 @@
 class User {
-  constructor(id, firstname, lastname, email, dob, gender, height, weightCurrent, weightGoal, targetNutrition, fcmToken, notificationPreferences, onboardingComplete) {
+  constructor(id, firstname, lastname, email, dob, gender, height, weightCurrent, weightGoal, 
+    targetNutrition, fcmToken, notificationPreferences, onboardingComplete, avatar = null, 
+    unitPreferences = { weight: 'kg', height: 'cm' }) {
     this.id = id;
     this.firstname = firstname;
     this.lastname = lastname;
@@ -13,6 +15,8 @@ class User {
     this.fcmToken = fcmToken;
     this.notificationPreferences = notificationPreferences;
     this.onboardingComplete = onboardingComplete;
+    this.avatar = avatar;
+    this.unitPreferences = unitPreferences;
   }
 
   static fromFirestore(doc) {
@@ -30,7 +34,9 @@ class User {
       data.targetNutrition, 
       data.fcmToken, 
       data.notificationPreferences, 
-      data.onboardingComplete
+      data.onboardingComplete,
+      data.avatar || null,
+      data.unitPreferences || { weight: 'kg', height: 'cm' }
     );
   }
 
@@ -48,6 +54,8 @@ class User {
       fcmToken: this.fcmToken,
       notificationPreferences: this.notificationPreferences,
       onboardingComplete: this.onboardingComplete,
+      avatar: this.avatar,
+      unitPreferences: this.unitPreferences,
     };
   }
 }

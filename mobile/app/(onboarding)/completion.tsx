@@ -1,4 +1,4 @@
-import React, { useState } from 'react'; // <-- FIX IS HERE: Added useState
+import React, { useState } from 'react';
 import { View, SafeAreaView, StyleSheet, Image, Alert } from 'react-native';
 import { Text } from '../../components/CustomText';
 import { useRouter } from 'expo-router';
@@ -11,6 +11,10 @@ import CustomButtonAuth from '../../components/CustomButtonAuth';
 
 const celebrationImage = require('../../assets/images/celebration.png');
 
+// --- CONVERSION UTILITY ---
+const KG_TO_LBS = 2.20462;
+const lbsToKg = (lbs: number) => (lbs / KG_TO_LBS);
+
 export default function CompletionScreen() {
   const router = useRouter();
   const { data } = useOnboarding();
@@ -19,7 +23,7 @@ export default function CompletionScreen() {
 
   const handleFinishOnboarding = async () => {
     setIsSubmitting(true);
-    console.log("--- Starting Onboarding Completion ---"); // <-- LOG 1
+    console.log("--- Starting Onboarding Completion ---");
 
     try {
       const user = auth.currentUser;
@@ -28,62 +32,71 @@ export default function CompletionScreen() {
       }
       
       const idToken = await user.getIdToken();
-      console.log("Successfully got user ID token."); // <-- LOG 2
+      console.log("Successfully got user ID token.");
 
       const currentYear = new Date().getFullYear();
       const birthYear = currentYear - data.age;
       const dob = new Date(birthYear, 0, 1).toISOString();
 
+      // --- CONVERSION LOGIC ---
+      // Convert weight to KG if the user entered it in LBS.
+      // The backend MUST always receive weight in KG.
+      const weightInKg = data.weightUnit === 'lbs' ? lbsToKg(data.weightCurrent) : data.weightCurrent;
+      const goalWeightInKg = data.weightUnit === 'lbs' ? lbsToKg(data.weightGoal) : data.weightGoal;
+      
+      // Convert height to CM if the user entered it in FT.
+      // The backend MUST always receive height in CM.
+      const heightInCm = data.heightUnit === 'ft' ? (data.height * 30.48) : data.height;
+
       const profilePayload = {
         dob,
         gender: data.gender,
-        height: data.height,
-        weightCurrent: data.weightCurrent,
-        weightGoal: data.weightGoal,
+        height: heightInCm, // Always send CM
+        weightCurrent: weightInKg, // Always send KG
+        weightGoal: goalWeightInKg, // Always send KG
         targetNutrition: data.targetNutrition,
         onboardingComplete: true,
+        unitPreferences: {
+          weight: data.weightUnit,
+          height: data.heightUnit,
+        },
       };
 
-      console.log("Sending PATCH request to /api/v1/profile with payload:", JSON.stringify(profilePayload, null, 2)); // <-- LOG 3
+      console.log("Sending PATCH request to /api/v1/profile with CONVERTED payload:", JSON.stringify(profilePayload, null, 2));
 
       // Make the first API call to UPDATE the profile
       const response = await apiClient.patch('/api/v1/profile', profilePayload, {
         headers: { Authorization: `Bearer ${idToken}` }
       });
 
-      console.log("PATCH response received:", response.data); // <-- LOG 4
+      console.log("PATCH response received:", response.data);
 
       if (!response.data.success) {
-        // If the backend says the operation failed, throw an error to be caught
         throw new Error(response.data.error || "Backend returned success: false.");
       }
 
-      console.log("Profile updated successfully. Now fetching the full updated profile..."); // <-- LOG 5
+      console.log("Profile updated successfully. Now fetching the full updated profile...");
 
       // Make the second API call to GET the updated profile
       const updatedProfileResponse = await apiClient.get('/api/v1/profile', {
           headers: { Authorization: `Bearer ${idToken}` },
       });
 
-      console.log("GET response received:", updatedProfileResponse.data); // <-- LOG 6
+      console.log("GET response received:", updatedProfileResponse.data);
 
       if (updatedProfileResponse.data.success) {
-          console.log("Updating UserContext with new profile. Navigation should happen now."); // <-- LOG 7
+          console.log("Updating UserContext with new profile. Navigation should happen now.");
           setUserProfile(updatedProfileResponse.data.data);
       } else {
            throw new Error('Failed to retrieve updated profile after setup.');
       }
 
     } catch (error: any) {
-      // --- THIS IS THE MOST IMPORTANT PART ---
-      console.error("--- ONBOARDING COMPLETION FAILED ---"); // <-- LOG 8
-
-      // Axios errors have a 'response' object with more details
+      console.error("--- ONBOARDING COMPLETION FAILED ---");
       if (error.response) {
         console.error("Axios Error Details:", JSON.stringify(error.response.data, null, 2));
         console.error("Status Code:", error.response.status);
       } else {
-        // For non-Axios errors or network issues
         console.error("General Error:", error.message);
       }
       
@@ -92,8 +105,7 @@ export default function CompletionScreen() {
         error.response?.data?.error || error.message || "An unknown error occurred. Please try again."
       );
     } finally {
-      // This will run whether the try block succeeded or failed
-      console.log("--- Onboarding Completion Finished ---"); // <-- LOG 9
+      console.log("--- Onboarding Completion Finished ---");
       setIsSubmitting(false);
     }
   };
