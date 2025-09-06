@@ -5,9 +5,9 @@ const {
   getDiet, 
   addFoodToDiet, 
   removeFoodFromDiet, 
-  getDailyNutritionConsumption,
-  getWeeklyNutritionConsumption,
-  getMonthlyNutritionConsumption
+  getDailyNutrition,
+  getWeeklyNutrition,
+  getMonthlyNutrition
 } = require('../controllers/dietController');
 
 const authMiddleware = require('../middleware/authMiddleware');
