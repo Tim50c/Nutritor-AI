@@ -358,8 +358,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   // Trigger local notification
   const triggerLocalNotification = useCallback(async (notification: any) => {
     // ✅ Now works for both iOS and Android when app is active
-    // if (AppState.currentState === 'active') {
-    if (Platform.OS === 'ios') {
+    if (AppState.currentState === 'active') {
       try {
         await Notifications.scheduleNotificationAsync({
           content: {

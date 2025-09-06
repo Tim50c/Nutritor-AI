@@ -38,20 +38,19 @@ const SectionHeader = ({
                 }),
               },
             ],
-            marginRight: 12,
+            marginRight: 14,
           }}
         >
           <icons.forwardArrow
             width={16}
             height={16}
-            color={enabled ? "#007AFF" : "#666"}
           />
         </Animated.View>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 0.9 }}>
           <Text style={{ fontSize: 18, fontWeight: "600", color: "#333" }}>
             {title}
           </Text>
-          <Text style={{ fontSize: 14, color: "#666", marginTop: 4 }}>
+          <Text style={{ fontSize: 14, color: "#666" }}>
             {description}
           </Text>
         </View>
