@@ -158,7 +158,7 @@ const MealRemindersSection = ({
                     <Text
                       style={{
                         fontSize: 16,
-                        color: "#007AFF",
+                        color: "#ff5a16",
                         fontWeight: "500",
                       }}
                     >
@@ -200,7 +200,7 @@ const MealRemindersSection = ({
                             backgroundColor: (
                               mealReminders[meal]?.days || []
                             ).includes(day)
-                              ? "#007AFF"
+                              ? "#ff5a16"
                               : "#f0f0f0",
                           }}
                         >

@@ -115,10 +115,10 @@ const styles = StyleSheet.create({
     left: "5%",
     right: "5%",
     height: ITEM_HEIGHT,
-    backgroundColor: "rgba(0, 122, 255, 0.1)",
+    backgroundColor: "rgba(255, 90, 22, 0.1)",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#ff5a16",
+    borderColor: "rgba(255, 90, 22, 1)",
     zIndex: -1,
   },
   item: {

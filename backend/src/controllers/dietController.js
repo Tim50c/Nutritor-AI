@@ -1,72 +1,189 @@
 const { db, admin } = require('../config/firebase');
 const Diet = require('../models/dietModel');
 const Food = require('../models/foodModel');
+const { getNutritionForDates } = require('../utils/dietHelper');
 
-// @desc    Get consumed nutrition for a specific date
-// @route   GET /api/v1/diet/nutrition?date=YYYY-MM-DD
-// @access  Private
-exports.getConsumedNutrition = async (req, res, next) => {
+// @desc Get daily nutrition for 7 days of a week
+// @route GET /api/v1/diet/nutrition/daily?startDate=YYYY-MM-DD
+// @access Private
+exports.getDailyNutrition = async (req, res, next) => {
   try {
     const { uid } = res.locals;
-    const { date } = req.query;
+    const { startDate } = req.query;
 
-    if (!date) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Date parameter is required (format: YYYY-MM-DD)' 
-      });
+    // If no startDate provided, use current week (starting from Monday)
+    let start;
+    if (startDate && /^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
+      start = new Date(startDate);
+    } else {
+      // Get current week starting from Monday
+      const now = new Date();
+      const dayOfWeek = now.getDay();
+      const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Handle Sunday as 0
+      start = new Date(now);
+      start.setDate(now.getDate() + mondayOffset);
     }
 
-    const dietDoc = await db.collection('users').doc(uid).collection('diets').doc(date).get();
-    
-    if (!dietDoc.exists) {
-      return res.status(200).json({ 
-        success: true, 
-        data: {
-          date,
-          consumedNutrition: { calories: 0, protein: 0, carbs: 0, fat: 0 },
-          totalFoods: 0
-        }
-      });
+    // Generate 7 days starting from the start date
+    const dates = [];
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(start);
+      date.setDate(start.getDate() + i);
+      dates.push(date.toISOString().slice(0, 10));
     }
 
-    const diet = Diet.fromFirestore(dietDoc);
-    
-    // Get detailed food information for each food in the diet
-    const foodsWithDetails = await Promise.all(
-      diet.foods.map(async (dietFood) => {
-        const foodDoc = await db.collection('foods').doc(dietFood.foodId).get();
-        if (foodDoc.exists) {
-          const food = Food.fromFirestore(foodDoc);
-          return food;
-        }
-        return null;
-      })
-    );
+    const dailyNutritionArray = await getNutritionForDates(uid, dates);
 
-    // Filter out null values (foods that don't exist anymore)
-    const validFoods = foodsWithDetails.filter(food => food !== null);
+    // Calculate weekly total
+    const weeklyTotal = dailyNutritionArray.reduce((acc, day) => ({
+      calories: acc.calories + day.totalNutrition.calories,
+      protein: Math.round((acc.protein + day.totalNutrition.protein) * 10) / 10,
+      carbs: Math.round((acc.carbs + day.totalNutrition.carbs) * 10) / 10,
+      fat: Math.round((acc.fat + day.totalNutrition.fat) * 10) / 10
+    }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
 
-    // Calculate total consumed nutrition
-    const consumedNutrition = validFoods.reduce(
-      (total, food) => ({
-        calories: total.calories + food.nutrition.cal,
-        protein: Math.round((total.protein + food.nutrition.protein) * 10) / 10,
-        carbs: Math.round((total.carbs + food.nutrition.carbs) * 10) / 10,
-        fat: Math.round((total.fat + food.nutrition.fat) * 10) / 10
-      }),
-      { calories: 0, protein: 0, carbs: 0, fat: 0 }
-    );
-
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       data: {
-        date,
-        consumedNutrition,
-        totalFoods: validFoods.length,
-        foodNames: validFoods.map(food => food.name) // Optional: list of consumed foods
+        weekPeriod: `${dates[0]} to ${dates[6]}`,
+        dailyNutritionArray,
+        weeklyTotal
       }
     });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+};
+
+// @desc Get weekly nutrition for latest 7 weeks
+// @route GET /api/v1/diet/nutrition/weekly
+// @access Private
+exports.getWeeklyNutrition = async (req, res, next) => {
+  try {
+    const { uid } = res.locals;
+
+    const weeklyData = [];
+    const today = new Date();
+
+    // Get data for the latest 7 weeks
+    for (let weekIndex = 6; weekIndex >= 0; weekIndex--) {
+      // Calculate start of each week (Monday)
+      const weekStart = new Date(today);
+      const dayOfWeek = today.getDay();
+      const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      weekStart.setDate(today.getDate() + mondayOffset - (weekIndex * 7));
+
+      // Generate 7 days for this week
+      const weekDates = [];
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(weekStart);
+        date.setDate(weekStart.getDate() + i);
+        weekDates.push(date.toISOString().slice(0, 10));
+      }
+
+      // Get nutrition data for all days in this week
+      const weekNutritionArray = await getNutritionForDates(uid, weekDates);
+
+      // Calculate week total
+      const weekTotal = weekNutritionArray.reduce((acc, day) => ({
+        calories: acc.calories + day.totalNutrition.calories,
+        protein: Math.round((acc.protein + day.totalNutrition.protein) * 10) / 10,
+        carbs: Math.round((acc.carbs + day.totalNutrition.carbs) * 10) / 10,
+        fat: Math.round((acc.fat + day.totalNutrition.fat) * 10) / 10
+      }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+
+      weeklyData.push({
+        week: `${weekDates[0]} to ${weekDates[6]}`,
+        weekTotal,
+        dailyBreakdown: weekNutritionArray
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        period: 'Latest 7 weeks',
+        weeklyData
+      }
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+};
+
+// @desc Get monthly nutrition for latest 12 months
+// @route GET /api/v1/diet/nutrition/monthly
+// @access Private
+exports.getMonthlyNutrition = async (req, res, next) => {
+  try {
+    const { uid } = res.locals;
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    const monthlyData = [];
+
+    // Get data for the latest 12 months
+    for (let monthOffset = 11; monthOffset >= 0; monthOffset--) {
+      const targetDate = new Date(currentYear, currentMonth - monthOffset, 1);
+      const year = targetDate.getFullYear();
+      const month = targetDate.getMonth() + 1;
+
+      // Generate all dates for this month
+      const daysInMonth = new Date(year, month, 0).getDate();
+      const monthDates = [];
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dateStr = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+        monthDates.push(dateStr);
+      }
+
+      // Get nutrition data for all days in this month
+      const monthNutritionArray = await getNutritionForDates(uid, monthDates);
+
+      // Calculate month total
+      const monthTotal = monthNutritionArray.reduce((acc, day) => ({
+        calories: acc.calories + day.totalNutrition.calories,
+        protein: Math.round((acc.protein + day.totalNutrition.protein) * 10) / 10,
+        carbs: Math.round((acc.carbs + day.totalNutrition.carbs) * 10) / 10,
+        fat: Math.round((acc.fat + day.totalNutrition.fat) * 10) / 10
+      }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+
+      // Calculate days with data for averaging
+      const daysWithData = monthNutritionArray.filter(day => 
+        day.totalNutrition.calories > 0 || 
+        day.totalNutrition.protein > 0 || 
+        day.totalNutrition.carbs > 0 || 
+        day.totalNutrition.fat > 0
+      ).length;
+
+      const monthAverage = daysWithData > 0 ? {
+        calories: Math.round(monthTotal.calories / daysWithData),
+        protein: Math.round((monthTotal.protein / daysWithData) * 10) / 10,
+        carbs: Math.round((monthTotal.carbs / daysWithData) * 10) / 10,
+        fat: Math.round((monthTotal.fat / daysWithData) * 10) / 10
+      } : { calories: 0, protein: 0, carbs: 0, fat: 0 };
+
+      monthlyData.push({
+        month: `${year}-${month.toString().padStart(2, '0')}`,
+        monthTotal,
+        monthAverage,
+        daysWithData,
+        totalDaysInMonth: daysInMonth
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        period: 'Latest 12 months',
+        monthlyData
+      }
+    });
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, error: 'Server error' });
