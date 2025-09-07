@@ -41,7 +41,7 @@ app.use('/api/v1/auth', require('./routes/authRoutes'));
 app.use('/api/v1/nutrition', require('./routes/nutritionRoutes'));
 
 // Catch-all handler for undefined routes - return JSON instead of HTML
-app.use('*', (req, res) => {
+app.all('*', (req, res) => {
   res.status(404).json({
     success: false,
     error: `Route ${req.originalUrl} not found`
