@@ -40,7 +40,7 @@ const More = () => {
 
     try {
         const API_URL = process.env.EXPO_PUBLIC_API_URL;
-        const response = await fetch(`${API_URL}/profile`, {
+        const response = await fetch(`${API_URL}/api/v1/profile`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
@@ -49,19 +49,48 @@ const More = () => {
             body: JSON.stringify(payload),
         });
 
+        if (!response.ok) {
+            // Check if response is JSON
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `Server error: ${response.status}`);
+            } else {
+                // Response is likely HTML (404 page or similar)
+                const errorText = await response.text();
+                console.error('Non-JSON response:', errorText);
+                throw new Error(`Server error: ${response.status} - Invalid API endpoint`);
+            }
+        }
+
         const responseData = await response.json();
 
-        if (response.ok && responseData.success) {
+        if (responseData.success) {
             // Refetch profile to update context globally
             refetchUserProfile();
-            Alert.alert("Success", "Preferences saved!");
-            router.back();
+            Alert.alert("Success", "Preferences saved successfully!");
         } else {
             throw new Error(responseData.error || "Failed to save preferences.");
         }
     } catch (error) {
         console.error('Error saving preferences:', error);
-        Alert.alert("Save Failed", "An error occurred. Please try again.");
+        
+        // More specific error handling
+        let errorMessage = "An error occurred. Please try again.";
+        
+        if (error instanceof TypeError && error.message.includes('Network request failed')) {
+            errorMessage = "Network error. Please check your connection.";
+        } else if (error instanceof Error) {
+            if (error.message.includes('Invalid API endpoint')) {
+                errorMessage = "Server configuration error. Please contact support.";
+            } else if (error.message.includes('JSON Parse error')) {
+                errorMessage = "Server response error. Please try again.";
+            } else {
+                errorMessage = error.message;
+            }
+        }
+        
+        Alert.alert("Save Failed", errorMessage);
     }
   };
 
