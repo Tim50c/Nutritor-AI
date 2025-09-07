@@ -50,52 +50,130 @@ class DietService {
     }
   }
 
-  public async getConsumedNutrition(date: string): Promise<{
-    calories: number;
-    protein: number;
-    carbs: number;
-    fat: number;
+  public async getDailyNutrition(startDate?: string): Promise<{
+    success: boolean;
+    data: {
+      weekPeriod: string;
+      dailyNutritionArray: Array<{
+        date: string;
+        totalNutrition: {
+          calories: number;
+          protein: number;
+          carbs: number;
+          fat: number;
+        };
+      }>;
+      weeklyTotal: {
+        calories: number;
+        protein: number;
+        carbs: number;
+        fat: number;
+      };
+    };
   }> {
     try {
-      console.log("🍎 Starting getConsumedNutrition call:", {
-        date,
-        url: `/diet/nutrition?date=${date}`,
+      console.log("📊 Starting getDailyNutrition call:", {
+        startDate,
+        url: `/diet/nutrition/daily${startDate ? `?startDate=${startDate}` : ''}`,
         timestamp: new Date().toISOString(),
       });
 
-      const response = await authInstance.get(`/diet/nutrition?date=${date}`);
+      const response = await authInstance.get(
+        `/diet/nutrition/daily${startDate ? `?startDate=${startDate}` : ''}`
+      );
 
-      if (response.data.success) {
-        return response.data.data.consumedNutrition;
-      } else {
-        // Return zero nutrition if no data found
-        return { calories: 0, protein: 0, carbs: 0, fat: 0 };
-      }
+      return response.data;
     } catch (error: any) {
-      console.log("❌ Error fetching consumed nutrition:", {
-        message: error.message,
-        status: error.response?.status || "No response",
-        statusText: error.response?.statusText || "No status text",
-        url: `/diet/nutrition?date=${date}`,
-        responseData: error.response?.data || "No response data",
-        hasResponse: !!error.response,
-        errorType: error.constructor.name,
-        code: error.code,
-        fullError: {
-          name: error.name,
-          message: error.message,
-          code: error.code,
-          config: error.config
-            ? {
-                url: error.config.url,
-                method: error.config.method,
-                headers: error.config.headers,
-              }
-            : "No config",
-        },
+      console.log("❌ Error fetching daily nutrition:", error);
+      throw new Error("An error occurred while fetching daily nutrition.");
+    }
+  }
+
+  public async getWeeklyNutrition(startDate?: string, endDate?: string): Promise<{
+    success: boolean;
+    data: {
+      weekPeriod: string;
+      weeklyNutritionArray: Array<{
+        week: string;
+        totalNutrition: {
+          calories: number;
+          protein: number;
+          carbs: number;
+          fat: number;
+        };
+      }>;
+      monthlyTotal: {
+        calories: number;
+        protein: number;
+        carbs: number;
+        fat: number;
+      };
+    };
+  }> {
+    try {
+      console.log("📈 Starting getWeeklyNutrition call:", {
+        startDate,
+        endDate,
+        timestamp: new Date().toISOString(),
       });
-      // Return zero nutrition on error
-      return { calories: 0, protein: 0, carbs: 0, fat: 0 };
+
+      const params = new URLSearchParams();
+      if (startDate) params.append('startDate', startDate);
+      if (endDate) params.append('endDate', endDate);
+      
+      const queryString = params.toString();
+      const url = `/diet/nutrition/weekly${queryString ? `?${queryString}` : ''}`;
+
+      const response = await authInstance.get(url);
+
+      return response.data;
+    } catch (error: any) {
+      console.log("❌ Error fetching weekly nutrition:", error);
+      throw new Error("An error occurred while fetching weekly nutrition.");
+    }
+  }
+
+  public async getMonthlyNutrition(month?: string, year?: string): Promise<{
+    success: boolean;
+    data: {
+      monthPeriod: string;
+      monthlyNutritionArray: Array<{
+        month: string;
+        totalNutrition: {
+          calories: number;
+          protein: number;
+          carbs: number;
+          fat: number;
+        };
+      }>;
+      yearlyTotal: {
+        calories: number;
+        protein: number;
+        carbs: number;
+        fat: number;
+      };
+    };
+  }> {
+    try {
+      console.log("📅 Starting getMonthlyNutrition call:", {
+        month,
+        year,
+        timestamp: new Date().toISOString(),
+      });
+
+      const params = new URLSearchParams();
+      if (month) params.append('month', month);
+      if (year) params.append('year', year);
+      
+      const queryString = params.toString();
+      const url = `/diet/nutrition/monthly${queryString ? `?${queryString}` : ''}`;
+
+      const response = await authInstance.get(url);
+
+      return response.data;
+    } catch (error: any) {
+      console.log("❌ Error fetching monthly nutrition:", error);
+      throw new Error("An error occurred while fetching monthly nutrition.");
     }
   }
 }

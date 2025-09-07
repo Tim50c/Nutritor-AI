@@ -18,19 +18,27 @@ exports.getDailyNutrition = async (req, res, next) => {
     } else {
       // Get current week starting from Monday
       const now = new Date();
-      const dayOfWeek = now.getDay();
-      const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Handle Sunday as 0
+      const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+      const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // If Sunday, go back 6 days to Monday
       start = new Date(now);
       start.setDate(now.getDate() + mondayOffset);
     }
 
-    // Generate 7 days starting from the start date
+    console.log(`📅 Daily Nutrition Debug:`, {
+      originalDate: startDate,
+      calculatedStart: start.toISOString().slice(0, 10),
+      dayOfWeek: start.getDay() // Should be 1 (Monday)
+    });
+
+    // Generate 7 days starting from the start date (Monday to Sunday)
     const dates = [];
     for (let i = 0; i < 7; i++) {
       const date = new Date(start);
       date.setDate(start.getDate() + i);
       dates.push(date.toISOString().slice(0, 10));
     }
+
+    console.log(`📅 Generated dates:`, dates);
 
     const dailyNutritionArray = await getNutritionForDates(uid, dates);
 
