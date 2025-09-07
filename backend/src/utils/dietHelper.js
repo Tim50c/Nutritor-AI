@@ -1,3 +1,7 @@
+const { db } = require('../config/firebase');
+const Diet = require('../models/dietModel');
+const Food = require('../models/foodModel');
+
 // Helper: fetch user's diet document by date
 async function fetchDietByDate(uid, date) {
   const dietDoc = await db.collection('users').doc(uid).collection('diets').doc(date).get();
@@ -41,3 +45,9 @@ async function getNutritionForDates(uid, dates) {
   }
   return results;
 }
+
+module.exports = {
+  fetchDietByDate,
+  calculateTotalNutrition,
+  getNutritionForDates
+};
