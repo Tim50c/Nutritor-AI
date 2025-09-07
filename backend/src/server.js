@@ -13,12 +13,6 @@ app.use(express.json());
 // Enable CORS
 app.use(cors());
 
-// Middleware to ensure JSON responses
-app.use((req, res, next) => {
-  res.setHeader('Content-Type', 'application/json');
-  next();
-});
-
 // Health check route
 app.get("/", (req, res) => {
   res.json({ status: "ok", message: "Nutritor-AI backend is running 🚀" });
@@ -39,23 +33,6 @@ app.use('/api/v1/password', require('./routes/passwordRoutes'));
 app.use('/api/v1/chat', require('./routes/chatbotRoutes'));
 app.use('/api/v1/auth', require('./routes/authRoutes'));
 app.use('/api/v1/nutrition', require('./routes/nutritionRoutes'));
-
-// Catch-all handler for undefined routes - return JSON instead of HTML
-app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    error: `Route ${req.originalUrl} not found`
-  });
-});
-
-// Global error handler
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({
-    success: false,
-    error: 'Something went wrong!'
-  });
-});
 
 // Initialize notification scheduler
 const { initializeScheduler } = require('./utils/notificationScheduler');
