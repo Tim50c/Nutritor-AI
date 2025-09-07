@@ -27,7 +27,8 @@ exports.getDailyNutrition = async (req, res, next) => {
     console.log(`📅 Daily Nutrition Debug:`, {
       originalDate: startDate,
       calculatedStart: start.toISOString().slice(0, 10),
-      dayOfWeek: start.getDay() // Should be 1 (Monday)
+      dayOfWeek: start.getDay(), // Should be 1 (Monday)
+      today: new Date().toISOString().slice(0, 10)
     });
 
     // Generate 7 days starting from the start date (Monday to Sunday)
@@ -38,9 +39,14 @@ exports.getDailyNutrition = async (req, res, next) => {
       dates.push(date.toISOString().slice(0, 10));
     }
 
-    console.log(`📅 Generated dates:`, dates);
+    console.log(`📅 Generated dates (Mon-Sun):`, dates);
 
     const dailyNutritionArray = await getNutritionForDates(uid, dates);
+
+    console.log(`📊 Raw nutrition data:`, dailyNutritionArray.map(d => ({
+      date: d.date,
+      calories: d.totalNutrition.calories
+    })));
 
     // Calculate weekly total
     const weeklyTotal = dailyNutritionArray.reduce((acc, day) => ({
