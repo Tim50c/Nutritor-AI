@@ -21,6 +21,14 @@ import {
 import ModalDateTimePicker from "react-native-modal-datetime-picker";
 import { getAuth } from "firebase/auth";
 
+// --- DATE FORMATTING UTILS ---
+const formatDateForAPI = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 // --- UNIT CONVERSION UTILS ---
 const KG_TO_LBS = 2.20462;
 const CM_TO_INCHES = 0.393701;
@@ -180,7 +188,7 @@ const Profile = () => {
         const profileData = {
           firstname: name.trim().split(" ")[0] || "",
           lastname: name.trim().split(" ").slice(1).join(" ") || "",
-          dob: selectedDate.toISOString().split("T")[0],
+          dob: formatDateForAPI(selectedDate),
           gender,
           // We assume values are already in kg/cm from onboarding/more screens
           height: heightValue ? parseFloat(heightValue) : null,

@@ -71,6 +71,14 @@ export function DietProvider({ children }: { children: ReactNode }) {
   const [targetNutrition, setTargetNutrition] = useState<DietSummary>(initialSummary);
   const [loading, setLoading] = useState<boolean>(true);
 
+  // Helper function to format date safely (timezone-aware)
+  const formatDateForAPI = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const fetchFoodSuggestions = async (
     consumedNutrition: DietSummary,
     targetNutrition: DietSummary
@@ -113,7 +121,10 @@ export function DietProvider({ children }: { children: ReactNode }) {
     if (!userProfile) return;
     setLoading(true);
     try {
-      const input: IHomeInput = { date: selectedDate.toISOString().split("T")[0] };
+      const dateString = formatDateForAPI(selectedDate);
+      console.log("🏠 [DietContext] refreshData - fetching for date:", dateString);
+      
+      const input: IHomeInput = { date: dateString };
       const homeData = await HomeService.getHome(input);
       const actualData = (homeData as any).data;
       
@@ -173,7 +184,10 @@ export function DietProvider({ children }: { children: ReactNode }) {
           fat: userProfile.targetNutrition?.fat || 67,
         };
 
-        const input: IHomeInput = { date: selectedDate.toISOString().split("T")[0] };
+        const dateString = formatDateForAPI(selectedDate);
+        console.log("🏠 [DietContext] fetchData - fetching for date:", dateString);
+        
+        const input: IHomeInput = { date: dateString };
         const homeData = await HomeService.getHome(input);
         const actualData = (homeData as any).data;
 
