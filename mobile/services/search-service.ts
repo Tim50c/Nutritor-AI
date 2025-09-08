@@ -36,15 +36,22 @@ class SearchService {
     try {
       const params = { ...input };
       
+      console.log('🚀 SearchService sending params:', params);
+      
       const response = await authInstance.get("/search", { params });
+      
+      console.log('📥 SearchService received response:', response.data);
       
       // Backend returns { success: true, data: foods[] } format
       if (response.data && response.data.success && Array.isArray(response.data.data)) {
+        console.log(`✅ SearchService returning ${response.data.data.length} foods`);
         return response.data.data as FoodModel[];
       } else {
+        console.log('❌ SearchService: Invalid response format or no data');
         return [];
       }
     } catch (error: any) {
+      console.error('❌ SearchService error:', error);
       throw new Error("An error occurred while searching foods.");
     }
   }

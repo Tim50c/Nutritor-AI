@@ -68,34 +68,49 @@ exports.loadCache = async (req, res, next) => {
 exports.searchFoods = async (req, res, next) => {
   try {
     const { query, calo, protein, carbs, fat } = req.query;
+    
+    console.log('🔍 Search parameters received:', {
+      query,
+      calo,
+      protein,
+      carbs,
+      fat
+    });
 
     let foods = await getFoodsFromCache();
+    console.log(`📦 Total foods in cache: ${foods.length}`);
 
     if (query && query.trim()) {
       const searchTerm = query.trim().toLowerCase();
       foods = foods.filter(food => 
         food.name.toLowerCase().includes(searchTerm)
       );
+      console.log(`🔤 After text search for "${searchTerm}": ${foods.length} foods`);
     }
 
     // FIX: Added defensive checks (food.nutrition && ...) to prevent server crash
     // This is the main fix for the fatal bug.
     if (calo) {
       foods = foods.filter(food => food.nutrition && food.nutrition.cal <= parseInt(calo));
+      console.log(`🔥 After calorie filter (<=${calo}): ${foods.length} foods`);
     }
 
     if (protein) {
       foods = foods.filter(food => food.nutrition && food.nutrition.protein <= parseInt(protein));
+      console.log(`💪 After protein filter (<=${protein}): ${foods.length} foods`);
     }
 
     if (carbs) {
-      foods = foods.filter(food => food.nutrition && food.nutrition.carbs <= parseInt(carb));
+      foods = foods.filter(food => food.nutrition && food.nutrition.carbs <= parseInt(carbs));
+      console.log(`🍞 After carbs filter (<=${carbs}): ${foods.length} foods`);
     }
 
     if (fat) {
       foods = foods.filter(food => food.nutrition && food.nutrition.fat <= parseInt(fat));
+      console.log(`🥑 After fat filter (<=${fat}): ${foods.length} foods`);
     }
 
+    console.log(`✅ Final result: ${foods.length} foods`);
     res.status(200).json({ success: true, data: foods });
 
   } catch (error) {
