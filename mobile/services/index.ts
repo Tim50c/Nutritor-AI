@@ -9,5 +9,6 @@ import FoodService from "./food-service";
 import ProfileService from "./profile-service";
 import PasswordService from "./password-service";
 import CameraService from "./camera-service";
+import ServerWarmupService from "./server-warmup-service";
 
-export { AuthenticationService, DietService, HomeService, FavoriteService, NotificationService, AnalysisService, SearchService, FoodService, ProfileService, PasswordService, CameraService };
+export { AuthenticationService, DietService, HomeService, FavoriteService, NotificationService, AnalysisService, SearchService, FoodService, ProfileService, PasswordService, CameraService, ServerWarmupService };

@@ -18,6 +18,7 @@ import { AnalyticsProvider } from "@/context/AnalyticsContext";
 import apiClient from "@/utils/apiClients";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
+import ServerWarmupService from "@/services/server-warmup-service";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -242,6 +243,19 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded, error, fontLoadStartTime]);
+
+  // Warm up the server when the app launches
+  useEffect(() => {
+    if (fontsLoaded) {
+      // Start server warmup in the background (don't wait for it)
+      ServerWarmupService.warmupServer().catch((error) => {
+        console.warn(
+          "🚀 [App] Server warmup failed, but app will continue:",
+          error.message
+        );
+      });
+    }
+  }, [fontsLoaded]);
 
   if (!fontsLoaded) {
     return null;
