@@ -8,6 +8,7 @@ import {
   StatusBar,
   Image,
   Alert,
+  Modal,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -16,7 +17,9 @@ import CustomButton from "@/components/CustomButton";
 import DietService from "@/services/diet-service";
 import { FOODS } from "@/data/mockData";
 import { useDietContext } from "@/context/DietContext";
-import {images} from "@/constants/images";
+import { images } from "@/constants/images";
+import { Camera, CameraView } from "expo-camera";
+import * as ImagePicker from "expo-image-picker";
 
 // Define the Food interface based on the backend response
 interface FoodData {
@@ -100,6 +103,18 @@ const FoodDetails = () => {
   const [isAddingToDiet, setIsAddingToDiet] = useState(false);
   const { refreshData } = useDietContext();
 
+  // Image-related states
+  const [currentImage, setCurrentImage] = useState<string | null>(null);
+  const [showImageOptions, setShowImageOptions] = useState(false);
+  const [showCameraModal, setShowCameraModal] = useState(false);
+  const [cameraRef, setCameraRef] = useState<CameraView | null>(null);
+  const [cameraPermission, setCameraPermission] = useState<boolean | null>(
+    null
+  );
+  const [pickerAction, setPickerAction] = useState<"gallery" | "camera" | null>(
+    null
+  );
+
   // Parse real API food data or use mock data as fallback
   const food = React.useMemo(() => {
     if (foodData && typeof foodData === "string") {
@@ -129,6 +144,106 @@ const FoodDetails = () => {
     // Fallback to mock data if no API data available
     return FOODS.find((item) => item.id === id);
   }, [id, foodData]);
+
+  // Initialize current image
+  React.useEffect(() => {
+    if (capturedImage) {
+      setCurrentImage(capturedImage as string);
+    } else if (food?.image) {
+      setCurrentImage(
+        typeof food.image === "string" ? food.image : food.image.uri
+      );
+    }
+  }, [capturedImage, food]);
+
+  // Handle image picker actions
+  React.useEffect(() => {
+    if (!pickerAction) return;
+
+    const executeAction = async () => {
+      if (pickerAction === "gallery") {
+        await launchGallery();
+      } else if (pickerAction === "camera") {
+        await launchCamera();
+      }
+      setPickerAction(null);
+    };
+
+    setTimeout(executeAction, 750);
+  }, [pickerAction]);
+
+  const handleImagePress = () => {
+    setShowImageOptions(true);
+  };
+
+  const handleGalleryPress = () => {
+    setShowImageOptions(false);
+    setPickerAction("gallery");
+  };
+
+  const takePhoto = () => {
+    setShowImageOptions(false);
+    setPickerAction("camera");
+  };
+
+  const launchGallery = async () => {
+    try {
+      const permissionResult =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert(
+          "Permission Required",
+          "Permission to access the photo library is required!"
+        );
+        return;
+      }
+
+      const pickerResult = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 1,
+        allowsEditing: true,
+        aspect: [4, 3],
+      });
+
+      if (!pickerResult.canceled) {
+        const asset = pickerResult.assets[0];
+        setCurrentImage(asset.uri);
+      }
+    } catch (error) {
+      console.error("Error picking image from library:", error);
+      Alert.alert("Error", "Could not open the gallery. Please try again.");
+    }
+  };
+
+  const launchCamera = async () => {
+    const permission = await Camera.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert(
+        "Permission Required",
+        "Permission to access the camera is required!"
+      );
+      return;
+    }
+    setCameraPermission(true);
+    setShowCameraModal(true);
+  };
+
+  const handleCameraCapture = async () => {
+    if (cameraRef) {
+      try {
+        const photo = await cameraRef.takePictureAsync();
+        setCurrentImage(photo.uri);
+        setShowCameraModal(false);
+      } catch (error) {
+        console.error("Error capturing photo:", error);
+        Alert.alert("Error", "Failed to capture photo");
+      }
+    }
+  };
+
+  const closeCameraModal = () => {
+    setShowCameraModal(false);
+  };
 
   // Handle case where food is not found
   if (!food) {
@@ -194,10 +309,10 @@ const FoodDetails = () => {
 
       {/* Header with Image */}
       <View className="relative">
-        {/* Use captured image, food's image URL, or fallback */}
-        {capturedImage ? (
+        {/* Use current image (captured, selected, or original) */}
+        {currentImage ? (
           <Image
-            source={{ uri: capturedImage as string }}
+            source={{ uri: currentImage }}
             className="w-full h-80"
             resizeMode="cover"
           />
@@ -218,16 +333,19 @@ const FoodDetails = () => {
 
                 <TouchableOpacity
                   className="w-10 h-10 bg-black rounded-full items-center justify-center"
-                  onPress={() => console.log("More options")}
+                  onPress={handleImagePress}
                 >
-                  <Ionicons name="ellipsis-vertical" size={20} color="white" />
+                  <Ionicons name="pencil" size={20} color="white" />
                 </TouchableOpacity>
               </View>
             </LinearGradient>
           </ImageBackground>
         ) : (
           // Fallback for foods without images
-          <ImageBackground source={images.fallback_food} className="w-full h-80 ">
+          <ImageBackground
+            source={images.fallback_food}
+            className="w-full h-80 "
+          >
             <LinearGradient
               colors={["rgba(0,0,0,0.3)", "rgba(0,0,0,0.6)"]}
               className="flex-1 w-full justify-between"
@@ -243,9 +361,9 @@ const FoodDetails = () => {
 
                 <TouchableOpacity
                   className="w-10 h-10 bg-black rounded-full items-center justify-center"
-                  onPress={() => console.log("More options")}
+                  onPress={handleImagePress}
                 >
-                  <Ionicons name="ellipsis-vertical" size={20} color="white" />
+                  <Ionicons name="pencil" size={20} color="white" />
                 </TouchableOpacity>
               </View>
 
@@ -258,6 +376,32 @@ const FoodDetails = () => {
               </View>
             </LinearGradient>
           </ImageBackground>
+        )}
+
+        {/* If current image exists, overlay navigation on top */}
+        {currentImage && (
+          <View className="absolute top-0 left-0 right-0">
+            <LinearGradient
+              colors={["rgba(0,0,0,0.3)", "rgba(0,0,0,0.1)"]}
+              className="pt-12 px-4 pb-4"
+            >
+              <View className="flex-row justify-between items-center">
+                <TouchableOpacity
+                  className="w-10 h-10 bg-black rounded-full items-center justify-center"
+                  onPress={() => router.back()}
+                >
+                  <Ionicons name="arrow-back" size={24} color="white" />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  className="w-10 h-10 bg-black rounded-full items-center justify-center"
+                  onPress={handleImagePress}
+                >
+                  <Ionicons name="pencil" size={20} color="white" />
+                </TouchableOpacity>
+              </View>
+            </LinearGradient>
+          </View>
         )}
       </View>
 
@@ -342,6 +486,88 @@ const FoodDetails = () => {
           disabled={isAddingToDiet}
         />
       </ScrollView>
+
+      {/* Image Options Modal */}
+      <Modal
+        visible={showImageOptions}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowImageOptions(false)}
+      >
+        <TouchableOpacity
+          className="flex-1 bg-black/50 justify-center items-center"
+          activeOpacity={1}
+          onPress={() => setShowImageOptions(false)}
+        >
+          <View className="bg-white rounded-2xl mx-8 p-6 w-80">
+            <Text className="text-lg font-semibold text-center mb-4">
+              Change Food Image
+            </Text>
+            <TouchableOpacity
+              className="py-4 border-b border-gray-200"
+              onPress={handleGalleryPress}
+            >
+              <Text className="text-center text-blue-600 text-lg">
+                Choose from Gallery
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              className="py-4 border-b border-gray-200"
+              onPress={takePhoto}
+            >
+              <Text className="text-center text-blue-600 text-lg">
+                Take Photo
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              className="py-4"
+              onPress={() => setShowImageOptions(false)}
+            >
+              <Text className="text-center text-red-600 text-lg">Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Camera Modal */}
+      <Modal
+        visible={showCameraModal}
+        transparent={false}
+        animationType="slide"
+        onRequestClose={closeCameraModal}
+      >
+        <View className="flex-1 bg-black">
+          {cameraPermission ? (
+            <>
+              <CameraView
+                ref={(ref) => setCameraRef(ref)}
+                style={{ flex: 1 }}
+                facing="back"
+              />
+              <View className="absolute bottom-0 left-0 right-0 pb-8 pt-4">
+                <View className="flex-row justify-center items-center px-8">
+                  <TouchableOpacity
+                    onPress={closeCameraModal}
+                    className="absolute left-8"
+                  >
+                    <Ionicons name="close" size={32} color="white" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={handleCameraCapture}
+                    className="w-20 h-20 bg-white rounded-full border-4 border-gray-300 items-center justify-center"
+                  >
+                    <View className="w-16 h-16 bg-white rounded-full" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </>
+          ) : (
+            <View className="flex-1 justify-center items-center">
+              <Text className="text-white text-lg">Loading camera...</Text>
+            </View>
+          )}
+        </View>
+      </Modal>
     </View>
   );
 };
