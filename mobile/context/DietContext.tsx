@@ -45,10 +45,12 @@ interface DietContextType {
   getFavoriteFoods: () => DietFood[];
   fetchFavoriteFoods: () => Promise<void>;
   targetNutrition: DietSummary;
-  loading: boolean;
+  loading: boolean; // Initial data loading state
+  refreshing: boolean; // Background refresh state
   refreshSuggestions: () => Promise<void>;
-  refreshData: () => Promise<void>;
-  goToToday: () => void; // Add function to go to today
+  refreshData: (forceRefresh?: boolean) => Promise<void>;
+  goToToday: () => void;
+  addFoodToTodayDiet: (food: DietFood) => Promise<void>;
 }
 
 const DietContext = createContext<DietContextType | undefined>(undefined);
@@ -71,7 +73,12 @@ export function DietProvider({ children }: { children: ReactNode }) {
   const [favoriteFoods, setFavoriteFoods] = useState<DietFood[]>([]);
   const [targetNutrition, setTargetNutrition] =
     useState<DietSummary>(initialSummary);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(true); // Initial data loading
+  const [refreshing, setRefreshing] = useState<boolean>(false); // Background refresh
+
+  // Cache system to improve performance
+  const [dataCache, setDataCache] = useState<Map<string, any>>(new Map());
+  const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null);
 
   // Helper function to format date safely (timezone-aware)
   const formatDateForAPI = (date: Date): string => {
@@ -117,106 +124,54 @@ export function DietProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const refreshSuggestions = () =>
-    fetchFoodSuggestions(summary, targetNutrition);
+  const refreshSuggestions = useCallback(
+    () => fetchFoodSuggestions(summary, targetNutrition),
+    [summary, targetNutrition]
+  );
 
-  const refreshData = useCallback(async () => {
-    if (!userProfile) return;
-    setLoading(true);
-    try {
+  const refreshData = useCallback(
+    async (forceRefresh: boolean = false) => {
+      if (!userProfile) return;
+
       const dateString = formatDateForAPI(selectedDate);
-      console.log(
-        "🏠 [DietContext] refreshData - fetching for date:",
-        dateString
-      );
+      const cacheKey = `diet_${dateString}`;
+      const now = new Date();
+      const CACHE_DURATION = 30000; // 30 seconds
 
-      const input: IHomeInput = { date: dateString };
-      const homeData = await HomeService.getHome(input);
-      const actualData = (homeData as any).data;
-
-      const consumedNutrition = {
-        calories: actualData?.consumpedNutrition?.cal || 0,
-        carbs: actualData?.consumpedNutrition?.carbs || 0,
-        protein: actualData?.consumpedNutrition?.protein || 0,
-        fat: actualData?.consumpedNutrition?.fat || 0,
-      };
-      setSummary(consumedNutrition);
-
-      const allFoods: DietFood[] = (actualData?.diets[0]?.foods || []).map(
-        (food: any) => ({
-          id: food.id,
-          name: food.name || "Unknown Food",
-          image: food.imageUrl ? { uri: food.imageUrl } : null,
-          calories: food.nutrition?.cal || 0,
-          carbs: food.nutrition?.carbs || 0,
-          protein: food.nutrition?.protein || 0,
-          fat: food.nutrition?.fat || 0,
-          description: food.description || "",
-        })
-      );
-      setFoods(allFoods);
-
-      await fetchFoodSuggestions(consumedNutrition, targetNutrition);
-
-      // Invalidate analytics data since diet has changed
-      console.log(
-        "📊 [DietContext] Diet data refreshed, invalidating analytics"
-      );
-      analyticsEventEmitter.emit();
-    } catch (error) {
-      console.error("❌ [DietContext] Failed to refresh data:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedDate, userProfile, targetNutrition]);
-
-  const fetchFavoriteFoods = useCallback(async () => {
-    try {
-      const favFoods = await FavoriteService.getFavoriteFoodsWithDetails();
-      setFavoriteFoods(favFoods);
-      setFavoriteFoodIds(favFoods.map((f) => f.id));
-    } catch (error) {
-      console.error("❌ Error fetching favorite foods:", error);
-      setFavoriteFoods([]);
-      setFavoriteFoodIds([]);
-    }
-  }, []);
-
-  useEffect(() => {
-    async function fetchData() {
-      if (isLoadingProfile || !userProfile) {
-        if (!isLoadingProfile) setLoading(false);
-        return;
+      // Use cached data if available and fresh
+      if (!forceRefresh && dataCache.has(cacheKey) && lastFetchTime) {
+        const timeDiff = now.getTime() - lastFetchTime.getTime();
+        if (timeDiff < CACHE_DURATION) {
+          console.log(
+            "🏠 [DietContext] Using cached data for date:",
+            dateString
+          );
+          const cachedData = dataCache.get(cacheKey);
+          setSummary(cachedData.summary);
+          setFoods(cachedData.foods);
+          setTargetNutrition(cachedData.targetNutrition);
+          setLoading(false);
+          return;
+        }
       }
 
-      setLoading(true);
-      try {
-        const fallbackTarget = {
-          calories: userProfile.targetNutrition?.cal || 2000,
-          carbs: userProfile.targetNutrition?.carbs || 250,
-          protein: userProfile.targetNutrition?.protein || 150,
-          fat: userProfile.targetNutrition?.fat || 67,
-        };
+      // Determine appropriate loading state
+      const hasExistingData = foods.length > 0 || summary.calories > 0;
+      if (hasExistingData) {
+        setRefreshing(true); // Background refresh
+      } else {
+        setLoading(true); // Initial load
+      }
 
-        const dateString = formatDateForAPI(selectedDate);
+      try {
         console.log(
-          "🏠 [DietContext] fetchData - fetching for date:",
+          "🏠 [DietContext] refreshData - fetching for date:",
           dateString
         );
 
         const input: IHomeInput = { date: dateString };
         const homeData = await HomeService.getHome(input);
         const actualData = (homeData as any).data;
-
-        const newTarget = {
-          calories:
-            actualData?.targetNutrition?.calories ?? fallbackTarget.calories,
-          carbs: actualData?.targetNutrition?.carbs ?? fallbackTarget.carbs,
-          protein:
-            actualData?.targetNutrition?.protein ?? fallbackTarget.protein,
-          fat: actualData?.targetNutrition?.fat ?? fallbackTarget.fat,
-        };
-        setTargetNutrition(newTarget);
 
         const consumedNutrition = {
           calories: actualData?.consumpedNutrition?.cal || 0,
@@ -240,19 +195,152 @@ export function DietProvider({ children }: { children: ReactNode }) {
         );
         setFoods(allFoods);
 
-        await fetchFavoriteFoods();
+        // Update target nutrition
+        const fallbackTarget = {
+          calories: userProfile.targetNutrition?.cal || 2000,
+          carbs: userProfile.targetNutrition?.carbs || 250,
+          protein: userProfile.targetNutrition?.protein || 150,
+          fat: userProfile.targetNutrition?.fat || 67,
+        };
+
+        const newTarget = {
+          calories:
+            actualData?.targetNutrition?.calories ?? fallbackTarget.calories,
+          carbs: actualData?.targetNutrition?.carbs ?? fallbackTarget.carbs,
+          protein:
+            actualData?.targetNutrition?.protein ?? fallbackTarget.protein,
+          fat: actualData?.targetNutrition?.fat ?? fallbackTarget.fat,
+        };
+        setTargetNutrition(newTarget);
+
+        // Cache the fetched data for performance
+        setDataCache(
+          (prev) =>
+            new Map(
+              prev.set(cacheKey, {
+                summary: consumedNutrition,
+                foods: allFoods,
+                targetNutrition: newTarget,
+              })
+            )
+        );
+        setLastFetchTime(now);
+
         await fetchFoodSuggestions(consumedNutrition, newTarget);
+
+        // Notify analytics system of data changes
+        console.log(
+          "📊 [DietContext] Diet data refreshed, invalidating analytics"
+        );
+        analyticsEventEmitter.emit();
       } catch (error) {
-        console.error("❌ Error fetching daily diet data:", error);
-        setSummary(initialSummary);
-        setFoods([]);
-        setSuggestedFoods([]);
+        console.error("❌ [DietContext] Failed to refresh data:", error);
       } finally {
         setLoading(false);
+        setRefreshing(false);
       }
+    },
+    [
+      selectedDate,
+      userProfile,
+      targetNutrition,
+      dataCache,
+      lastFetchTime,
+      foods.length,
+      summary.calories,
+    ]
+  );
+
+  // Add food to today's diet with immediate UI update and background sync
+  const addFoodToTodayDiet = useCallback(
+    async (food: DietFood) => {
+      console.log("🍽️ [DietContext] Adding food to today's diet:", food.name);
+
+      // Clear cache for current date to ensure fresh data on next refresh
+      const dateString = formatDateForAPI(selectedDate);
+      const cacheKey = `diet_${dateString}`;
+      setDataCache((prev) => {
+        const newCache = new Map(prev);
+        newCache.delete(cacheKey);
+        return newCache;
+      });
+
+      // Immediately update the UI state
+      setFoods((prevFoods) => {
+        // Prevent duplicate food entries
+        const exists = prevFoods.some((f) => f.id === food.id);
+        if (exists) {
+          console.log(
+            "⚠️ [DietContext] Food already exists, skipping addition"
+          );
+          return prevFoods;
+        }
+        return [...prevFoods, food];
+      });
+
+      // Update nutrition summary immediately
+      setSummary((prevSummary) => ({
+        calories: prevSummary.calories + (food.calories || 0),
+        carbs: prevSummary.carbs + (food.carbs || 0),
+        protein: prevSummary.protein + (food.protein || 0),
+        fat: prevSummary.fat + (food.fat || 0),
+      }));
+
+      // Invalidate analytics data for immediate update
+      analyticsEventEmitter.emit();
+
+      // Update food suggestions based on new nutrition data
+      try {
+        const updatedSummary = {
+          calories: summary.calories + (food.calories || 0),
+          carbs: summary.carbs + (food.carbs || 0),
+          protein: summary.protein + (food.protein || 0),
+          fat: summary.fat + (food.fat || 0),
+        };
+        await fetchFoodSuggestions(updatedSummary, targetNutrition);
+        console.log("✅ [DietContext] Food suggestions updated successfully");
+      } catch (error) {
+        console.error(
+          "❌ [DietContext] Failed to update food suggestions:",
+          error
+        );
+      }
+    },
+    [summary, targetNutrition, selectedDate]
+  );
+
+  const fetchFavoriteFoods = useCallback(async () => {
+    try {
+      const favFoods = await FavoriteService.getFavoriteFoodsWithDetails();
+      setFavoriteFoods(favFoods);
+      setFavoriteFoodIds(favFoods.map((f) => f.id));
+    } catch (error) {
+      console.error("❌ Error fetching favorite foods:", error);
+      setFavoriteFoods([]);
+      setFavoriteFoodIds([]);
     }
-    fetchData();
-  }, [selectedDate, userProfile, isLoadingProfile, fetchFavoriteFoods]);
+  }, []);
+
+  useEffect(() => {
+    const initializeData = async () => {
+      if (isLoadingProfile || !userProfile) {
+        if (!isLoadingProfile) setLoading(false);
+        return;
+      }
+
+      // Load data using cache when possible for better performance
+      await refreshData(false);
+      await fetchFavoriteFoods();
+    };
+
+    initializeData();
+  }, [
+    selectedDate,
+    userProfile,
+    isLoadingProfile,
+    refreshData,
+    fetchFavoriteFoods,
+  ]);
 
   const toggleFavorite = async (foodId: string, food?: DietFood) => {
     const prevIds = favoriteFoodIds;
@@ -280,11 +368,11 @@ export function DietProvider({ children }: { children: ReactNode }) {
   const isFavorite = (foodId: string) => favoriteFoodIds.includes(foodId);
   const getFavoriteFoods = () => favoriteFoods;
 
-  // Function to navigate to today's date
+  // Navigate to today's date
   const goToToday = useCallback(() => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    console.log("📅 [DietContext] goToToday called - setting date to:", today);
+    console.log("📅 [DietContext] Navigating to today:", today.toDateString());
     setSelectedDate(today);
   }, []);
 
@@ -304,9 +392,11 @@ export function DietProvider({ children }: { children: ReactNode }) {
         fetchFavoriteFoods,
         targetNutrition,
         loading,
+        refreshing,
         refreshSuggestions,
         refreshData,
         goToToday,
+        addFoodToTodayDiet,
       }}
     >
       {children}

@@ -113,6 +113,7 @@ const FoodDetails = () => {
     isFavorite,
     toggleFavorite,
     goToToday,
+    addFoodToTodayDiet,
   } = useDietContext();
 
   // Image-related states
@@ -409,52 +410,32 @@ const FoodDetails = () => {
       // Ensure food.id is a string
       const foodId = Array.isArray(food.id) ? food.id[0] : food.id;
 
-      // ⏰ LOG: Time tracking for timezone debugging
-      const now = new Date();
-      const isoString = now.toISOString();
-      const localString = now.toString();
-
-      // Use local date components to avoid timezone issues
-      const year = now.getFullYear();
-      const month = now.getMonth() + 1;
-      const day = now.getDate();
-      const dateOnly = `${year}-${month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
-
-      console.log("🍽️ [Food Details] Adding food to diet:");
-      console.log("  ⏰ Current time (ISO):", isoString);
-      console.log("  ⏰ Current time (Local):", localString);
       console.log(
-        "  📅 Local components - Year:",
-        year,
-        "Month:",
-        month,
-        "Day:",
-        day
-      );
-      console.log("  📅 Date being used:", dateOnly);
-      console.log("  🥘 Food ID:", foodId);
-      console.log("  🥘 Food name:", food.name);
-
-      // Add food to today's diet using the DietService
-      await DietService.addFoodToTodayDiet({ foodId });
-
-      console.log(
-        "✅ [Food Details] Food added successfully, going to today and refreshing..."
+        "🍽️ [Food Details] Adding food to diet optimistically:",
+        food.name
       );
 
-      // Immediately invalidate analytics data
-      analyticsEventEmitter.emit();
+      // Create DietFood object for optimistic update
+      const dietFood = {
+        id: foodId,
+        name: food.name,
+        image: food.image,
+        calories: food.calories || 0,
+        carbs: food.carbs || 0,
+        protein: food.protein || 0,
+        fat: food.fat || 0,
+        description:
+          food.description || `${food.name} - Nutritional Information`,
+      };
 
       // First navigate to today's date to ensure we're viewing the correct day
       goToToday();
 
-      // Small delay to ensure date change is processed, then refresh data
-      setTimeout(async () => {
-        await refreshData();
-        console.log("✅ [Food Details] Diet data refreshed successfully");
-      }, 200);
+      // IMMEDIATE UI UPDATE: Update UI state instantly
+      await addFoodToTodayDiet(dietFood);
+      console.log("✅ [Food Details] Food added to UI successfully");
 
-      // Show success message
+      // Show success message immediately
       Alert.alert("Success!", `${food.name} has been added to your diet.`, [
         {
           text: "Go to Home",
@@ -465,6 +446,21 @@ const FoodDetails = () => {
           style: "cancel",
         },
       ]);
+
+      // BACKGROUND SYNC: Add to backend asynchronously
+      DietService.addFoodToTodayDiet({ foodId })
+        .then(() => {
+          console.log("✅ [Food Details] Food synced to backend successfully");
+          // Silent refresh to ensure consistency without showing loading
+          setTimeout(() => {
+            refreshData(false).catch(console.error); // Don't force refresh to avoid loading state
+          }, 1000);
+        })
+        .catch((error) => {
+          console.error("❌ [Food Details] Backend sync failed:", error);
+          // Could show a toast notification here for sync failure
+          // For now, we'll just log it as the UI already shows the food
+        });
     } catch (error) {
       console.error("❌ [Food Details] Error adding food to diet:", error);
       Alert.alert("Error", "Failed to add food to diet. Please try again.", [
