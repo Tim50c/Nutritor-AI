@@ -42,8 +42,15 @@ export default function FoodSuggestionCard({
         fat: food.fat,
       },
       source: "suggestions",
-      imageUrl: food.image?.uri || null,
+      imageUrl: food.image?.uri || food.image || null, // Handle both uri format and direct string
     };
+
+    console.log("📱 FoodSuggestionCard: Navigating with food data:", {
+      id: food.id,
+      name: food.name,
+      imageUrl: foodData.imageUrl,
+      hasImage: !!food.image
+    });
 
     router.push({
       pathname: "/food/[id]" as const,

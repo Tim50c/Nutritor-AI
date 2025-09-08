@@ -337,3 +337,55 @@ exports.recognizeBarcode = async (req, res, next) => {
     });
   }
 };
+
+// @desc    Upload image and return URL
+// @route   POST /api/v1/camera/upload-image
+// @access  Private
+exports.uploadImage = async (req, res) => {
+  console.log('\n--- /camera/upload-image ENDPOINT HIT (MULTIPART) ---');
+  
+  try {
+    const imageFile = req.file;
+    
+    console.log('[LOG] Request headers:', req.headers);
+    console.log('[LOG] Request body keys:', Object.keys(req.body || {}));
+    
+    if (imageFile) {
+      console.log(`[LOG] Received image: ${imageFile.originalname || 'food-image.jpg'} (${imageFile.mimetype})`);
+      console.log(`[LOG] Image size: ${imageFile.size} bytes (${Math.round(imageFile.size / 1024)}KB)`);
+    } else {
+      console.log('[LOG] No image received.');
+      return res.status(400).json({ 
+        success: false, 
+        error: 'No image file provided. Please ensure you are sending the image as FormData with key "image".' 
+      });
+    }
+
+    // Upload image to ImageKit
+    const fileName = imageFile.originalname || `food-update-${Date.now()}.jpg`;
+    const imageUrl = await uploadImageToImageKit(imageFile.buffer, fileName, imageFile.mimetype);
+
+    console.log(`[LOG] Image uploaded successfully. URL: ${imageUrl}`);
+
+    res.status(200).json({
+      success: true,
+      message: 'Image uploaded successfully',
+      imageUrl: imageUrl,
+      data: {
+        imageUrl: imageUrl,
+        fileName: fileName,
+        uploadedAt: new Date().toISOString()
+      }
+    });
+
+  } catch (error) {
+    console.error('!!! FATAL ERROR IN /camera/upload-image ENDPOINT !!!', error);
+    console.error('[ERROR] Error stack:', error.stack);
+    
+    res.status(500).json({ 
+      success: false, 
+      error: 'Server error',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};

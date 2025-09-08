@@ -148,6 +148,57 @@ class CameraService {
       };
     }
   }
+
+  /**
+   * Upload image and get URL for updating food images
+   */
+  public async uploadImage(imageUri: string): Promise<{ success: boolean; imageUrl?: string; message?: string }> {
+    try {
+      console.log("📤 Uploading image:", imageUri);
+
+      // Validate image URI
+      if (!ImageUtils.isValidImageUri(imageUri)) {
+        throw new Error("Invalid image URI");
+      }
+
+      // Process image for optimal upload
+      const processedImage = await ImageUtils.processImageForUpload(imageUri);
+      
+      // Create FormData with processed image
+      const formData = ImageUtils.createImageFormData(processedImage.uri);
+
+      // Get auth headers
+      const headers = await this.getAuthHeaders();
+
+      // Send request to backend for image upload
+      const response = await fetch(`${this.BASE_URL}/api/v1/camera/upload-image`, {
+        method: "POST",
+        headers,
+        body: formData,
+      });
+
+      const responseText = await response.text();
+      
+      if (!response.ok) {
+        throw new Error(`Image upload failed with status ${response.status}`);
+      }
+
+      const result = JSON.parse(responseText);
+      console.log("📤 Image uploaded successfully:", result.imageUrl);
+
+      return {
+        success: result.success || response.ok,
+        imageUrl: result.imageUrl || result.data?.imageUrl,
+        message: result.message || "Image uploaded successfully",
+      };
+    } catch (error) {
+      console.error("❌ Image upload error:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  }
 }
 
 export default CameraService.getInstance();

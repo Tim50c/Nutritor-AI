@@ -36,6 +36,18 @@ class FoodService {
       throw new Error("An error occurred while getting food suggestions: " + error.message);
     }
   }
+
+  public async updateFoodImage(foodId: string, imageUrl: string): Promise<FoodDetailsModel> {
+    try {
+      const response = await authInstance.put(`/foods/${foodId}/image`, {
+        imageUrl: imageUrl
+      });
+      return response.data as FoodDetailsModel;
+    } catch (error: any) {
+      console.log(error);
+      throw new Error("An error occurred while updating food image.");
+    }
+  }
 }
 
 export default FoodService.getInstance();

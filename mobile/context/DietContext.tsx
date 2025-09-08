@@ -82,17 +82,24 @@ export function DietProvider({ children }: { children: ReactNode }) {
         targetNutrition,
         consumedNutrition,
       };
-      const suggestionsData = await FoodService.getFoodSuggestions(suggestionsInput);
-      const mappedSuggestions: DietFood[] = suggestionsData.map((food: FoodModel) => ({
-        id: food.id,
-        name: food.name,
-        image: food.imageUrl ? { uri: food.imageUrl } : null,
-        calories: food.nutrition.cal,
-        carbs: food.nutrition.carbs,
-        protein: food.nutrition.protein,
-        fat: food.nutrition.fat,
-        description: food.description || "",
-      }));
+
+      const suggestionsData =
+        await FoodService.getFoodSuggestions(suggestionsInput);
+
+      const mappedSuggestions: DietFood[] = suggestionsData.map(
+        (food: FoodModel) => ({
+          id: food.id,
+          name: food.name,
+          image: food.imageUrl ? { uri: food.imageUrl } : null,
+          calories: food.nutrition.cal,
+          carbs: food.nutrition.carbs,
+          protein: food.nutrition.protein,
+          fat: food.nutrition.fat,
+          description: food.description || "",
+        })
+      );
+
+      console.log("✅ Food suggestions fetched:", mappedSuggestions.length);
       setSuggestedFoods(mappedSuggestions);
     } catch (error) {
       console.error("❌ Error fetching food suggestions:", error);
