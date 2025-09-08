@@ -8,7 +8,7 @@ import {
   Animated,
   Alert,
 } from "react-native";
-import { Text } from './CustomText';
+import { Text } from "./CustomText";
 import { CameraView, Camera } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
@@ -47,7 +47,12 @@ const CameraScreen = () => {
       if (barcodeResult.success && barcodeResult.data) {
         // Navigate to food detail screen using the real food ID from backend
         const foodId = barcodeResult.foodId || `barcode_${Date.now()}`;
-        NavigationUtils.navigateToFoodDetail(barcodeResult.data, foodId);
+        NavigationUtils.navigateToFoodDetail(
+          barcodeResult.data,
+          foodId,
+          undefined,
+          "camera"
+        );
       } else {
         Alert.alert(
           "Product Not Found",
@@ -124,7 +129,12 @@ const CameraScreen = () => {
       if (result.success && result.data) {
         // Navigate to food detail screen with the recognized food data
         const foodId = result.foodId || `temp_${Date.now()}`;
-        NavigationUtils.navigateToFoodDetail(result.data, foodId, imageUri);
+        NavigationUtils.navigateToFoodDetail(
+          result.data,
+          foodId,
+          imageUri,
+          "camera"
+        );
       } else {
         Alert.alert(
           "Recognition Failed",

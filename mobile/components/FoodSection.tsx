@@ -17,6 +17,7 @@ interface FoodSectionProps {
   foods: FoodItem[];
   isFavorite?: (foodId: string) => boolean;
   onToggleFavorite?: (foodId: string) => void;
+  source?: "suggestions" | "history" | "diet" | "favorites";
 }
 
 export default function FoodSection({
@@ -24,6 +25,7 @@ export default function FoodSection({
   foods,
   isFavorite,
   onToggleFavorite,
+  source = "suggestions",
 }: FoodSectionProps) {
   return (
     <View className="mb-6">
@@ -41,6 +43,7 @@ export default function FoodSection({
             onToggleFavorite={
               onToggleFavorite ? () => onToggleFavorite(food.id) : undefined
             }
+            source={source}
           />
         ))}
       </View>

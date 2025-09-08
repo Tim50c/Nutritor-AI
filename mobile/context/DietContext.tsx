@@ -1,6 +1,7 @@
 import { useUser } from "@/context/UserContext";
 import { IFoodSuggestionsInput, IHomeInput } from "@/interfaces";
 import { FoodModel } from "@/models";
+import DietService from "@/services/diet-service";
 import FavoriteService from "@/services/favorite-service";
 import FoodService from "@/services/food-service";
 import HomeService from "@/services/home-service";
@@ -51,6 +52,7 @@ interface DietContextType {
   refreshData: (forceRefresh?: boolean) => Promise<void>;
   goToToday: () => void;
   addFoodToTodayDiet: (food: DietFood) => Promise<void>;
+  removeFoodFromTodayDiet: (foodId: string) => Promise<void>;
 }
 
 const DietContext = createContext<DietContextType | undefined>(undefined);
@@ -309,6 +311,67 @@ export function DietProvider({ children }: { children: ReactNode }) {
     [summary, targetNutrition, selectedDate]
   );
 
+  // Remove food from today's diet with immediate UI update and background sync
+  const removeFoodFromTodayDiet = useCallback(
+    async (foodId: string) => {
+      console.log("🗑️ [DietContext] Removing food from today's diet:", foodId);
+
+      // Find the food to remove for nutrition calculation
+      const foodToRemove = foods.find((f) => f.id === foodId);
+      if (!foodToRemove) {
+        console.log("⚠️ [DietContext] Food not found, skipping removal");
+        return;
+      }
+
+      // Clear cache for current date to ensure fresh data on next refresh
+      const dateString = formatDateForAPI(selectedDate);
+      const cacheKey = `diet_${dateString}`;
+      setDataCache((prev) => {
+        const newCache = new Map(prev);
+        newCache.delete(cacheKey);
+        return newCache;
+      });
+
+      // Immediately update the UI state
+      setFoods((prevFoods) => prevFoods.filter((f) => f.id !== foodId));
+
+      // Update nutrition summary immediately
+      setSummary((prevSummary) => ({
+        calories: Math.max(
+          0,
+          prevSummary.calories - (foodToRemove.calories || 0)
+        ),
+        carbs: Math.max(0, prevSummary.carbs - (foodToRemove.carbs || 0)),
+        protein: Math.max(0, prevSummary.protein - (foodToRemove.protein || 0)),
+        fat: Math.max(0, prevSummary.fat - (foodToRemove.fat || 0)),
+      }));
+
+      // Invalidate analytics data for immediate update
+      analyticsEventEmitter.emit();
+
+      // Update food suggestions based on new nutrition data
+      try {
+        const updatedSummary = {
+          calories: Math.max(
+            0,
+            summary.calories - (foodToRemove.calories || 0)
+          ),
+          carbs: Math.max(0, summary.carbs - (foodToRemove.carbs || 0)),
+          protein: Math.max(0, summary.protein - (foodToRemove.protein || 0)),
+          fat: Math.max(0, summary.fat - (foodToRemove.fat || 0)),
+        };
+        await fetchFoodSuggestions(updatedSummary, targetNutrition);
+        console.log("✅ [DietContext] Food suggestions updated after removal");
+      } catch (error) {
+        console.error(
+          "❌ [DietContext] Failed to update food suggestions after removal:",
+          error
+        );
+      }
+    },
+    [summary, targetNutrition, selectedDate, foods]
+  );
+
   const fetchFavoriteFoods = useCallback(async () => {
     try {
       const favFoods = await FavoriteService.getFavoriteFoodsWithDetails();
@@ -397,6 +460,7 @@ export function DietProvider({ children }: { children: ReactNode }) {
         refreshData,
         goToToday,
         addFoodToTodayDiet,
+        removeFoodFromTodayDiet,
       }}
     >
       {children}

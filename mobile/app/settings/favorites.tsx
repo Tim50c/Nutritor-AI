@@ -35,11 +35,11 @@ const Favorites = () => {
       <SafeAreaView className="flex-1 bg-white">
         {/* Header */}
         <View className="flex-row items-center justify-between px-4 py-3">
-          <TouchableOpacity 
-            className="bg-black w-10 h-10 rounded-full justify-center items-center" 
+          <TouchableOpacity
+            className="bg-black w-10 h-10 rounded-full justify-center items-center"
             onPress={() => router.back()}
           >
-            <View style={{ transform: [{ rotate: '0deg' }] }}>
+            <View style={{ transform: [{ rotate: "0deg" }] }}>
               <icons.arrow width={20} height={20} color="#FFFFFF" />
             </View>
           </TouchableOpacity>
@@ -53,12 +53,12 @@ const Favorites = () => {
             className="w-56 h-56 mb-6"
             resizeMode="contain"
           />
-        <Text className="text-xl font-semibold text-black mb-2">
-          No Favorites Yet.
-        </Text>
-        <Text className="text-base text-gray-500 text-center px-8">
-          Quick access to your most-loved items makes logging even faster!
-        </Text>
+          <Text className="text-xl font-semibold text-black mb-2">
+            No Favorites Yet.
+          </Text>
+          <Text className="text-base text-gray-500 text-center px-8">
+            Quick access to your most-loved items makes logging even faster!
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -77,11 +77,11 @@ const Favorites = () => {
     <SafeAreaView className="flex-1 bg-white">
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 py-3">
-        <TouchableOpacity 
-          className="bg-black w-10 h-10 rounded-full justify-center items-center" 
+        <TouchableOpacity
+          className="bg-black w-10 h-10 rounded-full justify-center items-center"
           onPress={() => router.back()}
         >
-          <View style={{ transform: [{ rotate: '0deg' }] }}>
+          <View style={{ transform: [{ rotate: "0deg" }] }}>
             <icons.arrow width={20} height={20} color="#FFFFFF" />
           </View>
         </TouchableOpacity>
@@ -96,22 +96,23 @@ const Favorites = () => {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
       >
-      {favoriteFoods.map((food) => (
-        <FoodSuggestionCard
-          key={food.id}
-          food={food}
-          isFavorite={true}
-          onToggleFavorite={() => toggleFavorite(food.id, food)}
-        />
-      ))}
-      {refreshing && (
-        <View className="py-4 items-center">
-          <ActivityIndicator size="small" color="#999" />
-          <Text className="text-xs text-gray-500 mt-2">
-            Refreshing favorites…
-          </Text>
-        </View>
-      )}
+        {favoriteFoods.map((food) => (
+          <FoodSuggestionCard
+            key={food.id}
+            food={food}
+            isFavorite={true}
+            onToggleFavorite={() => toggleFavorite(food.id, food)}
+            source="favorites"
+          />
+        ))}
+        {refreshing && (
+          <View className="py-4 items-center">
+            <ActivityIndicator size="small" color="#999" />
+            <Text className="text-xs text-gray-500 mt-2">
+              Refreshing favorites…
+            </Text>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

@@ -1,26 +1,36 @@
 import React from "react";
 import { TouchableOpacity } from "react-native";
-import { Text } from './CustomText';
+import { Text } from "./CustomText";
 
 interface CustomButtonProps {
   label: string;
   onPress: () => void;
   disabled?: boolean;
   style?: string;
+  textStyle?: string;
 }
 
-const CustomButton: React.FC<CustomButtonProps> = ({ label, onPress, disabled = false, style = "" }) => {
+const CustomButton: React.FC<CustomButtonProps> = ({
+  label,
+  onPress,
+  disabled = false,
+  style = "",
+  textStyle = "text-white",
+}) => {
+  // Extract background color from style if present, otherwise use default
+  const hasCustomBg = style.includes("bg-");
+  const defaultBg = hasCustomBg ? "" : "bg-primary-200";
+
   return (
     <TouchableOpacity
-      className={`w-full py-4 rounded-2xl bg-primary-200 items-center ${disabled ? 'opacity-50' : ''} ${style}`}
+      className={`w-full py-4 rounded-2xl ${defaultBg} items-center ${disabled ? "opacity-50" : ""} ${style}`}
       activeOpacity={0.8}
       onPress={onPress}
       disabled={disabled}
     >
-      <Text className="text-white text-base font-bold">{label}</Text>
+      <Text className={`${textStyle} text-base font-bold`}>{label}</Text>
     </TouchableOpacity>
   );
 };
 
 export default CustomButton;
-

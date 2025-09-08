@@ -19,12 +19,14 @@ interface FoodSuggestionCardProps {
   food: FoodItem;
   isFavorite?: boolean;
   onToggleFavorite?: () => void;
+  source?: "suggestions" | "history" | "diet" | "favorites";
 }
 
 export default function FoodSuggestionCard({
   food,
   isFavorite = false,
   onToggleFavorite,
+  source = "suggestions",
 }: FoodSuggestionCardProps) {
   // Format calories with comma and unit
   const formattedCalories = `${food.calories.toString()} kcal`;
@@ -49,7 +51,7 @@ export default function FoodSuggestionCard({
       id: food.id,
       name: food.name,
       imageUrl: foodData.imageUrl,
-      hasImage: !!food.image
+      hasImage: !!food.image,
     });
 
     router.push({
@@ -57,6 +59,7 @@ export default function FoodSuggestionCard({
       params: {
         id: food.id,
         foodData: JSON.stringify(foodData),
+        source: source, // Pass the source to determine UI state
       },
     });
   };
