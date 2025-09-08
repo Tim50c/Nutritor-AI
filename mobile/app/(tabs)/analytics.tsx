@@ -3,6 +3,8 @@ import BMIBar from "@/components/BMIBar";
 import CalorieChart from "@/components/CalorieChart";
 import NutritionTrend from "@/components/NutritionTrend";
 import ToggleTabs, { TabOption } from "@/components/ToggleTabs";
+import { useUser } from "@/context/UserContext";
+import { useAnalytics } from "@/context/AnalyticsContext";
 import { AnalysisService } from "@/services";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -13,6 +15,14 @@ import {
   View,
 } from "react-native";
 
+// Helper function for timezone-safe date formatting
+const formatDateForAPI = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 const getBMIStatus = (bmi: number): string => {
   if (bmi <= 0 || isNaN(bmi)) return "Unknown"; // Handle invalid BMI
   if (bmi < 18.5) return "Underweight";
@@ -22,14 +32,17 @@ const getBMIStatus = (bmi: number): string => {
 };
 
 const Analytics = () => {
+  const { userProfile } = useUser();
+  const {
+    analyticsData,
+    loading: analyticsLoading,
+    error: analyticsError,
+    getAnalysisData,
+    getNutritionData,
+    refreshNutritionTab,
+  } = useAnalytics();
+
   const [tab, setTab] = useState<TabOption>("daily");
-  const [analysisData, setAnalysisData] = useState<any>(null);
-  const [nutritionData, setNutritionData] = useState<any>({
-    daily: null,
-    weekly: null,
-    monthly: null,
-  });
-  const [loading, setLoading] = useState(true);
   const [nutritionLoading, setNutritionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,102 +50,44 @@ const Analytics = () => {
   const [selectedBarIndex, setSelectedBarIndex] = useState<number | null>(null);
   const [selectedBarDate, setSelectedBarDate] = useState<string>("");
 
-  // Fetch initial comprehensive data
+  // Get data from analytics context
+  const analysisData = getAnalysisData();
+  const currentNutritionData = getNutritionData(tab);
+
+  // Set error from analytics context
   useEffect(() => {
-    let mounted = true;
-    setLoading(true);
-    setError(null);
-
-    AnalysisService.getComprehensiveAnalytics()
-      .then((res) => {
-        if (mounted) {
-          setAnalysisData(res.analysisData);
-          setNutritionData({
-            daily: res.dailyNutrition,
-            weekly: res.weeklyNutrition,
-            monthly: res.monthlyNutrition,
-          });
-          setLoading(false);
-        }
-      })
-      .catch((err) => {
-        if (mounted) {
-          console.error("Failed to fetch comprehensive analytics:", err);
-          // Fallback: try to get at least the basic analysis data
-          AnalysisService.getAnalysis()
-            .then((res) => {
-              if (mounted) {
-                setAnalysisData(res.data);
-                setError("Some nutrition data may be unavailable.");
-                setLoading(false);
-              }
-            })
-            .catch(() => {
-              if (mounted) {
-                setError("Failed to fetch analysis data.");
-                setLoading(false);
-              }
-            });
-        }
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  // Fetch nutrition data when tab changes (if not already loaded)
-  useEffect(() => {
-    // Only fetch for monthly tab (always reload) or if data is missing for daily/weekly
-    if (tab === "monthly" && !loading) {
-      // Always fetch monthly data to get fresh data
-      setNutritionLoading(true);
-      AnalysisService.getNutritionByTab(tab)
-        .then((data) => {
-          setNutritionData((prev: any) => ({
-            ...prev,
-            [tab]: data,
-          }));
-          setNutritionLoading(false);
-        })
-        .catch((err) => {
-          console.error(`Failed to fetch ${tab} nutrition:`, err);
-          setNutritionLoading(false);
-        });
-    } else if (
-      !nutritionData[tab] &&
-      !loading &&
-      (tab === "daily" || tab === "weekly")
-    ) {
-      // For daily and weekly, only fetch if not already loaded
-      setNutritionLoading(true);
-      AnalysisService.getNutritionByTab(tab)
-        .then((data) => {
-          setNutritionData((prev: any) => ({
-            ...prev,
-            [tab]: data,
-          }));
-          setNutritionLoading(false);
-        })
-        .catch((err) => {
-          console.error(`Failed to fetch ${tab} nutrition:`, err);
-          setNutritionLoading(false);
-        });
+    if (analyticsError) {
+      setError(analyticsError);
+    } else {
+      setError(null);
     }
-  }, [tab, loading]); // Removed nutritionData from dependencies to prevent unnecessary re-fetching
+  }, [analyticsError]);
+
+  // Fetch nutrition data when tab changes (for tabs that need fresh data)
+  useEffect(() => {
+    // For monthly tab, always refresh to get latest data
+    if (tab === "monthly") {
+      if (!currentNutritionData && !analyticsLoading) {
+        setNutritionLoading(true);
+        refreshNutritionTab(tab)
+          .then(() => setNutritionLoading(false))
+          .catch((err) => {
+            console.error(`Failed to refresh ${tab} nutrition:`, err);
+            setNutritionLoading(false);
+          });
+      }
+    }
+  }, [tab, currentNutritionData, analyticsLoading, refreshNutritionTab]);
 
   // Helper to determine if we should show loading for current tab
   const shouldShowLoading = useMemo(() => {
-    if (loading) return true; // Initial app loading
+    if (analyticsLoading && !analyticsData) return true; // Initial analytics loading
 
     // Show loading only if:
-    // 1. We're currently fetching (nutritionLoading is true) AND
+    // 1. We're currently fetching tab-specific data (nutritionLoading is true) AND
     // 2. We don't have data for this tab yet
-    return nutritionLoading && !nutritionData[tab];
-  }, [loading, nutritionLoading, nutritionData, tab]);
-
-  // Get current nutrition data for the selected tab
-  const currentNutritionData = nutritionData[tab];
+    return nutritionLoading && !currentNutritionData;
+  }, [analyticsLoading, analyticsData, nutritionLoading, currentNutritionData]);
 
   // Transform nutrition data for charts
   const stats = useMemo(() => {
@@ -208,17 +163,17 @@ const Analytics = () => {
       mondayOfWeek.setDate(today.getDate() - daysFromMonday);
 
       console.log(`📅 Week calculation:`, {
-        today: today.toISOString().slice(0, 10),
+        today: formatDateForAPI(today),
         currentDay,
         daysFromMonday,
-        mondayOfWeek: mondayOfWeek.toISOString().slice(0, 10),
+        mondayOfWeek: formatDateForAPI(mondayOfWeek),
       });
 
       const result = [];
       for (let i = 0; i < 7; i++) {
         const currentDate = new Date(mondayOfWeek);
         currentDate.setDate(mondayOfWeek.getDate() + i);
-        const dateKey = currentDate.toISOString().slice(0, 10);
+        const dateKey = formatDateForAPI(currentDate);
         const dayName = currentDate.toLocaleDateString("en-US", {
           weekday: "short",
         });
@@ -473,7 +428,7 @@ const Analytics = () => {
   // Optimistic UI update example: handle weight update
   // (You can add a function to update weight and update state optimistically)
 
-  if (loading) {
+  if (analyticsLoading && !analyticsData) {
     return (
       <SafeAreaView className="flex-1 bg-white justify-center items-center">
         <ActivityIndicator size="large" color="#009FFA" />
@@ -531,6 +486,8 @@ const Analytics = () => {
                 carbs={nutritionTrendData.carbs}
                 fat={nutritionTrendData.fat}
                 calories={nutritionTrendData.calories}
+                mode={tab}
+                targetNutrition={userProfile?.targetNutrition}
                 period={(() => {
                   if (selectedBarIndex !== null) {
                     if (

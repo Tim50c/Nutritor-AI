@@ -3,16 +3,21 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/config/firebase";
 import { StatusBar } from "expo-status-bar";
-import { Platform, StatusBar as RNStatusBar, View, ActivityIndicator } from "react-native";
+import {
+  Platform,
+  StatusBar as RNStatusBar,
+  View,
+  ActivityIndicator,
+} from "react-native";
 import "./global.css";
 import CustomHeader from "@/components/CustomHeader";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { UserProvider, useUser, defaultUser } from "@/context/UserContext";
 import { DietProvider } from "@/context/DietContext";
+import { AnalyticsProvider } from "@/context/AnalyticsContext";
 import apiClient from "@/utils/apiClients";
-import { useFonts } from 'expo-font';
-import * as SplashScreen from 'expo-splash-screen';
-
+import { useFonts } from "expo-font";
+import * as SplashScreen from "expo-splash-screen";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -146,7 +151,14 @@ function RootLayoutNav() {
 
   if (isAuthLoading || isLoadingProfile) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'white' }}>
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: "white",
+        }}
+      >
         <ActivityIndicator size="large" color="#ff5a16" />
       </View>
     );
@@ -157,7 +169,7 @@ function RootLayoutNav() {
       screenOptions={{
         // ✅ Add this to prevent Android status bar overlay
         contentStyle: {
-          paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight : 0,
+          paddingTop: Platform.OS === "android" ? RNStatusBar.currentHeight : 0,
         },
         headerShown: false, // Default header setting
       }}
@@ -168,9 +180,9 @@ function RootLayoutNav() {
       <Stack.Screen name="food/[id]" options={{ headerShown: false }} />
       <Stack.Screen
         name="settings"
-        options={{ 
-            title: "Settings", 
-            headerShown: false,
+        options={{
+          title: "Settings",
+          headerShown: false,
         }}
       />
       <Stack.Screen
@@ -193,29 +205,28 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
-  
   // Track font loading time
   const [fontLoadStartTime] = useState(() => Date.now());
-  
+
   const [fontsLoaded, error] = useFonts({
-    'SF-Pro-Display-Black': require('../assets/fonts/SF-Pro-Display-Black.otf'),
-    'SF-Pro-Display-BlackItalic': require('../assets/fonts/SF-Pro-Display-BlackItalic.otf'),
-    'SF-Pro-Display-Bold': require('../assets/fonts/SF-Pro-Display-Bold.otf'),
-    'SF-Pro-Display-BoldItalic': require('../assets/fonts/SF-Pro-Display-BoldItalic.otf'),
-    'SF-Pro-Display-Heavy': require('../assets/fonts/SF-Pro-Display-Heavy.otf'),
-    'SF-Pro-Display-HeavyItalic': require('../assets/fonts/SF-Pro-Display-HeavyItalic.otf'),
-    'SF-Pro-Display-Light': require('../assets/fonts/SF-Pro-Display-Light.otf'),
-    'SF-Pro-Display-LightItalic': require('../assets/fonts/SF-Pro-Display-LightItalic.otf'),
-    'SF-Pro-Display-Medium': require('../assets/fonts/SF-Pro-Display-Medium.otf'),
-    'SF-Pro-Display-MediumItalic': require('../assets/fonts/SF-Pro-Display-MediumItalic.otf'),
-    'SF-Pro-Display-Regular': require('../assets/fonts/SF-Pro-Display-Regular.otf'),
-    'SF-Pro-Display-RegularItalic': require('../assets/fonts/SF-Pro-Display-RegularItalic.otf'),
-    'SF-Pro-Display-Semibold': require('../assets/fonts/SF-Pro-Display-Semibold.otf'),
-    'SF-Pro-Display-SemiboldItalic': require('../assets/fonts/SF-Pro-Display-SemiboldItalic.otf'),
-    'SF-Pro-Display-Thin': require('../assets/fonts/SF-Pro-Display-Thin.otf'),
-    'SF-Pro-Display-ThinItalic': require('../assets/fonts/SF-Pro-Display-ThinItalic.otf'),
-    'SF-Pro-Display-Ultralight': require('../assets/fonts/SF-Pro-Display-Ultralight.otf'),
-    'SF-Pro-Display-UltralightItalic': require('../assets/fonts/SF-Pro-Display-UltralightItalic.otf'),
+    "SF-Pro-Display-Black": require("../assets/fonts/SF-Pro-Display-Black.otf"),
+    "SF-Pro-Display-BlackItalic": require("../assets/fonts/SF-Pro-Display-BlackItalic.otf"),
+    "SF-Pro-Display-Bold": require("../assets/fonts/SF-Pro-Display-Bold.otf"),
+    "SF-Pro-Display-BoldItalic": require("../assets/fonts/SF-Pro-Display-BoldItalic.otf"),
+    "SF-Pro-Display-Heavy": require("../assets/fonts/SF-Pro-Display-Heavy.otf"),
+    "SF-Pro-Display-HeavyItalic": require("../assets/fonts/SF-Pro-Display-HeavyItalic.otf"),
+    "SF-Pro-Display-Light": require("../assets/fonts/SF-Pro-Display-Light.otf"),
+    "SF-Pro-Display-LightItalic": require("../assets/fonts/SF-Pro-Display-LightItalic.otf"),
+    "SF-Pro-Display-Medium": require("../assets/fonts/SF-Pro-Display-Medium.otf"),
+    "SF-Pro-Display-MediumItalic": require("../assets/fonts/SF-Pro-Display-MediumItalic.otf"),
+    "SF-Pro-Display-Regular": require("../assets/fonts/SF-Pro-Display-Regular.otf"),
+    "SF-Pro-Display-RegularItalic": require("../assets/fonts/SF-Pro-Display-RegularItalic.otf"),
+    "SF-Pro-Display-Semibold": require("../assets/fonts/SF-Pro-Display-Semibold.otf"),
+    "SF-Pro-Display-SemiboldItalic": require("../assets/fonts/SF-Pro-Display-SemiboldItalic.otf"),
+    "SF-Pro-Display-Thin": require("../assets/fonts/SF-Pro-Display-Thin.otf"),
+    "SF-Pro-Display-ThinItalic": require("../assets/fonts/SF-Pro-Display-ThinItalic.otf"),
+    "SF-Pro-Display-Ultralight": require("../assets/fonts/SF-Pro-Display-Ultralight.otf"),
+    "SF-Pro-Display-UltralightItalic": require("../assets/fonts/SF-Pro-Display-UltralightItalic.otf"),
   });
 
   useEffect(() => {
@@ -244,13 +255,12 @@ export default function RootLayout() {
     <AuthProvider>
       <UserProvider>
         <DietProvider>
-          <NotificationProvider>
-            <StatusBar 
-              style="dark" 
-              backgroundColor="white"
-            />
-            <RootLayoutNav />
-          </NotificationProvider>
+          <AnalyticsProvider>
+            <NotificationProvider>
+              <StatusBar style="dark" backgroundColor="white" />
+              <RootLayoutNav />
+            </NotificationProvider>
+          </AnalyticsProvider>
         </DietProvider>
       </UserProvider>
     </AuthProvider>

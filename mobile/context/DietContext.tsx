@@ -4,6 +4,7 @@ import { FoodModel } from "@/models";
 import FavoriteService from "@/services/favorite-service";
 import FoodService from "@/services/food-service";
 import HomeService from "@/services/home-service";
+import { analyticsEventEmitter } from "@/utils/analyticsEvents";
 import React, {
   createContext,
   ReactNode,
@@ -68,14 +69,15 @@ export function DietProvider({ children }: { children: ReactNode }) {
   const [suggestedFoods, setSuggestedFoods] = useState<DietFood[]>([]);
   const [favoriteFoodIds, setFavoriteFoodIds] = useState<string[]>([]);
   const [favoriteFoods, setFavoriteFoods] = useState<DietFood[]>([]);
-  const [targetNutrition, setTargetNutrition] = useState<DietSummary>(initialSummary);
+  const [targetNutrition, setTargetNutrition] =
+    useState<DietSummary>(initialSummary);
   const [loading, setLoading] = useState<boolean>(true);
 
   // Helper function to format date safely (timezone-aware)
   const formatDateForAPI = (date: Date): string => {
     const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const day = date.getDate().toString().padStart(2, "0");
     return `${year}-${month}-${day}`;
   };
 
@@ -115,19 +117,23 @@ export function DietProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const refreshSuggestions = () => fetchFoodSuggestions(summary, targetNutrition);
+  const refreshSuggestions = () =>
+    fetchFoodSuggestions(summary, targetNutrition);
 
   const refreshData = useCallback(async () => {
     if (!userProfile) return;
     setLoading(true);
     try {
       const dateString = formatDateForAPI(selectedDate);
-      console.log("🏠 [DietContext] refreshData - fetching for date:", dateString);
-      
+      console.log(
+        "🏠 [DietContext] refreshData - fetching for date:",
+        dateString
+      );
+
       const input: IHomeInput = { date: dateString };
       const homeData = await HomeService.getHome(input);
       const actualData = (homeData as any).data;
-      
+
       const consumedNutrition = {
         calories: actualData?.consumpedNutrition?.cal || 0,
         carbs: actualData?.consumpedNutrition?.carbs || 0,
@@ -135,20 +141,28 @@ export function DietProvider({ children }: { children: ReactNode }) {
         fat: actualData?.consumpedNutrition?.fat || 0,
       };
       setSummary(consumedNutrition);
-      
-      const allFoods: DietFood[] = (actualData?.diets[0]?.foods || []).map((food: any) => ({
-        id: food.id,
-        name: food.name || "Unknown Food",
-        image: food.imageUrl ? { uri: food.imageUrl } : null,
-        calories: food.nutrition?.cal || 0,
-        carbs: food.nutrition?.carbs || 0,
-        protein: food.nutrition?.protein || 0,
-        fat: food.nutrition?.fat || 0,
-        description: food.description || "",
-      }));
+
+      const allFoods: DietFood[] = (actualData?.diets[0]?.foods || []).map(
+        (food: any) => ({
+          id: food.id,
+          name: food.name || "Unknown Food",
+          image: food.imageUrl ? { uri: food.imageUrl } : null,
+          calories: food.nutrition?.cal || 0,
+          carbs: food.nutrition?.carbs || 0,
+          protein: food.nutrition?.protein || 0,
+          fat: food.nutrition?.fat || 0,
+          description: food.description || "",
+        })
+      );
       setFoods(allFoods);
 
       await fetchFoodSuggestions(consumedNutrition, targetNutrition);
+
+      // Invalidate analytics data since diet has changed
+      console.log(
+        "📊 [DietContext] Diet data refreshed, invalidating analytics"
+      );
+      analyticsEventEmitter.emit();
     } catch (error) {
       console.error("❌ [DietContext] Failed to refresh data:", error);
     } finally {
@@ -185,16 +199,21 @@ export function DietProvider({ children }: { children: ReactNode }) {
         };
 
         const dateString = formatDateForAPI(selectedDate);
-        console.log("🏠 [DietContext] fetchData - fetching for date:", dateString);
-        
+        console.log(
+          "🏠 [DietContext] fetchData - fetching for date:",
+          dateString
+        );
+
         const input: IHomeInput = { date: dateString };
         const homeData = await HomeService.getHome(input);
         const actualData = (homeData as any).data;
 
         const newTarget = {
-          calories: actualData?.targetNutrition?.calories ?? fallbackTarget.calories,
+          calories:
+            actualData?.targetNutrition?.calories ?? fallbackTarget.calories,
           carbs: actualData?.targetNutrition?.carbs ?? fallbackTarget.carbs,
-          protein: actualData?.targetNutrition?.protein ?? fallbackTarget.protein,
+          protein:
+            actualData?.targetNutrition?.protein ?? fallbackTarget.protein,
           fat: actualData?.targetNutrition?.fat ?? fallbackTarget.fat,
         };
         setTargetNutrition(newTarget);
@@ -207,7 +226,8 @@ export function DietProvider({ children }: { children: ReactNode }) {
         };
         setSummary(consumedNutrition);
 
-        const allFoods: DietFood[] = (actualData?.diets[0]?.foods || []).map((food: any) => ({
+        const allFoods: DietFood[] = (actualData?.diets[0]?.foods || []).map(
+          (food: any) => ({
             id: food.id,
             name: food.name || "Unknown Food",
             image: food.imageUrl ? { uri: food.imageUrl } : null,
@@ -216,7 +236,8 @@ export function DietProvider({ children }: { children: ReactNode }) {
             protein: food.nutrition?.protein || 0,
             fat: food.nutrition?.fat || 0,
             description: food.description || "",
-        }));
+          })
+        );
         setFoods(allFoods);
 
         await fetchFavoriteFoods();

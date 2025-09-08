@@ -6,6 +6,14 @@ import { BarChart } from "react-native-gifted-charts";
 import { format } from "date-fns";
 import type { TabOption } from "./ToggleTabs";
 
+// Helper function for timezone-safe date formatting
+const formatDateForAPI = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 type CalDatum = { date: string; value: number };
 
 interface CalorieChartProps {
@@ -113,7 +121,7 @@ const CalorieChart: React.FC<CalorieChartProps> = ({
     if (!data.length) return null;
 
     const today = new Date();
-    const todayString = today.toISOString().slice(0, 10);
+    const todayString = formatDateForAPI(today);
 
     if (mode === "daily") {
       // Find today's index (or current day of week)

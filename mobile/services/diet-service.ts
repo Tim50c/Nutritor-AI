@@ -1,4 +1,4 @@
-import { authInstance } from "@/config/api/axios";
+import { authInstance, authInstanceLongTimeout } from "@/config/api/axios";
 import { BaseResponse, IAddDietInput, IDietsInput } from "@/interfaces";
 import { DietModel } from "@/models";
 
@@ -189,7 +189,8 @@ class DietService {
       const queryString = params.toString();
       const url = `/diet/nutrition/monthly${queryString ? `?${queryString}` : ''}`;
 
-      const response = await authInstance.get(url);
+      // Use long timeout instance for monthly data as it can take longer to process
+      const response = await authInstanceLongTimeout.get(url);
 
       return response.data;
     } catch (error: any) {
