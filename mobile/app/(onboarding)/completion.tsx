@@ -36,7 +36,9 @@ export default function CompletionScreen() {
 
       const currentYear = new Date().getFullYear();
       const birthYear = currentYear - data.age;
-      const dob = new Date(birthYear, 0, 1).toISOString();
+      // Use timezone-safe date formatting
+      const dobDate = new Date(birthYear, 0, 1); // January 1st of birth year
+      const dob = `${dobDate.getFullYear()}-${String(dobDate.getMonth() + 1).padStart(2, '0')}-${String(dobDate.getDate()).padStart(2, '0')}`;
 
       // --- CONVERSION LOGIC ---
       // Convert weight to KG if the user entered it in LBS.
