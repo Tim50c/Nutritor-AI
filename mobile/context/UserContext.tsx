@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, ReactNode, useEffect } from
 import { auth } from "../config/firebase";
 import NutritionModel from "@/models/nutrition-model";
 import { onAuthStateChanged, User as FirebaseAuthUser } from "firebase/auth";
+import { SearchService } from "@/services";
 
 // 1. Define a type that accurately reflects the backend data model
 export type User = {
@@ -106,6 +107,20 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       
       if (result.success && result.data) {
         setUserProfile(result.data);
+        
+        // Load foods cache after successful profile fetch
+        try {
+          console.log("🔄 Loading foods cache...");
+          const cacheResult = await SearchService.loadFoodsCache();
+          if (cacheResult.success) {
+            console.log(`✅ Foods cache loaded: ${cacheResult.count} foods`);
+          } else {
+            console.log("⚠️ Failed to load foods cache:", cacheResult.message);
+          }
+        } catch (cacheError) {
+          console.error("❌ Error loading foods cache:", cacheError);
+          // Don't throw here - profile loading should still succeed even if cache fails
+        }
       } else {
         throw new Error(result.error || 'Could not get user data');
       }

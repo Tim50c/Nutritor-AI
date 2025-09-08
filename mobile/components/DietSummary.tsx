@@ -29,16 +29,8 @@ const MacroItem = ({
       const newProgress = Math.min((newValue / (targetValue || 1)) * 100, 100);
       
       if (newText !== displayText || newProgress !== progressPercent) {
-        console.log(`🎨 [MacroItem-${label}] Animation value: ${animation.value} -> ${newText}g (${newProgress.toFixed(1)}%)`);
         setDisplayText(newText);
         setProgressPercent(newProgress);
-      }
-    });
-
-    // Also set initial value
-    animatedValue.addListener(({ value }) => {
-      if (value === 0) {
-        console.log(`🎨 [MacroItem-${label}] Initial value set to 0`);
       }
     });
 
