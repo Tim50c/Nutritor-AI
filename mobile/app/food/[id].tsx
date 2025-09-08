@@ -15,6 +15,7 @@ import { useLocalSearchParams, router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import CustomButton from "@/components/CustomButton";
+import CustomAlert from "@/components/CustomAlert";
 import DietService from "@/services/diet-service";
 import FoodService from "@/services/food-service";
 import CameraService from "@/services/camera-service";
@@ -108,6 +109,15 @@ const FoodDetails = () => {
   const [isAddingToDiet, setIsAddingToDiet] = useState(false);
   const [isRemovingFromDiet, setIsRemovingFromDiet] = useState(false);
   const [isSavingImage, setIsSavingImage] = useState(false);
+
+  // Custom alert states
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState("");
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertType, setAlertType] = useState<"success" | "error" | "info">(
+    "info"
+  );
+
   const {
     refreshData,
     fetchFavoriteFoods,
@@ -132,6 +142,18 @@ const FoodDetails = () => {
 
   // Add state to track updated food data
   const [updatedFoodData, setUpdatedFoodData] = useState<string | null>(null);
+
+  // Helper function to show custom alerts
+  const showCustomAlert = (
+    title: string,
+    message: string,
+    type: "success" | "error" | "info" = "info"
+  ) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertType(type);
+    setAlertVisible(true);
+  };
 
   // Parse real API food data or use mock data as fallback
   const food = React.useMemo(() => {
@@ -283,7 +305,11 @@ const FoodDetails = () => {
   // Function to update image with complete replacement
   const updateFoodImage = async (imageUri: string) => {
     if (!food?.id) {
-      Alert.alert("Error", "Unable to update image. Food ID not found.");
+      showCustomAlert(
+        "Error",
+        "Unable to update image. Food information is missing.",
+        "error"
+      );
       return;
     }
 
@@ -402,7 +428,11 @@ const FoodDetails = () => {
 
   const handleAddToDiet = async () => {
     if (!food?.id) {
-      Alert.alert("Error", "Unable to add food to diet. Food ID not found.");
+      showCustomAlert(
+        "Error",
+        "Unable to add food to diet. Food information is missing.",
+        "error"
+      );
       return;
     }
 
@@ -433,41 +463,33 @@ const FoodDetails = () => {
       // First navigate to today's date to ensure we're viewing the correct day
       goToToday();
 
-      // IMMEDIATE UI UPDATE: Update UI state instantly
-      await addFoodToTodayDiet(dietFood);
+      // IMMEDIATE UI UPDATE: Update UI state instantly (synchronous)
+      addFoodToTodayDiet(dietFood);
       console.log("✅ [Food Details] Food added to UI successfully");
 
       // Show success message immediately
-      Alert.alert("Success!", `${food.name} has been added to your diet.`, [
-        {
-          text: "Go to Home",
-          onPress: () => router.replace("/"),
-        },
-        {
-          text: "Add Another",
-          style: "cancel",
-        },
-      ]);
+      showCustomAlert(
+        "Success!",
+        `${food.name} has been added to your diet successfully.`,
+        "success"
+      );
 
-      // BACKGROUND SYNC: Add to backend asynchronously
+      // BACKGROUND SYNC: Add to backend asynchronously (fire and forget)
       DietService.addFoodToTodayDiet({ foodId })
         .then(() => {
           console.log("✅ [Food Details] Food synced to backend successfully");
-          // Silent refresh to ensure consistency without showing loading
-          setTimeout(() => {
-            refreshData(false).catch(console.error); // Don't force refresh to avoid loading state
-          }, 1000);
         })
         .catch((error) => {
           console.error("❌ [Food Details] Backend sync failed:", error);
           // Could show a toast notification here for sync failure
-          // For now, we'll just log it as the UI already shows the food
         });
     } catch (error) {
       console.error("❌ [Food Details] Error adding food to diet:", error);
-      Alert.alert("Error", "Failed to add food to diet. Please try again.", [
-        { text: "OK" },
-      ]);
+      showCustomAlert(
+        "Error",
+        "Unable to add food to diet. Please try again.",
+        "error"
+      );
     } finally {
       setIsAddingToDiet(false);
     }
@@ -475,9 +497,10 @@ const FoodDetails = () => {
 
   const handleRemoveFromDiet = async () => {
     if (!food?.id) {
-      Alert.alert(
+      showCustomAlert(
         "Error",
-        "Unable to remove food from diet. Food ID not found."
+        "Unable to remove food from diet. Food information is missing.",
+        "error"
       );
       return;
     }
@@ -496,32 +519,23 @@ const FoodDetails = () => {
       // First navigate to today's date to ensure we're viewing the correct day
       goToToday();
 
-      // IMMEDIATE UI UPDATE: Update UI state instantly
-      await removeFoodFromTodayDiet(foodId);
+      // IMMEDIATE UI UPDATE: Update UI state instantly (synchronous)
+      removeFoodFromTodayDiet(foodId);
       console.log("✅ [Food Details] Food removed from UI successfully");
 
       // Show success message immediately
-      Alert.alert("Removed!", `${food.name} has been removed from your diet.`, [
-        {
-          text: "Go to Home",
-          onPress: () => router.replace("/"),
-        },
-        {
-          text: "Stay Here",
-          style: "cancel",
-        },
-      ]);
+      showCustomAlert(
+        "Removed!",
+        `${food.name} has been removed from your diet successfully.`,
+        "success"
+      );
 
-      // BACKGROUND SYNC: Remove from backend asynchronously
+      // BACKGROUND SYNC: Remove from backend asynchronously (fire and forget)
       DietService.removeFoodFromTodayDiet({ foodId })
         .then(() => {
           console.log(
             "✅ [Food Details] Food removal synced to backend successfully"
           );
-          // Silent refresh to ensure consistency without showing loading
-          setTimeout(() => {
-            refreshData(false).catch(console.error); // Don't force refresh to avoid loading state
-          }, 1000);
         })
         .catch((error) => {
           console.error(
@@ -529,14 +543,13 @@ const FoodDetails = () => {
             error
           );
           // Could show a toast notification here for sync failure
-          // For now, we'll just log it as the UI already shows the removal
         });
     } catch (error) {
       console.error("❌ [Food Details] Error removing food from diet:", error);
-      Alert.alert(
+      showCustomAlert(
         "Error",
-        "Failed to remove food from diet. Please try again.",
-        [{ text: "OK" }]
+        "Unable to remove food from diet. Please try again.",
+        "error"
       );
     } finally {
       setIsRemovingFromDiet(false);
@@ -855,6 +868,15 @@ const FoodDetails = () => {
           )}
         </View>
       </Modal>
+
+      {/* Custom Alert */}
+      <CustomAlert
+        visible={alertVisible}
+        title={alertTitle}
+        message={alertMessage}
+        type={alertType}
+        onClose={() => setAlertVisible(false)}
+      />
     </View>
   );
 };
