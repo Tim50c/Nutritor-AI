@@ -97,12 +97,7 @@ const Search = () => {
         filters
       });
       
-      // Safety check - if both query and filters are empty, don't perform search
       const trimmedQuery = searchQuery?.trim() || '';
-      const hasFilters = filters.calories < nutrientRanges.calories.max || 
-                        filters.protein < nutrientRanges.protein.max ||
-                        filters.carbs < nutrientRanges.carbs.max ||
-                        filters.fat < nutrientRanges.fat.max;
       
       if (!trimmedQuery) {
         console.log('⚠️ Empty search query and no filters - returning to initial state');
@@ -277,6 +272,10 @@ const Search = () => {
               <TouchableOpacity
                 onPress={() => {
                   console.log('🔧 Filter button clicked');
+                  setLiveCalories(Math.round(liveCalories));
+                  setLiveProtein(Math.round(liveProtein));
+                  setLiveFat(Math.round(liveFat));
+                  setLiveCarbs(Math.round(liveCarbs));
                   setShowFilters(!showFilters);
                 }}
                 className={`w-12 h-12 items-center justify-center rounded-xl ${
@@ -295,7 +294,7 @@ const Search = () => {
             {showFilters && (
               <Animatable.View animation="fadeInDown" duration={300} className="mb-4 p-4 bg-gray-50 rounded-xl">
                 <View className="flex-row justify-between items-center mb-3">
-                  <Text className="text-lg font-semibold text-gray-800">Filter by Nutrients</Text>
+                  <Text className="text-lg font-bold text-gray-800">Filter by Nutrients</Text>
                   <TouchableOpacity onPress={resetFilters} className="px-3 py-1 bg-gray-200 rounded-lg">
                     <Text className="text-sm text-gray-600">Reset</Text>
                   </TouchableOpacity>
@@ -427,9 +426,9 @@ function NutrientSlider({ label, value, onValueChange, onSlidingComplete, range 
         onValueChange={onValueChange}
         onSlidingComplete={onSlidingComplete}
         step={range.step}
-        minimumTrackTintColor="#F97316"
+        minimumTrackTintColor="#ff5a16"
         maximumTrackTintColor="#E5E7EB"
-        thumbTintColor="#F97316"
+        thumbTintColor="#ff5a16"
         style={{ width: "100%", height: 40 }}
       />
     </View>
