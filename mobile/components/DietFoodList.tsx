@@ -1,66 +1,36 @@
 import FoodSection from "@/components/FoodSection";
 import { useDietContext } from "@/context/DietContext";
-import { DietService } from "@/services";
-import React, { useEffect } from "react";
+import React from "react";
 import { View } from "react-native";
-
-// Define FoodItem inline since it's not exported from interfaces
-interface FoodItem {
-  id: string;
-  name: string;
-  image: any;
-  calories: number;
-  protein: number;
-  fat: number;
-  carbs: number;
-}
+import { Text } from "./CustomText";
 
 export default function DietFoodList() {
-  const { selectedDate, isFavorite, toggleFavorite } = useDietContext();
+  const { foods, isFavorite, toggleFavorite, loading } = useDietContext();
 
-  const [foods, setFoods] = React.useState<FoodItem[]>([]);
+  const renderContent = () => {
+    // The DietSummary component shows the main loader for the screen.
+    // This section will simply be empty until the data is ready.
+    if (loading) {
+      return null;
+    }
 
-  // Fetch foods for the selected date
-  useEffect(() => {
-    const fetchFoods = async () => {
-      try {
-        const response = await DietService.getDiets({
-          date: selectedDate.toISOString().split("T")[0],
-        });
-        const diets = response || [];
-        console.log(diets.data.foods);
-        // Fetch details for each foodId
-        const foodDetailsPromises = diets.data.foods.map(async (food) => {
-          // Try to get name and image from FoodModel if needed
-          // For now, use description as name and image as null
-          return {
-            id: food.id,
-            name: food.name || "Food",
-            image: food.imageUrl, // If you have imageUrl, use it here
-            calories: food.nutrition.cal,
-            protein: food.nutrition.protein,
-            fat: food.nutrition.fat,
-            carbs: food.nutrition.carbs,
-          };
-        });
-        const foodItems = await Promise.all(foodDetailsPromises);
-        setFoods(foodItems);
-      } catch (error) {
-        console.error("Error fetching foods:", error);
-      }
-    };
+    if (foods.length === 0) {
+      return (
+        <View className="items-center justify-center my-10">
+          <Text className="text-gray-500">No food logged for this day.</Text>
+        </View>
+      );
+    }
 
-    fetchFoods();
-  }, [selectedDate]);
-
-  return (
-    <View className="w-full">
+    return (
       <FoodSection
         title=""
         foods={foods}
         isFavorite={isFavorite}
         onToggleFavorite={toggleFavorite}
       />
-    </View>
-  );
+    );
+  };
+
+  return <View className="w-full px-4 mb-4">{renderContent()}</View>;
 }

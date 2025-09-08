@@ -17,7 +17,7 @@ const CustomButton: React.FC<CustomButtonProps> = ({ label, onPress, disabled = 
       onPress={onPress}
       disabled={disabled}
     >
-      <Text className="text-white text-base font-semibold">{label}</Text>
+      <Text className="text-white text-base font-bold">{label}</Text>
     </TouchableOpacity>
   );
 };

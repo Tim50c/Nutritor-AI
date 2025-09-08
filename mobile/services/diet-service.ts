@@ -26,13 +26,34 @@ class DietService {
 
   public async addFoodToTodayDiet(input: IAddDietInput): Promise<DietModel[]> {
     try {
+      // ⏰ LOG: Time tracking for timezone debugging
+      const now = new Date();
+      const isoString = now.toISOString();
+      const localString = now.toString();
+      
+      // Use local date components to avoid timezone issues
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1;
+      const day = now.getDate();
+      const dateOnly = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+      
+      console.log("🍽️ [DietService] addFoodToTodayDiet called:");
+      console.log("  ⏰ Current time (ISO):", isoString);
+      console.log("  ⏰ Current time (Local):", localString);
+      console.log("  📅 Local components - Year:", year, "Month:", month, "Day:", day);
+      console.log("  📅 Today's date (for backend):", dateOnly);
+      console.log("  🥘 Food ID:", input.foodId);
+      console.log("  🌐 API endpoint: POST /diet");
+      
       const response = await authInstance.post(`/diet`, {
         foodId: input.foodId,
       });
 
+      console.log("✅ [DietService] Food added to diet successfully");
+      
       return response.data as DietModel[];
     } catch (error: any) {
-      console.error("Error adding food to diet:", error);
+      console.error("❌ [DietService] Error adding food to diet:", error);
       throw new Error("An error occurred while adding food to diet.");
     }
   }

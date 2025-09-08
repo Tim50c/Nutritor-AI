@@ -15,17 +15,41 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   const spinValue = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    let animationLoop: Animated.CompositeAnimation;
+    
+    console.log("🔄 [LoadingSpinner] isProcessing:", isProcessing);
+    
     if (isProcessing) {
-      Animated.loop(
+      // Reset the value before starting
+      spinValue.setValue(0);
+      
+      // Create the spinning animation
+      animationLoop = Animated.loop(
         Animated.timing(spinValue, {
           toValue: 1,
           duration: 1000,
           useNativeDriver: true,
-        })
-      ).start();
+        }),
+        { iterations: -1 } // Infinite loop
+      );
+      
+      console.log("🔄 [LoadingSpinner] Starting spin animation");
+      // Start the animation
+      animationLoop.start();
     } else {
+      // Stop any running animation and reset
+      spinValue.stopAnimation();
       spinValue.setValue(0);
+      console.log("🔄 [LoadingSpinner] Stopped spin animation");
     }
+
+    // Cleanup function to stop animation when component unmounts
+    return () => {
+      if (animationLoop) {
+        animationLoop.stop();
+      }
+      spinValue.stopAnimation();
+    };
   }, [isProcessing, spinValue]);
 
   const spinInterpolation = spinValue.interpolate({
@@ -67,6 +91,8 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
         style={[
           styles.spinner,
           {
+            width: size,
+            height: size,
             transform: [{ rotate: spinInterpolation }],
           },
         ]}

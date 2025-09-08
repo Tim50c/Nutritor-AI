@@ -24,10 +24,8 @@ export default function DietCalendar() {
   const { selectedDate, setSelectedDate } = useDietContext();
 
   // Ensure the calendar shows the current month and selects today on first mount
-  const today = new Date();
   useEffect(() => {
-    // normalize time portion to avoid accidental differences
-    setSelectedDate(new Date(today.getFullYear(), today.getMonth(), today.getDate()));
+    setSelectedDate(new Date());
     // run once on mount
   }, []);
 
@@ -78,6 +76,7 @@ export default function DietCalendar() {
       <View className="flex-row flex-wrap">
         {days.map((d, i) => {
           const cellDate = d ? new Date(year, month, d) : null;
+          const today = new Date(); // Get current date for comparison
           const isToday = cellDate ? isSameDate(cellDate, today) : false;
           const isSelected = cellDate ? isSameDate(cellDate, selectedDate) : false;
 
@@ -85,7 +84,12 @@ export default function DietCalendar() {
             <TouchableOpacity
               key={i}
               disabled={!d}
-              onPress={() => d && setSelectedDate(new Date(year, month, d))}
+              onPress={() => {
+                if (d) {
+                  const newDate = new Date(year, month, d);
+                  setSelectedDate(newDate);
+                }
+              }}
               className="w-[14.2%] h-10 items-center justify-center mb-1"
               accessibilityLabel={d ? `Day ${d}` : `Empty`}
             >

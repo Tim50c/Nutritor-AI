@@ -98,7 +98,7 @@ const GoalCard: React.FC = () => (
 const FoodDetails = () => {
   const { id, foodData, capturedImage } = useLocalSearchParams();
   const [isAddingToDiet, setIsAddingToDiet] = useState(false);
-  const { refreshData } = useDietContext();
+  const { refreshData, goToToday } = useDietContext();
 
   // Parse real API food data or use mock data as fallback
   const food = React.useMemo(() => {
@@ -161,11 +161,38 @@ const FoodDetails = () => {
       // Ensure food.id is a string
       const foodId = Array.isArray(food.id) ? food.id[0] : food.id;
 
+      // ⏰ LOG: Time tracking for timezone debugging
+      const now = new Date();
+      const isoString = now.toISOString();
+      const localString = now.toString();
+      
+      // Use local date components to avoid timezone issues  
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1;
+      const day = now.getDate();
+      const dateOnly = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+      
+      console.log("🍽️ [Food Details] Adding food to diet:");
+      console.log("  ⏰ Current time (ISO):", isoString);
+      console.log("  ⏰ Current time (Local):", localString);
+      console.log("  📅 Local components - Year:", year, "Month:", month, "Day:", day);
+      console.log("  📅 Date being used:", dateOnly);
+      console.log("  🥘 Food ID:", foodId);
+      console.log("  🥘 Food name:", food.name);
+
       // Add food to today's diet using the DietService
       await DietService.addFoodToTodayDiet({ foodId });
 
-      // Refresh home screen data to show updated nutrition
-      await refreshData();
+      console.log("✅ [Food Details] Food added successfully, going to today and refreshing...");
+
+      // First navigate to today's date to ensure we're viewing the correct day
+      goToToday();
+      
+      // Small delay to ensure date change is processed, then refresh data
+      setTimeout(async () => {
+        await refreshData();
+        console.log("✅ [Food Details] Diet data refreshed successfully");
+      }, 200);
 
       // Show success message
       Alert.alert("Success!", `${food.name} has been added to your diet.`, [
@@ -179,7 +206,7 @@ const FoodDetails = () => {
         },
       ]);
     } catch (error) {
-      console.error("Error adding food to diet:", error);
+      console.error("❌ [Food Details] Error adding food to diet:", error);
       Alert.alert("Error", "Failed to add food to diet. Please try again.", [
         { text: "OK" },
       ]);
@@ -334,14 +361,18 @@ const FoodDetails = () => {
         {/* Goal Section */}
         <GoalCard />
 
-        {/* Add to Diet Button */}
+        {/* Add some bottom padding to ensure content doesn't get hidden behind the fixed button */}
+        <View className="h-20" />
+      </ScrollView>
+
+      {/* Fixed Add to Diet Button at bottom */}
+      <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-4 mb-8">
         <CustomButton
           label={isAddingToDiet ? "Adding..." : "Add to My Diet"}
           onPress={handleAddToDiet}
-          style="mb-8"
           disabled={isAddingToDiet}
         />
-      </ScrollView>
+      </View>
     </View>
   );
 };
