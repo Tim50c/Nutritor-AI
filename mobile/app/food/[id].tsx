@@ -21,6 +21,7 @@ import CameraService from "@/services/camera-service";
 import { FOODS } from "@/data/mockData";
 import { useDietContext } from "@/context/DietContext";
 import { images } from "@/constants/images";
+import { icons } from "@/constants/icons";
 import { Camera, CameraView } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 
@@ -105,7 +106,8 @@ const FoodDetails = () => {
   const { id, foodData, capturedImage } = useLocalSearchParams();
   const [isAddingToDiet, setIsAddingToDiet] = useState(false);
   const [isSavingImage, setIsSavingImage] = useState(false);
-  const { refreshData, fetchFavoriteFoods } = useDietContext();
+  const { refreshData, fetchFavoriteFoods, isFavorite, toggleFavorite } =
+    useDietContext();
 
   // Image-related states
   const [currentImage, setCurrentImage] = useState<string | null>(null);
@@ -118,7 +120,7 @@ const FoodDetails = () => {
   const [pickerAction, setPickerAction] = useState<"gallery" | "camera" | null>(
     null
   );
-  
+
   // Add state to track updated food data
   const [updatedFoodData, setUpdatedFoodData] = useState<string | null>(null);
 
@@ -126,14 +128,14 @@ const FoodDetails = () => {
   const food = React.useMemo(() => {
     // Use updated food data if available, otherwise use original
     const dataToUse = updatedFoodData || foodData;
-    
+
     if (dataToUse && typeof dataToUse === "string") {
       try {
         const parsedFood: FoodData = JSON.parse(dataToUse);
         console.log("🍎 Processed food:", {
           name: parsedFood.name,
           hasImage: !!parsedFood.imageUrl,
-          imageUrl: parsedFood.imageUrl
+          imageUrl: parsedFood.imageUrl,
         });
 
         const finalFood = {
@@ -163,16 +165,16 @@ const FoodDetails = () => {
   React.useEffect(() => {
     const initializeImages = () => {
       let imageUri: string | null = null;
-      
+
       if (capturedImage) {
         imageUri = capturedImage as string;
       } else if (food?.image) {
         imageUri = typeof food.image === "string" ? food.image : food.image.uri;
       }
-      
+
       setCurrentImage(imageUri);
     };
-    
+
     initializeImages();
   }, [capturedImage, food]);
 
@@ -227,7 +229,7 @@ const FoodDetails = () => {
 
       if (!pickerResult.canceled) {
         const asset = pickerResult.assets[0];
-        
+
         // Update image with proper state management
         await updateFoodImage(asset.uri);
       }
@@ -255,7 +257,7 @@ const FoodDetails = () => {
       try {
         const photo = await cameraRef.takePictureAsync();
         setShowCameraModal(false);
-        
+
         // Update image with proper state management
         await updateFoodImage(photo.uri);
       } catch (error) {
@@ -283,10 +285,10 @@ const FoodDetails = () => {
 
     try {
       setIsSavingImage(true);
-      
+
       // First upload the image to get URL
       const uploadResult = await CameraService.uploadImage(imageUri);
-      
+
       if (!uploadResult.success || !uploadResult.imageUrl) {
         throw new Error(uploadResult.message || "Failed to upload image");
       }
@@ -295,18 +297,21 @@ const FoodDetails = () => {
 
       // Then update the food record with the new image URL
       const foodId = Array.isArray(food.id) ? food.id[0] : food.id;
-      
-      const updateResponse = await FoodService.updateFoodImage(foodId, uploadResult.imageUrl);
-      
+
+      const updateResponse = await FoodService.updateFoodImage(
+        foodId,
+        uploadResult.imageUrl
+      );
+
       console.log("✅ Food database updated successfully");
-      
+
       // Update the food data state with the new image URL
       if (foodData && typeof foodData === "string") {
         try {
           const currentFood = JSON.parse(foodData);
           const updatedFood = {
             ...currentFood,
-            imageUrl: uploadResult.imageUrl
+            imageUrl: uploadResult.imageUrl,
           };
           setUpdatedFoodData(JSON.stringify(updatedFood));
           console.log("✅ Local food data updated");
@@ -314,7 +319,7 @@ const FoodDetails = () => {
           console.error("Error updating food data manually:", error);
         }
       }
-      
+
       // IMPORTANT: Refresh global food cache to update all food cards across the app
       try {
         // Refresh all cached food data that might contain this food
@@ -327,26 +332,19 @@ const FoodDetails = () => {
         console.error("❌ Error refreshing global cache:", error);
         // Don't fail the whole operation if cache refresh fails
       }
-      
-
-      
     } catch (error) {
       console.error("❌ Error saving image:", error);
-      
-      Alert.alert(
-        "Upload Failed", 
-        "Failed to save image. Please try again.",
-        [
-          { 
-            text: "Retry", 
-            onPress: () => updateFoodImage(imageUri)
-          },
-          { 
-            text: "Cancel", 
-            style: "cancel" 
-          }
-        ]
-      );
+
+      Alert.alert("Upload Failed", "Failed to save image. Please try again.", [
+        {
+          text: "Retry",
+          onPress: () => updateFoodImage(imageUri),
+        },
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+      ]);
     } finally {
       setIsSavingImage(false);
     }
@@ -354,6 +352,25 @@ const FoodDetails = () => {
 
   // Legacy function for backward compatibility
   const saveImageToBackend = updateFoodImage;
+
+  // Handle favorite toggle
+  const handleFavoriteToggle = async () => {
+    if (!food?.id) return;
+
+    const foodId = Array.isArray(food.id) ? food.id[0] : food.id;
+    const dietFood = {
+      id: foodId,
+      name: food.name,
+      image: food.image,
+      calories: food.calories || 0,
+      carbs: food.carbs || 0,
+      protein: food.protein || 0,
+      fat: food.fat || 0,
+      description: food.description || `${food.name} - Nutritional Information`,
+    };
+
+    await toggleFavorite(foodId, dietFood);
+  };
 
   // Handle case where food is not found
   if (!food) {
@@ -430,27 +447,27 @@ const FoodDetails = () => {
           </View>
         ) : food?.image ? (
           <ImageBackground source={food.image} className="w-full h-80">
-            <LinearGradient
-              colors={["rgba(0,0,0,0.3)", "rgba(0,0,0,0.6)"]}
-              className="flex-1 justify-between"
-            >
-              {/* Top Navigation */}
-              <View className="flex-row justify-between items-center pt-12 px-4">
-                <TouchableOpacity
-                  className="w-10 h-10 bg-black rounded-full items-center justify-center"
-                  onPress={() => router.back()}
-                >
-                  <Ionicons name="arrow-back" size={24} color="white" />
-                </TouchableOpacity>
+            {/* Top Navigation */}
+            <View className="flex-row justify-between items-center pt-12 px-4">
+              <TouchableOpacity
+                className="w-10 h-10 bg-white rounded-full items-center justify-center"
+                onPress={() => router.back()}
+              >
+                <Ionicons name="arrow-back" size={24} color="black" />
+              </TouchableOpacity>
 
-                <TouchableOpacity
-                  className="w-10 h-10 bg-black rounded-full items-center justify-center"
-                  onPress={handleImagePress}
-                >
-                  <Ionicons name="pencil" size={20} color="white" />
-                </TouchableOpacity>
-              </View>
-            </LinearGradient>
+              <TouchableOpacity
+                className="w-10 h-10 bg-white rounded-full items-center justify-center"
+                onPress={handleFavoriteToggle}
+              >
+                {food &&
+                isFavorite(Array.isArray(food.id) ? food.id[0] : food.id) ? (
+                  <icons.heartFill width={16} height={16} />
+                ) : (
+                  <icons.heart width={16} height={16} />
+                )}
+              </TouchableOpacity>
+            </View>
           </ImageBackground>
         ) : (
           // Fallback for foods without images
@@ -458,63 +475,71 @@ const FoodDetails = () => {
             source={images.fallback_food}
             className="w-full h-80 "
           >
-            <LinearGradient
-              colors={["rgba(0,0,0,0.3)", "rgba(0,0,0,0.6)"]}
-              className="flex-1 w-full justify-between"
-            >
-              {/* Top Navigation */}
-              <View className="flex-row justify-between items-center pt-12 px-4">
-                <TouchableOpacity
-                  className="w-10 h-10 bg-black rounded-full items-center justify-center"
-                  onPress={() => router.back()}
-                >
-                  <Ionicons name="arrow-back" size={24} color="white" />
-                </TouchableOpacity>
+            {/* Top Navigation */}
+            <View className="flex-row justify-between items-center pt-12 px-4">
+              <TouchableOpacity
+                className="w-10 h-10 bg-white rounded-full items-center justify-center"
+                onPress={() => router.back()}
+              >
+                <Ionicons name="arrow-back" size={24} color="black" />
+              </TouchableOpacity>
 
-                <TouchableOpacity
-                  className="w-10 h-10 bg-black rounded-full items-center justify-center"
-                  onPress={handleImagePress}
-                >
-                  <Ionicons name="pencil" size={20} color="white" />
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                className="w-10 h-10 bg-white rounded-full items-center justify-center"
+                onPress={handleFavoriteToggle}
+              >
+                {food &&
+                isFavorite(Array.isArray(food.id) ? food.id[0] : food.id) ? (
+                  <icons.heartFill width={16} height={16} />
+                ) : (
+                  <icons.heart width={16} height={16} />
+                )}
+              </TouchableOpacity>
+            </View>
 
-              {/* Placeholder content */}
-              <View className="items-center justify-center flex-1">
-                <Ionicons name="nutrition" size={80} color="white" />
-                <Text className="text-white text-lg font-semibold mt-2">
-                  Food Image
-                </Text>
-              </View>
-            </LinearGradient>
+            {/* Placeholder content */}
+            <View className="items-center justify-center flex-1">
+              <Ionicons name="nutrition" size={80} color="white" />
+              <Text className="text-white text-lg font-semibold mt-2">
+                Food Image
+              </Text>
+            </View>
           </ImageBackground>
         )}
 
         {/* If current image exists, overlay navigation on top */}
         {currentImage && (
-          <View className="absolute top-0 left-0 right-0">
-            <LinearGradient
-              colors={["rgba(0,0,0,0.3)", "rgba(0,0,0,0.1)"]}
-              className="pt-12 px-4 pb-4"
-            >
-              <View className="flex-row justify-between items-center">
-                <TouchableOpacity
-                  className="w-10 h-10 bg-black rounded-full items-center justify-center"
-                  onPress={() => router.back()}
-                >
-                  <Ionicons name="arrow-back" size={24} color="white" />
-                </TouchableOpacity>
+          <View className="absolute top-0 left-0 right-0 pt-12 px-4 pb-4">
+            <View className="flex-row justify-between items-center">
+              <TouchableOpacity
+                className="w-10 h-10 bg-white rounded-full items-center justify-center"
+                onPress={() => router.back()}
+              >
+                <Ionicons name="arrow-back" size={24} color="black" />
+              </TouchableOpacity>
 
-                <TouchableOpacity
-                  className="w-10 h-10 bg-black rounded-full items-center justify-center"
-                  onPress={handleImagePress}
-                >
-                  <Ionicons name="pencil" size={20} color="white" />
-                </TouchableOpacity>
-              </View>
-            </LinearGradient>
+              <TouchableOpacity
+                className="w-10 h-10 bg-white rounded-full items-center justify-center"
+                onPress={handleFavoriteToggle}
+              >
+                {food &&
+                isFavorite(Array.isArray(food.id) ? food.id[0] : food.id) ? (
+                  <icons.heartFill width={16} height={16} />
+                ) : (
+                  <icons.heart width={16} height={16} />
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         )}
+
+        {/* Edit button positioned at bottom right of image */}
+        <TouchableOpacity
+          className="absolute bottom-8 right-4 w-12 h-12 bg-orange-500 rounded-full items-center justify-center shadow-lg"
+          onPress={handleImagePress}
+        >
+          <Ionicons name="pencil" size={20} color="white" />
+        </TouchableOpacity>
       </View>
 
       <ScrollView className="flex-1 -mt-6 bg-white rounded-t-3xl px-6 pt-6">
