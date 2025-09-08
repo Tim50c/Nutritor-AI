@@ -26,7 +26,6 @@ const loadFoodsCache = async () => {
 
 // Function to get foods from cache (with auto-refresh)
 const getFoodsFromCache = async () => {
-  // Check if cache exists and is not expired
   if (!foodsCache || !cacheTimestamp || (Date.now() - cacheTimestamp > CACHE_DURATION)) {
     await loadFoodsCache();
   }
@@ -44,7 +43,6 @@ const initializeCache = async () => {
   }
 };
 
-// Call initialize cache immediately
 initializeCache();
 
 // @desc    Load all foods into cache
@@ -69,12 +67,10 @@ exports.loadCache = async (req, res, next) => {
 // @access  Private
 exports.searchFoods = async (req, res, next) => {
   try {
-    const { query, calo, protein, carb, fat } = req.query;
+    const { query, calo, protein, carbs, fat } = req.query;
 
-    // Get foods from cache instead of querying Firestore
     let foods = await getFoodsFromCache();
 
-    // Apply text search filter if query provided
     if (query && query.trim()) {
       const searchTerm = query.trim().toLowerCase();
       foods = foods.filter(food => 
@@ -82,24 +78,26 @@ exports.searchFoods = async (req, res, next) => {
       );
     }
 
-    // Apply nutrition filters if provided
+    // FIX: Added defensive checks (food.nutrition && ...) to prevent server crash
+    // This is the main fix for the fatal bug.
     if (calo) {
-      foods = foods.filter(food => food.nutrition.cal <= parseInt(calo));
+      foods = foods.filter(food => food.nutrition && food.nutrition.cal <= parseInt(calo));
     }
 
     if (protein) {
-      foods = foods.filter(food => food.nutrition.protein <= parseInt(protein));
+      foods = foods.filter(food => food.nutrition && food.nutrition.protein <= parseInt(protein));
     }
 
-    if (carb) {
-      foods = foods.filter(food => food.nutrition.carbs <= parseInt(carb));
+    if (carbs) {
+      foods = foods.filter(food => food.nutrition && food.nutrition.carbs <= parseInt(carbs));
     }
 
     if (fat) {
-      foods = foods.filter(food => food.nutrition.fat <= parseInt(fat));
+      foods = foods.filter(food => food.nutrition && food.nutrition.fat <= parseInt(fat));
     }
 
-    res.status(200).json({ success: true, data: foods });
+    res.status(200).json(foods);
+
   } catch (error) {
     console.error('Search error:', error);
     res.status(500).json({ success: false, error: 'Server error' });
