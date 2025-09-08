@@ -9,12 +9,15 @@ import {
   Image,
   Alert,
   Modal,
+  ActivityIndicator,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import CustomButton from "@/components/CustomButton";
 import DietService from "@/services/diet-service";
+import FoodService from "@/services/food-service";
+import CameraService from "@/services/camera-service";
 import { FOODS } from "@/data/mockData";
 import { useDietContext } from "@/context/DietContext";
 import { images } from "@/constants/images";
@@ -101,7 +104,8 @@ const GoalCard: React.FC = () => (
 const FoodDetails = () => {
   const { id, foodData, capturedImage } = useLocalSearchParams();
   const [isAddingToDiet, setIsAddingToDiet] = useState(false);
-  const { refreshData } = useDietContext();
+  const [isSavingImage, setIsSavingImage] = useState(false);
+  const { refreshData, fetchFavoriteFoods } = useDietContext();
 
   // Image-related states
   const [currentImage, setCurrentImage] = useState<string | null>(null);
@@ -114,13 +118,23 @@ const FoodDetails = () => {
   const [pickerAction, setPickerAction] = useState<"gallery" | "camera" | null>(
     null
   );
+  
+  // Add state to track updated food data
+  const [updatedFoodData, setUpdatedFoodData] = useState<string | null>(null);
 
   // Parse real API food data or use mock data as fallback
   const food = React.useMemo(() => {
-    if (foodData && typeof foodData === "string") {
+    // Use updated food data if available, otherwise use original
+    const dataToUse = updatedFoodData || foodData;
+    
+    if (dataToUse && typeof dataToUse === "string") {
       try {
-        const parsedFood: FoodData = JSON.parse(foodData);
-        console.log("🖼️ ImageURL from parsed food:", parsedFood.imageUrl);
+        const parsedFood: FoodData = JSON.parse(dataToUse);
+        console.log("🍎 Processed food:", {
+          name: parsedFood.name,
+          hasImage: !!parsedFood.imageUrl,
+          imageUrl: parsedFood.imageUrl
+        });
 
         const finalFood = {
           id: parsedFood.id || id,
@@ -143,17 +157,23 @@ const FoodDetails = () => {
 
     // Fallback to mock data if no API data available
     return FOODS.find((item) => item.id === id);
-  }, [id, foodData]);
+  }, [id, foodData, updatedFoodData]);
 
   // Initialize current image
   React.useEffect(() => {
-    if (capturedImage) {
-      setCurrentImage(capturedImage as string);
-    } else if (food?.image) {
-      setCurrentImage(
-        typeof food.image === "string" ? food.image : food.image.uri
-      );
-    }
+    const initializeImages = () => {
+      let imageUri: string | null = null;
+      
+      if (capturedImage) {
+        imageUri = capturedImage as string;
+      } else if (food?.image) {
+        imageUri = typeof food.image === "string" ? food.image : food.image.uri;
+      }
+      
+      setCurrentImage(imageUri);
+    };
+    
+    initializeImages();
   }, [capturedImage, food]);
 
   // Handle image picker actions
@@ -207,7 +227,9 @@ const FoodDetails = () => {
 
       if (!pickerResult.canceled) {
         const asset = pickerResult.assets[0];
-        setCurrentImage(asset.uri);
+        
+        // Update image with proper state management
+        await updateFoodImage(asset.uri);
       }
     } catch (error) {
       console.error("Error picking image from library:", error);
@@ -232,8 +254,10 @@ const FoodDetails = () => {
     if (cameraRef) {
       try {
         const photo = await cameraRef.takePictureAsync();
-        setCurrentImage(photo.uri);
         setShowCameraModal(false);
+        
+        // Update image with proper state management
+        await updateFoodImage(photo.uri);
       } catch (error) {
         console.error("Error capturing photo:", error);
         Alert.alert("Error", "Failed to capture photo");
@@ -244,6 +268,92 @@ const FoodDetails = () => {
   const closeCameraModal = () => {
     setShowCameraModal(false);
   };
+
+  // Function to update image with complete replacement
+  const updateFoodImage = async (imageUri: string) => {
+    if (!food?.id) {
+      Alert.alert("Error", "Unable to update image. Food ID not found.");
+      return;
+    }
+
+    console.log("📤 Updating image for:", food.name);
+
+    // Show the new image immediately
+    setCurrentImage(imageUri);
+
+    try {
+      setIsSavingImage(true);
+      
+      // First upload the image to get URL
+      const uploadResult = await CameraService.uploadImage(imageUri);
+      
+      if (!uploadResult.success || !uploadResult.imageUrl) {
+        throw new Error(uploadResult.message || "Failed to upload image");
+      }
+
+      console.log("✅ Image uploaded:", uploadResult.imageUrl);
+
+      // Then update the food record with the new image URL
+      const foodId = Array.isArray(food.id) ? food.id[0] : food.id;
+      
+      const updateResponse = await FoodService.updateFoodImage(foodId, uploadResult.imageUrl);
+      
+      console.log("✅ Food database updated successfully");
+      
+      // Update the food data state with the new image URL
+      if (foodData && typeof foodData === "string") {
+        try {
+          const currentFood = JSON.parse(foodData);
+          const updatedFood = {
+            ...currentFood,
+            imageUrl: uploadResult.imageUrl
+          };
+          setUpdatedFoodData(JSON.stringify(updatedFood));
+          console.log("✅ Local food data updated");
+        } catch (error) {
+          console.error("Error updating food data manually:", error);
+        }
+      }
+      
+      // IMPORTANT: Refresh global food cache to update all food cards across the app
+      try {
+        // Refresh all cached food data that might contain this food
+        await Promise.all([
+          refreshData(), // Refreshes home data (history foods) and suggestions
+          fetchFavoriteFoods(), // Refreshes favorite foods cache
+        ]);
+        console.log("✅ Global food cache refreshed");
+      } catch (error) {
+        console.error("❌ Error refreshing global cache:", error);
+        // Don't fail the whole operation if cache refresh fails
+      }
+      
+
+      
+    } catch (error) {
+      console.error("❌ Error saving image:", error);
+      
+      Alert.alert(
+        "Upload Failed", 
+        "Failed to save image. Please try again.",
+        [
+          { 
+            text: "Retry", 
+            onPress: () => updateFoodImage(imageUri)
+          },
+          { 
+            text: "Cancel", 
+            style: "cancel" 
+          }
+        ]
+      );
+    } finally {
+      setIsSavingImage(false);
+    }
+  };
+
+  // Legacy function for backward compatibility
+  const saveImageToBackend = updateFoodImage;
 
   // Handle case where food is not found
   if (!food) {
@@ -311,11 +421,13 @@ const FoodDetails = () => {
       <View className="relative">
         {/* Use current image (captured, selected, or original) */}
         {currentImage ? (
-          <Image
-            source={{ uri: currentImage }}
-            className="w-full h-80"
-            resizeMode="cover"
-          />
+          <View className="relative">
+            <Image
+              source={{ uri: currentImage }}
+              className="w-full h-80"
+              resizeMode="cover"
+            />
+          </View>
         ) : food?.image ? (
           <ImageBackground source={food.image} className="w-full h-80">
             <LinearGradient
@@ -411,6 +523,15 @@ const FoodDetails = () => {
           <Text className="text-2xl font-bold text-gray-900 mb-2">
             {food.name}
           </Text>
+          {/* Show saving status */}
+          {isSavingImage && (
+            <View className="flex-row items-center mb-2">
+              <ActivityIndicator size="small" color="#ff5a16" />
+              <Text className="ml-2 text-orange-600 text-sm font-medium">
+                Saving image changes...
+              </Text>
+            </View>
+          )}
           <Text className="text-gray-600 leading-relaxed">
             {food.description}
           </Text>

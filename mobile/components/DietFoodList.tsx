@@ -31,12 +31,10 @@ export default function DietFoodList() {
         console.log(diets.data.foods);
         // Fetch details for each foodId
         const foodDetailsPromises = diets.data.foods.map(async (food) => {
-          // Try to get name and image from FoodModel if needed
-          // For now, use description as name and image as null
           return {
             id: food.id,
             name: food.name || "Food",
-            image: food.imageUrl, // If you have imageUrl, use it here
+            image: food.imageUrl ? { uri: food.imageUrl } : null, // Fixed: Proper image format
             calories: food.nutrition.cal,
             protein: food.nutrition.protein,
             fat: food.nutrition.fat,

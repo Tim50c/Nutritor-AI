@@ -101,7 +101,7 @@ export function DietProvider({ children }: { children: ReactNode }) {
         (food: FoodModel) => ({
           id: food.id,
           name: food.name,
-          image: food.imageUrl || null,
+          image: food.imageUrl ? { uri: food.imageUrl } : null, // Fixed: Proper image format
           calories: food.nutrition.cal,
           carbs: food.nutrition.carbs,
           protein: food.nutrition.protein,
