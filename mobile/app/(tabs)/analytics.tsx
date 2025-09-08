@@ -16,9 +16,9 @@ import {
 const getBMIStatus = (bmi: number): string => {
   if (bmi <= 0 || isNaN(bmi)) return "Unknown"; // Handle invalid BMI
   if (bmi < 18.5) return "Underweight";
-  if (bmi < 25) return "Healthy";
+  if (bmi < 25) return "Normal weight";
   if (bmi < 30) return "Overweight";
-  return "Obese";
+  return "Obesity";
 };
 
 const Analytics = () => {

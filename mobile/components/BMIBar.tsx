@@ -12,7 +12,7 @@ interface BMIBarProps {
   max?: number;
 }
 
-const BMIBar: React.FC<BMIBarProps> = ({ bmi, status, min = 12, max = 40 }) => {
+const BMIBar: React.FC<BMIBarProps> = ({ bmi, status, min = 15, max = 35 }) => {
   const [barWidth, setBarWidth] = useState<number>(0);
 
   // Handle invalid BMI values
@@ -30,47 +30,31 @@ const BMIBar: React.FC<BMIBarProps> = ({ bmi, status, min = 12, max = 40 }) => {
   // clamp percentage between 0 and 1
   const pct = Math.max(0, Math.min(1, (bmi - min) / (max - min)));
 
-  // Get color based on position on gradient (where the marker is)
-  const getTextColor = (percentage: number) => {
-    // Define the gradient colors (lighter versions used in the gradient bar)
-    const colors = [
-      { pos: 0, color: [96, 165, 250] }, // #60A5FA - Light Blue (Underweight)
-      { pos: 0.33, color: [52, 211, 153] }, // #34D399 - Light Green (Healthy)
-      { pos: 0.66, color: [251, 191, 36] }, // #FBBF24 - Light Orange (Overweight)
-      { pos: 1, color: [248, 113, 113] }, // #F87171 - Light Red (Obese)
-    ];
-
-    // Find the two colors to interpolate between
-    let startColor = colors[0];
-    let endColor = colors[1];
-
-    for (let i = 0; i < colors.length - 1; i++) {
-      if (percentage >= colors[i].pos && percentage <= colors[i + 1].pos) {
-        startColor = colors[i];
-        endColor = colors[i + 1];
-        break;
-      }
+  // Get color based on BMI status to match legend
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "Underweight":
+        return "#60A5FA"; // Light Blue - matches legend
+      case "Healthy":
+      case "Normal weight":
+        return "#34D399"; // Light Green - matches legend
+      case "Overweight":
+        return "#FBBF24"; // Light Orange - matches legend
+      case "Obese":
+      case "Obesity":
+        return "#F87171"; // Light Red - matches legend
+      default:
+        return "#6B7280"; // Gray for unknown
     }
-
-    // Calculate interpolation factor
-    const range = endColor.pos - startColor.pos;
-    const factor = range === 0 ? 0 : (percentage - startColor.pos) / range;
-
-    // Interpolate RGB values
-    const r = Math.round(
-      startColor.color[0] + (endColor.color[0] - startColor.color[0]) * factor
-    );
-    const g = Math.round(
-      startColor.color[1] + (endColor.color[1] - startColor.color[1]) * factor
-    );
-    const b = Math.round(
-      startColor.color[2] + (endColor.color[2] - startColor.color[2]) * factor
-    );
-
-    return `rgb(${r}, ${g}, ${b})`;
   };
 
-  const textColor = getTextColor(pct);
+  const textColor = getStatusColor(status);
+
+  // Calculate gradient stops based on BMI ranges
+  // Underweight: 15-18.5, Normal: 18.5-24.9, Overweight: 25-29.9, Obese: 30-35
+  const underweightEnd = (18.5 - min) / (max - min); // ~17.5%
+  const normalEnd = (24.9 - min) / (max - min); // ~49.5%
+  const overweightEnd = (29.9 - min) / (max - min); // ~74.5%
 
   // Use lighter versions for the gradient
   const lightColors = ["#60A5FA", "#34D399", "#FBBF24", "#F87171"]; // Lighter versions
@@ -110,7 +94,26 @@ const BMIBar: React.FC<BMIBarProps> = ({ bmi, status, min = 12, max = 40 }) => {
         >
           {/* LinearGradient fills the container horizontally */}
           <LinearGradient
-            colors={["#60A5FA", "#34D399", "#FBBF24", "#F87171"]}
+            colors={[
+              "#60A5FA",
+              "#60A5FA",
+              "#34D399",
+              "#34D399",
+              "#FBBF24",
+              "#FBBF24",
+              "#F87171",
+              "#F87171",
+            ]}
+            locations={[
+              0,
+              underweightEnd,
+              underweightEnd,
+              normalEnd,
+              normalEnd,
+              overweightEnd,
+              overweightEnd,
+              1,
+            ]}
             start={[0, 0]}
             end={[1, 0]}
             style={{ flex: 1 }}
@@ -139,28 +142,28 @@ const BMIBar: React.FC<BMIBarProps> = ({ bmi, status, min = 12, max = 40 }) => {
               style={{ backgroundColor: "#60A5FA" }}
               className="w-2 h-2 rounded-full mr-1"
             />
-            <Text className="text-xs">Underweight</Text>
+            <Text className="text-xs">{"Underweight\n< 18.5"}</Text>
           </View>
           <View className="flex-row items-center">
             <View
               style={{ backgroundColor: "#34D399" }}
               className="w-2 h-2 rounded-full mr-1"
             />
-            <Text className="text-xs">Healthy</Text>
+            <Text className="text-xs">{"Normal\n18.5 – 24.9"}</Text>
           </View>
           <View className="flex-row items-center">
             <View
               style={{ backgroundColor: "#FBBF24" }}
               className="w-2 h-2 rounded-full mr-1"
             />
-            <Text className="text-xs">Overweight</Text>
+            <Text className="text-xs">{"Overweight\n25 – 29.9"}</Text>
           </View>
           <View className="flex-row items-center">
             <View
               style={{ backgroundColor: "#F87171" }}
               className="w-2 h-2 rounded-full mr-1"
             />
-            <Text className="text-xs">Obese</Text>
+            <Text className="text-xs">{"Obesity\n≥ 30"}</Text>
           </View>
         </View>
       </View>
