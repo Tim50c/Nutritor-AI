@@ -5,26 +5,33 @@ import { PieChart } from "react-native-gifted-charts";
 import { Text } from "./CustomText";
 import LoadingSpinner from "./LoadingSpinner";
 
-// A new component for the simplified macro display, now with animated text.
+// A new component for the simplified macro display, now with animated text and progress.
 const MacroItem = ({
   label,
   color,
   animatedValue, // We pass the Animated.Value directly
+  targetValue, // Target value for calculating progress
 }: {
   label: string;
   color: string;
   animatedValue: Animated.Value;
+  targetValue: number;
 }) => {
   const [displayText, setDisplayText] = useState("0");
+  const [progressPercent, setProgressPercent] = useState(0);
 
   useEffect(() => {
-    // This listener updates a state variable, which guarantees a re-render.
+    // This listener updates both text and progress, which guarantees a re-render.
     const listenerId = animatedValue.addListener((animation) => {
       // Remove decimal places for macros
-      const newValue = Math.round(animation.value).toString();
-      if (newValue !== displayText) {
-        console.log(`🎨 [MacroItem-${label}] Animation value: ${animation.value} -> ${newValue}`);
-        setDisplayText(newValue);
+      const newValue = Math.round(animation.value);
+      const newText = newValue.toString();
+      const newProgress = Math.min((newValue / (targetValue || 1)) * 100, 100);
+      
+      if (newText !== displayText || newProgress !== progressPercent) {
+        console.log(`🎨 [MacroItem-${label}] Animation value: ${animation.value} -> ${newText}g (${newProgress.toFixed(1)}%)`);
+        setDisplayText(newText);
+        setProgressPercent(newProgress);
       }
     });
 
@@ -39,23 +46,27 @@ const MacroItem = ({
     return () => {
       animatedValue.removeListener(listenerId);
     };
-  }, [animatedValue, label, displayText]);
+  }, [animatedValue, label, displayText, progressPercent, targetValue]);
 
   return (
-    <View className="flex-row items-center mb-4">
-      {/* The new indicator style: a colored dot inside a grey circle */}
-      <View className="w-10 h-10 bg-gray-100 rounded-full justify-center items-center mr-4">
-        <View
-          style={{ backgroundColor: color }}
-          className="w-4 h-4 rounded-full"
-        />
-      </View>
-
-      <View className="flex-1">
+    <View className="mb-4">
+      <View className="flex-row items-center justify-between mb-1">
+        <Text className="text-sm text-gray-500">{label}</Text>
         <Text className="text-base font-semibold text-gray-800">
           {displayText}g
         </Text>
-        <Text className="text-xs text-gray-500">{label}</Text>
+      </View>
+      
+      {/* Animated Progress Bar */}
+      <View className="h-2 bg-gray-100 rounded-full overflow-hidden">
+        <View 
+          style={{ 
+            width: `${progressPercent}%`,
+            backgroundColor: color,
+            height: '100%',
+          }}
+          className="rounded-full"
+        />
       </View>
     </View>
   );
@@ -214,16 +225,19 @@ export default function DietSummary() {
               label="Carbohydrate"
               color="#FBBF24" // Amber-400
               animatedValue={carbsAnim}
+              targetValue={targetNutrition?.carbs || 250}
             />
             <MacroItem
               label="Protein"
               color="#34D399" // Emerald-400
               animatedValue={proteinAnim}
+              targetValue={targetNutrition?.protein || 150}
             />
             <MacroItem
               label="Fat"
               color="#F87171" // Red-400
               animatedValue={fatAnim}
+              targetValue={targetNutrition?.fat || 67}
             />
           </View>
         </View>
