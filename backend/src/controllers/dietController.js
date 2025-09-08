@@ -3,6 +3,14 @@ const Diet = require('../models/dietModel');
 const Food = require('../models/foodModel');
 const { getNutritionForDates } = require('../utils/dietHelper');
 
+// Helper function for timezone-safe date formatting
+const getLocalDateString = (date = new Date()) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 // @desc Get daily nutrition for 7 days of a week
 // @route GET /api/v1/diet/nutrition/daily?startDate=YYYY-MM-DD
 // @access Private
@@ -14,7 +22,10 @@ exports.getDailyNutrition = async (req, res, next) => {
     // If no startDate provided, use current week (starting from Monday)
     let start;
     if (startDate && /^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
-      start = new Date(startDate);
+      // Parse date safely to avoid timezone shifts
+      // Create date using local timezone components instead of Date constructor
+      const [year, month, day] = startDate.split('-').map(Number);
+      start = new Date(year, month - 1, day); // month is 0-indexed in JS
     } else {
       // Get current week starting from Monday
       const now = new Date();
@@ -26,9 +37,9 @@ exports.getDailyNutrition = async (req, res, next) => {
 
     console.log(`📅 Daily Nutrition Debug:`, {
       originalDate: startDate,
-      calculatedStart: start.toISOString().slice(0, 10),
+      calculatedStart: getLocalDateString(start),
       dayOfWeek: start.getDay(), // Should be 1 (Monday)
-      today: new Date().toISOString().slice(0, 10)
+      today: getLocalDateString(new Date())
     });
 
     // Generate 7 days starting from the start date (Monday to Sunday)
@@ -36,7 +47,7 @@ exports.getDailyNutrition = async (req, res, next) => {
     for (let i = 0; i < 7; i++) {
       const date = new Date(start);
       date.setDate(start.getDate() + i);
-      dates.push(date.toISOString().slice(0, 10));
+      dates.push(getLocalDateString(date));
     }
 
     console.log(`📅 Generated dates (Mon-Sun):`, dates);
@@ -94,7 +105,7 @@ exports.getWeeklyNutrition = async (req, res, next) => {
       for (let i = 0; i < 7; i++) {
         const date = new Date(weekStart);
         date.setDate(weekStart.getDate() + i);
-        weekDates.push(date.toISOString().slice(0, 10));
+        weekDates.push(getLocalDateString(date));
       }
 
       // Get nutrition data for all days in this week
@@ -289,8 +300,11 @@ exports.addFoodToDiet = async (req, res, next) => {
       return res.status(400).json({ success: false, error: 'foodId is required' });
     }
     
-    const date = new Date().toISOString().slice(0, 10);
+    // Use timezone-safe date formatting instead of toISOString()
+    const date = getLocalDateString();
     const now = new Date();
+
+    console.log(`🍽️ [Backend] Adding food to diet for date: ${date} (local timezone)`);
 
     // Validate that the food exists and get its nutrition data
     const foodDoc = await db.collection('foods').doc(foodId).get();
@@ -367,7 +381,10 @@ exports.removeFoodFromDiet = async (req, res, next) => {
       return res.status(400).json({ success: false, error: 'foodId is required' });
     }
     
-    const date = new Date().toISOString().slice(0, 10);
+    // Use timezone-safe date formatting instead of toISOString()
+    const date = getLocalDateString();
+
+    console.log(`🗑️ [Backend] Removing food from diet for date: ${date} (local timezone)`);
 
     const dietRef = db.collection('users').doc(uid).collection('diets').doc(date);
     const dietDoc = await dietRef.get();
