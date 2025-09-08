@@ -55,7 +55,7 @@ class AnalysisService {
           console.warn("Failed to fetch weekly nutrition:", err);
           return null;
         }),
-        DietService.getMonthlyNutrition().catch(err => {
+        this.getMonthlyNutritionWithRetry().catch(err => {
           console.warn("Failed to fetch monthly nutrition:", err);
           return null;
         })
@@ -84,7 +84,8 @@ class AnalysisService {
         case 'weekly':
           return await DietService.getWeeklyNutrition();
         case 'monthly':
-          return await DietService.getMonthlyNutrition();
+          // Add retry logic for monthly data due to potential timeouts
+          return await this.getMonthlyNutritionWithRetry();
         default:
           throw new Error(`Unknown tab type: ${tab}`);
       }
@@ -92,6 +93,30 @@ class AnalysisService {
       console.error(`❌ Error fetching ${tab} nutrition:`, error);
       throw new Error(`An error occurred while getting ${tab} nutrition data.`);
     }
+  }
+
+  // Helper method for monthly nutrition with retry logic
+  private async getMonthlyNutritionWithRetry(maxRetries: number = 2): Promise<any> {
+    let lastError;
+    
+    for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+      try {
+        console.log(`📅 Attempting monthly nutrition fetch (attempt ${attempt}/${maxRetries + 1})`);
+        return await DietService.getMonthlyNutrition();
+      } catch (error: any) {
+        lastError = error;
+        console.warn(`⚠️ Monthly nutrition attempt ${attempt} failed:`, error.message);
+        
+        if (attempt <= maxRetries) {
+          // Wait before retrying (exponential backoff)
+          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+          console.log(`⏳ Retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+    
+    throw lastError;
   }
 }
 

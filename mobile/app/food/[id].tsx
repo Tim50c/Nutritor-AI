@@ -20,6 +20,7 @@ import FoodService from "@/services/food-service";
 import CameraService from "@/services/camera-service";
 import { FOODS } from "@/data/mockData";
 import { useDietContext } from "@/context/DietContext";
+import { analyticsEventEmitter } from "@/utils/analyticsEvents";
 import { images } from "@/constants/images";
 import { icons } from "@/constants/icons";
 import { Camera, CameraView } from "expo-camera";
@@ -106,8 +107,13 @@ const FoodDetails = () => {
   const { id, foodData, capturedImage } = useLocalSearchParams();
   const [isAddingToDiet, setIsAddingToDiet] = useState(false);
   const [isSavingImage, setIsSavingImage] = useState(false);
-  const { refreshData, fetchFavoriteFoods, isFavorite, toggleFavorite, goToToday } =
-    useDietContext();
+  const {
+    refreshData,
+    fetchFavoriteFoods,
+    isFavorite,
+    toggleFavorite,
+    goToToday,
+  } = useDietContext();
 
   // Image-related states
   const [currentImage, setCurrentImage] = useState<string | null>(null);
@@ -407,17 +413,24 @@ const FoodDetails = () => {
       const now = new Date();
       const isoString = now.toISOString();
       const localString = now.toString();
-      
-      // Use local date components to avoid timezone issues  
+
+      // Use local date components to avoid timezone issues
       const year = now.getFullYear();
       const month = now.getMonth() + 1;
       const day = now.getDate();
-      const dateOnly = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-      
+      const dateOnly = `${year}-${month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
+
       console.log("🍽️ [Food Details] Adding food to diet:");
       console.log("  ⏰ Current time (ISO):", isoString);
       console.log("  ⏰ Current time (Local):", localString);
-      console.log("  📅 Local components - Year:", year, "Month:", month, "Day:", day);
+      console.log(
+        "  📅 Local components - Year:",
+        year,
+        "Month:",
+        month,
+        "Day:",
+        day
+      );
       console.log("  📅 Date being used:", dateOnly);
       console.log("  🥘 Food ID:", foodId);
       console.log("  🥘 Food name:", food.name);
@@ -425,11 +438,16 @@ const FoodDetails = () => {
       // Add food to today's diet using the DietService
       await DietService.addFoodToTodayDiet({ foodId });
 
-      console.log("✅ [Food Details] Food added successfully, going to today and refreshing...");
+      console.log(
+        "✅ [Food Details] Food added successfully, going to today and refreshing..."
+      );
+
+      // Immediately invalidate analytics data
+      analyticsEventEmitter.emit();
 
       // First navigate to today's date to ensure we're viewing the correct day
       goToToday();
-      
+
       // Small delay to ensure date change is processed, then refresh data
       setTimeout(async () => {
         await refreshData();
