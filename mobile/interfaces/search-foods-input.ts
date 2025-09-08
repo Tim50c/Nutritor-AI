@@ -3,7 +3,7 @@ interface ISearchFoodsInput {
   query?: string;
   calo?: number;
   protein?: number;
-  carb?: number;
+  carbs?: number;
   fat?: number;
 }
 

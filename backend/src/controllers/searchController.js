@@ -89,14 +89,14 @@ exports.searchFoods = async (req, res, next) => {
     }
 
     if (carbs) {
-      foods = foods.filter(food => food.nutrition && food.nutrition.carbs <= parseInt(carbs));
+      foods = foods.filter(food => food.nutrition && food.nutrition.carbs <= parseInt(carb));
     }
 
     if (fat) {
       foods = foods.filter(food => food.nutrition && food.nutrition.fat <= parseInt(fat));
     }
 
-    res.status(200).json(foods);
+    res.status(200).json({ success: true, data: foods });
 
   } catch (error) {
     console.error('Search error:', error);
