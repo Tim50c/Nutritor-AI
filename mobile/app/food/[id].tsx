@@ -104,8 +104,9 @@ const GoalCard: React.FC = () => (
 );
 
 const FoodDetails = () => {
-  const { id, foodData, capturedImage } = useLocalSearchParams();
+  const { id, foodData, capturedImage, source } = useLocalSearchParams();
   const [isAddingToDiet, setIsAddingToDiet] = useState(false);
+  const [isRemovingFromDiet, setIsRemovingFromDiet] = useState(false);
   const [isSavingImage, setIsSavingImage] = useState(false);
   const {
     refreshData,
@@ -114,6 +115,7 @@ const FoodDetails = () => {
     toggleFavorite,
     goToToday,
     addFoodToTodayDiet,
+    removeFoodFromTodayDiet,
   } = useDietContext();
 
   // Image-related states
@@ -471,6 +473,76 @@ const FoodDetails = () => {
     }
   };
 
+  const handleRemoveFromDiet = async () => {
+    if (!food?.id) {
+      Alert.alert(
+        "Error",
+        "Unable to remove food from diet. Food ID not found."
+      );
+      return;
+    }
+
+    try {
+      setIsRemovingFromDiet(true);
+
+      // Ensure food.id is a string
+      const foodId = Array.isArray(food.id) ? food.id[0] : food.id;
+
+      console.log(
+        "🗑️ [Food Details] Removing food from diet optimistically:",
+        food.name
+      );
+
+      // First navigate to today's date to ensure we're viewing the correct day
+      goToToday();
+
+      // IMMEDIATE UI UPDATE: Update UI state instantly
+      await removeFoodFromTodayDiet(foodId);
+      console.log("✅ [Food Details] Food removed from UI successfully");
+
+      // Show success message immediately
+      Alert.alert("Removed!", `${food.name} has been removed from your diet.`, [
+        {
+          text: "Go to Home",
+          onPress: () => router.replace("/"),
+        },
+        {
+          text: "Stay Here",
+          style: "cancel",
+        },
+      ]);
+
+      // BACKGROUND SYNC: Remove from backend asynchronously
+      DietService.removeFoodFromTodayDiet({ foodId })
+        .then(() => {
+          console.log(
+            "✅ [Food Details] Food removal synced to backend successfully"
+          );
+          // Silent refresh to ensure consistency without showing loading
+          setTimeout(() => {
+            refreshData(false).catch(console.error); // Don't force refresh to avoid loading state
+          }, 1000);
+        })
+        .catch((error) => {
+          console.error(
+            "❌ [Food Details] Backend removal sync failed:",
+            error
+          );
+          // Could show a toast notification here for sync failure
+          // For now, we'll just log it as the UI already shows the removal
+        });
+    } catch (error) {
+      console.error("❌ [Food Details] Error removing food from diet:", error);
+      Alert.alert(
+        "Error",
+        "Failed to remove food from diet. Please try again.",
+        [{ text: "OK" }]
+      );
+    } finally {
+      setIsRemovingFromDiet(false);
+    }
+  };
+
   return (
     <View className="flex-1 bg-white">
       <StatusBar barStyle="light-content" />
@@ -671,11 +743,35 @@ const FoodDetails = () => {
 
       {/* Fixed Add to Diet Button at bottom */}
       <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-4 mb-8">
-        <CustomButton
-          label={isAddingToDiet ? "Adding..." : "Add to My Diet"}
-          onPress={handleAddToDiet}
-          disabled={isAddingToDiet}
-        />
+        {/* Show both buttons if source is from history or diet */}
+        {source === "history" || source === "diet" ? (
+          <View className="flex-row gap-3">
+            <View className="flex-1">
+              <CustomButton
+                label={isAddingToDiet ? "Adding..." : "Add to Diet"}
+                onPress={handleAddToDiet}
+                disabled={isAddingToDiet || isRemovingFromDiet}
+                style="bg-gray-200"
+                textStyle="text-black"
+              />
+            </View>
+            <View className="flex-1">
+              <CustomButton
+                label={isRemovingFromDiet ? "Removing..." : "Remove from Diet"}
+                onPress={handleRemoveFromDiet}
+                disabled={isAddingToDiet || isRemovingFromDiet}
+                style="bg-orange-500"
+              />
+            </View>
+          </View>
+        ) : (
+          /* Show only Add button for suggestions, favorites, and search results */
+          <CustomButton
+            label={isAddingToDiet ? "Adding..." : "Add to My Diet"}
+            onPress={handleAddToDiet}
+            disabled={isAddingToDiet}
+          />
+        )}
       </View>
 
       {/* Image Options Modal */}

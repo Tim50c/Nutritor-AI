@@ -28,6 +28,7 @@ export default function DietFoodList() {
         foods={foods}
         isFavorite={isFavorite}
         onToggleFavorite={toggleFavorite}
+        source="diet"
       />
     );
   };

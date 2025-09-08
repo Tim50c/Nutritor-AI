@@ -37,12 +37,14 @@ export default function HomeScreen() {
                 foods={suggestedFoods}
                 isFavorite={isFavorite}
                 onToggleFavorite={toggleFavorite}
+                source="suggestions"
               />
               <FoodSection
                 title="History Food"
                 foods={historyFoods}
                 isFavorite={isFavorite}
                 onToggleFavorite={toggleFavorite}
+                source="history"
               />
               {/* Optional: Show a small refresh indicator during background updates */}
               {refreshing && (

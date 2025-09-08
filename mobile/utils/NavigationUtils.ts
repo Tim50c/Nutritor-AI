@@ -8,7 +8,8 @@ class NavigationUtils {
   public static navigateToFoodDetail(
     food: FoodModel,
     foodId: string,
-    capturedImage?: string
+    capturedImage?: string,
+    source?: string
   ): void {
     const navigationParams: any = {
       id: foodId,
@@ -18,6 +19,11 @@ class NavigationUtils {
     // Only pass capturedImage if backend didn't return an imageUrl
     if (!food.imageUrl && capturedImage) {
       navigationParams.capturedImage = capturedImage;
+    }
+
+    // Pass source if provided
+    if (source) {
+      navigationParams.source = source;
     }
 
     router.push({
