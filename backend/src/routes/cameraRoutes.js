@@ -3,7 +3,8 @@ const multer = require('multer');
 const { 
   recognizeFoodDetails,
   recognizeBarcode,
-  addFood
+  addFood,
+  uploadImage
 } = require('../controllers/cameraController');
 const authMiddleware = require('../middleware/authMiddleware');
 
@@ -68,6 +69,25 @@ router.post('/barcode',
 router.post('/add-food', 
   authMiddleware,           // ✅ Auth required
   addFood
+);
+
+router.post('/upload-image', 
+  authMiddleware,           // ✅ Auth required
+  upload.single('image'),   // ✅ Handle image upload
+  (req, res, next) => {     // ✅ Log image reception and timing
+    console.timeEnd('upload-handling');
+    console.log('📷 Image received for upload:', {
+      filename: req.file?.originalname,
+      mimetype: req.file?.mimetype,
+      size: req.file?.size,
+      sizeInMB: req.file?.size ? (req.file.size / (1024 * 1024)).toFixed(2) : 'unknown',
+      hasBuffer: !!req.file?.buffer,
+      uploadDuration: `${Date.now() - req.uploadStartTime}ms`
+    });
+    console.log('👤 User ID:', res.locals.uid);
+    next();
+  },
+  uploadImage               // ✅ Process upload
 );
 
 // Error handling middleware
