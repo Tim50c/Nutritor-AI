@@ -24,10 +24,10 @@ import * as Animatable from 'react-native-animatable';
 const AnimatableView = Animatable.createAnimatableComponent(View);
 
 const nutrientRanges = {
-  calories: { min: 0, max: 6000, step: 50 },
-  protein: { min: 0, max: 400, step: 10 },
-  fat: { min: 0, max: 200, step: 5 },
-  carbs: { min: 0, max: 300, step: 10 },
+  calories: { min: 0, max: 6000, step: 10 },
+  protein: { min: 0, max: 400, step: 1 },
+  fat: { min: 0, max: 200, step: 1 },
+  carbs: { min: 0, max: 300, step: 1 },
 };
 
 const sortOptions: { key: string; label: string }[] = [
@@ -49,6 +49,7 @@ const Search = () => {
 
   // FIX: Separate state for visual slider value and the value used for searching
   // This resolves the visual reset bug and provides smooth dragging.
+  // Initialize both live and search values to maximum to prevent glitching
   const [liveCalories, setLiveCalories] = useState(nutrientRanges.calories.max);
   const [searchCalories, setSearchCalories] = useState(nutrientRanges.calories.max);
 
@@ -67,7 +68,10 @@ const Search = () => {
   const [hasSearched, setHasSearched] = useState<boolean>(false);
   const [sortBy, setSortBy] = useState<string>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [sliderKey, setSliderKey] = useState<number>(0); // Force slider re-render
   const debounceTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+
 
   const sortResults = (results: DietFood[], sortKey: string, order: 'asc' | 'desc'): DietFood[] => {
     return [...results].sort((a, b) => {
@@ -87,17 +91,43 @@ const Search = () => {
   const performSearch = async (searchQuery: string, filters: any) => {
     try {
       setIsSearching(true);
+      
+      console.log('🔍 Frontend performSearch called with:', {
+        searchQuery,
+        filters
+      });
+      
+      // Safety check - if both query and filters are empty, don't perform search
+      const trimmedQuery = searchQuery?.trim() || '';
+      const hasFilters = filters.calories < nutrientRanges.calories.max || 
+                        filters.protein < nutrientRanges.protein.max ||
+                        filters.carbs < nutrientRanges.carbs.max ||
+                        filters.fat < nutrientRanges.fat.max;
+      
+      if (!trimmedQuery) {
+        console.log('⚠️ Empty search query and no filters - returning to initial state');
+        setSearchResults([]);
+        setHasSearched(false);
+        setIsSearching(false);
+        return;
+      }
+      
       const searchInput: ISearchFoodsInput = {
-        query: searchQuery.trim(),
+        query: trimmedQuery,
         calo: filters.calories < nutrientRanges.calories.max ? filters.calories : undefined,
         protein: filters.protein < nutrientRanges.protein.max ? filters.protein : undefined,
         carbs: filters.carbs < nutrientRanges.carbs.max ? filters.carbs : undefined,
         fat: filters.fat < nutrientRanges.fat.max ? filters.fat : undefined,
       };
 
+      console.log('📤 Sending to SearchService:', searchInput);
+
       const foodsArray: FoodModel[] = (await SearchService.searchFoods(searchInput)) || [];
 
-      const transformedResults: DietFood[] = foodsArray.map((food: FoodModel) => ({
+      // Ensure foodsArray is always an array
+      const safeResultsArray = Array.isArray(foodsArray) ? foodsArray : [];
+
+      const transformedResults: DietFood[] = safeResultsArray.map((food: FoodModel) => ({
         id: food.id,
         name: food.name,
         image: food.imageUrl ? { uri: food.imageUrl } : null,
@@ -111,8 +141,10 @@ const Search = () => {
       const sortedResults = sortResults(transformedResults, sortBy, sortOrder);
       setSearchResults(sortedResults);
       setHasSearched(true);
+      
+      console.log(`✅ Search completed: ${sortedResults.length} results`);
     } catch (error) {
-      console.error("Search failed:", error);
+      console.error("❌ Search failed:", error);
       setSearchResults([]);
       setHasSearched(true);
     } finally {
@@ -131,11 +163,24 @@ const Search = () => {
       
       const shouldSearch = searchText.trim() !== "" || hasActiveFilters;
       
+      console.log('🎯 Search trigger check:', {
+        searchText: searchText.trim(),
+        searchCalories,
+        searchProtein,
+        searchFat,
+        searchCarbs,
+        hasActiveFilters,
+        shouldSearch
+      });
+      
       if (shouldSearch) {
         performSearch(searchText, { calories: searchCalories, protein: searchProtein, fat: searchFat, carbs: searchCarbs });
       } else {
+        // Clear search results and return to initial state
+        console.log('🏠 Returning to initial state - clearing search');
         setSearchResults([]);
         setHasSearched(false);
+        setIsSearching(false);
       }
     }, 300);
 
@@ -168,6 +213,7 @@ const Search = () => {
   };
   
   const resetFilters = () => {
+      console.log('🔄 Resetting all filters to maximum values');
       setLiveCalories(nutrientRanges.calories.max);
       setSearchCalories(nutrientRanges.calories.max);
       setLiveProtein(nutrientRanges.protein.max);
@@ -177,6 +223,12 @@ const Search = () => {
       setLiveCarbs(nutrientRanges.carbs.max);
       setSearchCarbs(nutrientRanges.carbs.max);
   };
+
+  // Check if any filters are active (not at maximum values)
+  const hasActiveFilters = searchCalories < nutrientRanges.calories.max || 
+                          searchProtein < nutrientRanges.protein.max || 
+                          searchFat < nutrientRanges.fat.max || 
+                          searchCarbs < nutrientRanges.carbs.max;
 
   const showInitialState = !hasSearched && !isSearching;
   const showNoResults = hasSearched && searchResults.length === 0 && !isSearching;
@@ -208,14 +260,35 @@ const Search = () => {
                   value={searchText}
                   onChangeText={setSearchText}
                 />
+                {searchText.length > 0 && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      console.log('🗑️ Clear button pressed - clearing search');
+                      setSearchText('');
+                    }}
+                    className="ml-2"
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="close-circle" size={20} color="#9CA3AF" />
+                  </TouchableOpacity>
+                )}
               </View>
 
               <TouchableOpacity
-                onPress={() => setShowFilters(!showFilters)}
-                className="w-12 h-12 items-center justify-center rounded-xl bg-orange-500"
+                onPress={() => {
+                  console.log('🔧 Filter button clicked');
+                  setShowFilters(!showFilters);
+                }}
+                className={`w-12 h-12 items-center justify-center rounded-xl ${
+                  hasActiveFilters ? 'bg-orange-500' : 'bg-gray-100'
+                }`}
                 activeOpacity={0.8}
               >
-                <Ionicons name="options-outline" size={24} color={'white'} />
+                <Ionicons 
+                  name="options-outline" 
+                  size={24} 
+                  color={hasActiveFilters ? 'white' : 'black'} 
+                />
               </TouchableOpacity>
             </View>
 
@@ -227,10 +300,34 @@ const Search = () => {
                     <Text className="text-sm text-gray-600">Reset</Text>
                   </TouchableOpacity>
                 </View>
-                <NutrientSlider label="Calories" value={liveCalories} onValueChange={setLiveCalories} onSlidingComplete={setSearchCalories} range={nutrientRanges.calories} />
-                <NutrientSlider label="Protein" value={liveProtein} onValueChange={setLiveProtein} onSlidingComplete={setSearchProtein} range={nutrientRanges.protein} />
-                <NutrientSlider label="Fat" value={liveFat} onValueChange={setLiveFat} onSlidingComplete={setSearchFat} range={nutrientRanges.fat} />
-                <NutrientSlider label="Carbs" value={liveCarbs} onValueChange={setLiveCarbs} onSlidingComplete={setSearchCarbs} range={nutrientRanges.carbs} />
+                <NutrientSlider 
+                  label="Calories" 
+                  value={liveCalories} 
+                  onValueChange={setLiveCalories} 
+                  onSlidingComplete={(val) => setSearchCalories(Math.round(liveCalories))}
+                  range={nutrientRanges.calories} 
+                />
+                <NutrientSlider 
+                  label="Protein" 
+                  value={liveProtein} 
+                  onValueChange={setLiveProtein} 
+                  onSlidingComplete={(val) => setSearchProtein(Math.round(liveProtein))}
+                  range={nutrientRanges.protein} 
+                />
+                <NutrientSlider 
+                  label="Fat" 
+                  value={liveFat} 
+                  onValueChange={setLiveFat} 
+                  onSlidingComplete={(val) => setSearchFat(Math.round(liveFat))}
+                  range={nutrientRanges.fat} 
+                />
+                <NutrientSlider 
+                  label="Carbs" 
+                  value={liveCarbs} 
+                  onValueChange={setLiveCarbs} 
+                  onSlidingComplete={(val) => setSearchCarbs(Math.round(val))} 
+                  range={nutrientRanges.carbs} 
+                />
               </Animatable.View>
             )}
           </View>
@@ -286,7 +383,7 @@ const Search = () => {
                             const isActive = sortBy === option.key;
                             return (
                                 <TouchableOpacity key={option.key} onPress={() => handleSort(option.key)} activeOpacity={0.8}
-                                    className={`px-3 py-1 rounded-lg ${isActive ? 'bg-orange-100' : 'bg-gray-200'}`}>
+                                    className={`px-3 py-1 rounded-lg mr-2 ${isActive ? 'bg-orange-100' : 'bg-gray-200'}`}>
                                 <Text className={`text-sm font-medium ${isActive ? 'text-orange-600' : 'text-gray-700'}`}>
                                     {option.label} {isActive && (sortOrder === 'asc' ? '↑' : '↓')}
                                 </Text>
@@ -316,20 +413,19 @@ interface NutrientSliderProps {
 
 function NutrientSlider({ label, value, onValueChange, onSlidingComplete, range }: NutrientSliderProps) {
   return (
-    <View className="mb-2">
-      <View className="flex-row justify-between items-center mb-1">
+    <View className="mb-4">
+      <View className="flex-row justify-between items-center mb-2">
         <Text className="text-base text-gray-700 font-medium">{label}</Text>
         <Text className="text-base font-semibold text-gray-800">
-          {Math.round(value)} / {range.max}
+          {Math.round(value)}
         </Text>
       </View>
       <Slider
-        key={`${label}-${value}-${range.max}`}
         minimumValue={range.min}
         maximumValue={range.max}
         value={value}
         onValueChange={onValueChange}
-        onSlidingComplete={(val) => onSlidingComplete(Math.round(val))}
+        onSlidingComplete={onSlidingComplete}
         step={range.step}
         minimumTrackTintColor="#F97316"
         maximumTrackTintColor="#E5E7EB"
