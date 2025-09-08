@@ -258,16 +258,9 @@ export function DietProvider({ children }: { children: ReactNode }) {
     async (food: DietFood) => {
       console.log("🍽️ [DietContext] Adding food to today's diet:", food.name);
 
-      // Clear cache for current date to ensure fresh data on next refresh
-      const dateString = formatDateForAPI(selectedDate);
-      const cacheKey = `diet_${dateString}`;
-      setDataCache((prev) => {
-        const newCache = new Map(prev);
-        newCache.delete(cacheKey);
-        return newCache;
-      });
+      // IMMEDIATE UI UPDATES - All synchronous for instant feedback
 
-      // Immediately update the UI state
+      // 1. Update foods list immediately
       setFoods((prevFoods) => {
         // Prevent duplicate food entries
         const exists = prevFoods.some((f) => f.id === food.id);
@@ -280,7 +273,7 @@ export function DietProvider({ children }: { children: ReactNode }) {
         return [...prevFoods, food];
       });
 
-      // Update nutrition summary immediately
+      // 2. Update nutrition summary immediately
       setSummary((prevSummary) => ({
         calories: prevSummary.calories + (food.calories || 0),
         carbs: prevSummary.carbs + (food.carbs || 0),
@@ -288,25 +281,39 @@ export function DietProvider({ children }: { children: ReactNode }) {
         fat: prevSummary.fat + (food.fat || 0),
       }));
 
+      // BACKGROUND TASKS - All async operations
+
+      // Clear cache for current date to ensure fresh data on next refresh
+      const dateString = formatDateForAPI(selectedDate);
+      const cacheKey = `diet_${dateString}`;
+      setDataCache((prev) => {
+        const newCache = new Map(prev);
+        newCache.delete(cacheKey);
+        return newCache;
+      });
+
       // Invalidate analytics data for immediate update
       analyticsEventEmitter.emit();
 
-      // Update food suggestions based on new nutrition data
-      try {
-        const updatedSummary = {
-          calories: summary.calories + (food.calories || 0),
-          carbs: summary.carbs + (food.carbs || 0),
-          protein: summary.protein + (food.protein || 0),
-          fat: summary.fat + (food.fat || 0),
-        };
-        await fetchFoodSuggestions(updatedSummary, targetNutrition);
-        console.log("✅ [DietContext] Food suggestions updated successfully");
-      } catch (error) {
-        console.error(
-          "❌ [DietContext] Failed to update food suggestions:",
-          error
-        );
-      }
+      // Update food suggestions based on new nutrition data (non-blocking)
+      const updatedSummary = {
+        calories: summary.calories + (food.calories || 0),
+        carbs: summary.carbs + (food.carbs || 0),
+        protein: summary.protein + (food.protein || 0),
+        fat: summary.fat + (food.fat || 0),
+      };
+
+      // Run suggestions update in background without blocking UI
+      fetchFoodSuggestions(updatedSummary, targetNutrition)
+        .then(() => {
+          console.log("✅ [DietContext] Food suggestions updated successfully");
+        })
+        .catch((error) => {
+          console.error(
+            "❌ [DietContext] Failed to update food suggestions:",
+            error
+          );
+        });
     },
     [summary, targetNutrition, selectedDate]
   );
@@ -323,19 +330,12 @@ export function DietProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // Clear cache for current date to ensure fresh data on next refresh
-      const dateString = formatDateForAPI(selectedDate);
-      const cacheKey = `diet_${dateString}`;
-      setDataCache((prev) => {
-        const newCache = new Map(prev);
-        newCache.delete(cacheKey);
-        return newCache;
-      });
+      // IMMEDIATE UI UPDATES - All synchronous for instant feedback
 
-      // Immediately update the UI state
+      // 1. Remove food from list immediately
       setFoods((prevFoods) => prevFoods.filter((f) => f.id !== foodId));
 
-      // Update nutrition summary immediately
+      // 2. Update nutrition summary immediately
       setSummary((prevSummary) => ({
         calories: Math.max(
           0,
@@ -346,28 +346,41 @@ export function DietProvider({ children }: { children: ReactNode }) {
         fat: Math.max(0, prevSummary.fat - (foodToRemove.fat || 0)),
       }));
 
+      // BACKGROUND TASKS - All async operations
+
+      // Clear cache for current date to ensure fresh data on next refresh
+      const dateString = formatDateForAPI(selectedDate);
+      const cacheKey = `diet_${dateString}`;
+      setDataCache((prev) => {
+        const newCache = new Map(prev);
+        newCache.delete(cacheKey);
+        return newCache;
+      });
+
       // Invalidate analytics data for immediate update
       analyticsEventEmitter.emit();
 
-      // Update food suggestions based on new nutrition data
-      try {
-        const updatedSummary = {
-          calories: Math.max(
-            0,
-            summary.calories - (foodToRemove.calories || 0)
-          ),
-          carbs: Math.max(0, summary.carbs - (foodToRemove.carbs || 0)),
-          protein: Math.max(0, summary.protein - (foodToRemove.protein || 0)),
-          fat: Math.max(0, summary.fat - (foodToRemove.fat || 0)),
-        };
-        await fetchFoodSuggestions(updatedSummary, targetNutrition);
-        console.log("✅ [DietContext] Food suggestions updated after removal");
-      } catch (error) {
-        console.error(
-          "❌ [DietContext] Failed to update food suggestions after removal:",
-          error
-        );
-      }
+      // Update food suggestions based on new nutrition data (non-blocking)
+      const updatedSummary = {
+        calories: Math.max(0, summary.calories - (foodToRemove.calories || 0)),
+        carbs: Math.max(0, summary.carbs - (foodToRemove.carbs || 0)),
+        protein: Math.max(0, summary.protein - (foodToRemove.protein || 0)),
+        fat: Math.max(0, summary.fat - (foodToRemove.fat || 0)),
+      };
+
+      // Run suggestions update in background without blocking UI
+      fetchFoodSuggestions(updatedSummary, targetNutrition)
+        .then(() => {
+          console.log(
+            "✅ [DietContext] Food suggestions updated after removal"
+          );
+        })
+        .catch((error) => {
+          console.error(
+            "❌ [DietContext] Failed to update food suggestions after removal:",
+            error
+          );
+        });
     },
     [summary, targetNutrition, selectedDate, foods]
   );
