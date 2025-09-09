@@ -64,7 +64,11 @@ const MacroItem = ({
   );
 };
 
-export default function DietSummary() {
+export default function DietSummary({
+  isTabFocused = false,
+}: {
+  isTabFocused?: boolean;
+}) {
   const { dietSummary, targetNutrition, loading, syncing } = useDietContext();
 
   // Animation values for each metric
@@ -74,6 +78,10 @@ export default function DietSummary() {
   const proteinAnim = useRef(new Animated.Value(0)).current;
   const fatAnim = useRef(new Animated.Value(0)).current;
 
+  // Animation control for cancellation during rapid updates
+  const animationRef = useRef<Animated.CompositeAnimation | null>(null);
+  const isAnimatingRef = useRef(false);
+
   // State for the main calorie text to fix the re-render bug
   const [animatedCalorieText, setAnimatedCalorieText] = useState("0");
   const [pieChartData, setPieChartData] = useState([
@@ -81,9 +89,16 @@ export default function DietSummary() {
     { value: 100, color: "#F3F4F6" },
   ]);
 
-  // Listener for the main calorie animation
+  // Optimized listener for the main calorie animation with throttling
   useEffect(() => {
+    let lastUpdate = 0;
+    const throttleMs = 16; // ~60fps
+
     const listenerId = caloriesAnim.addListener((animation) => {
+      const now = Date.now();
+      if (now - lastUpdate < throttleMs) return;
+      lastUpdate = now;
+
       // Remove decimal places for calories
       const roundedValue = Math.round(animation.value);
       setAnimatedCalorieText(roundedValue.toString());
@@ -97,6 +112,7 @@ export default function DietSummary() {
         { value: Math.max(100 - animatedCaloriesPercent, 0), color: "#F3F4F6" },
       ]);
     });
+
     return () => {
       caloriesAnim.removeListener(listenerId);
     };
@@ -107,68 +123,79 @@ export default function DietSummary() {
     calories: targetNutrition?.calories || 2000,
   };
 
-  // Trigger animations when data changes (not when loading changes)
+  // Optimized animation trigger with debouncing and cancellation
   useEffect(() => {
-    // Only animate if we have actual data and not loading
+    // Cancel any running animation
+    if (animationRef.current && isAnimatingRef.current) {
+      animationRef.current.stop();
+      isAnimatingRef.current = false;
+    }
+
+    // Only animate if we have actual data, not loading, AND tab is focused
     if (
       !loading &&
+      isTabFocused &&
       (dietSummary.calories > 0 ||
         dietSummary.carbs > 0 ||
         dietSummary.protein > 0 ||
         dietSummary.fat > 0)
     ) {
       console.log(
-        "🎨 [DietSummary] Starting animations with data:",
+        "🎨 [DietSummary] Starting optimized animations with data:",
         dietSummary
       );
 
-      // Small delay to ensure component is mounted
-      const timeoutId = setTimeout(() => {
-        const animations = [
-          Animated.timing(fadeAnim, {
-            toValue: 1,
-            duration: 600,
-            useNativeDriver: true,
-          }),
-          Animated.timing(caloriesAnim, {
-            toValue: dietSummary.calories,
-            duration: 1000,
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: false,
-          }),
-          Animated.timing(carbsAnim, {
-            toValue: dietSummary.carbs,
-            duration: 1000,
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: false,
-          }),
-          Animated.timing(proteinAnim, {
-            toValue: dietSummary.protein,
-            duration: 1000,
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: false,
-          }),
-          Animated.timing(fatAnim, {
-            toValue: dietSummary.fat,
-            duration: 1000,
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: false,
-          }),
-        ];
+      // Immediate updates for snappy feel, then animate
+      setAnimatedCalorieText(dietSummary.calories.toString());
 
-        console.log("🎨 [DietSummary] Animation started!");
-        Animated.parallel(animations).start(() => {
+      // Reduced animation duration for snappier feel
+      const animations = [
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 300, // Reduced from 600ms
+          useNativeDriver: true,
+        }),
+        Animated.timing(caloriesAnim, {
+          toValue: dietSummary.calories,
+          duration: 400, // Reduced from 1000ms
+          easing: Easing.out(Easing.quad), // Lighter easing than cubic
+          useNativeDriver: false,
+        }),
+        Animated.timing(carbsAnim, {
+          toValue: dietSummary.carbs,
+          duration: 400, // Reduced from 1000ms
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: false,
+        }),
+        Animated.timing(proteinAnim, {
+          toValue: dietSummary.protein,
+          duration: 400, // Reduced from 1000ms
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: false,
+        }),
+        Animated.timing(fatAnim, {
+          toValue: dietSummary.fat,
+          duration: 400, // Reduced from 1000ms
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: false,
+        }),
+      ];
+
+      isAnimatingRef.current = true;
+      animationRef.current = Animated.parallel(animations);
+
+      animationRef.current.start(({ finished }) => {
+        if (finished) {
           console.log("🎨 [DietSummary] Animation completed!");
-        });
-      }, 150);
-
-      return () => clearTimeout(timeoutId);
-    } else if (!loading) {
-      // If no data, show zeros but still animate the fade in
+          isAnimatingRef.current = false;
+        }
+      });
+    } else if (!loading && isTabFocused) {
+      // If no data but tab is focused, show zeros but still animate the fade in quickly
       console.log("🎨 [DietSummary] No data to animate, showing zeros");
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 300,
+        duration: 200, // Even faster for no-data case
         useNativeDriver: true,
       }).start();
     }
@@ -178,6 +205,7 @@ export default function DietSummary() {
     dietSummary.protein,
     dietSummary.fat,
     loading,
+    isTabFocused, // Add isTabFocused to dependencies
   ]); // Remove summary from dependencies
 
   // Reset animations when starting to load new data
@@ -202,6 +230,16 @@ export default function DietSummary() {
         <LoadingSpinner isProcessing={true} size={50} color="#F97316" />
       </View>
     );
+  }
+
+  // Don't display anything if no food is logged
+  const hasAnyFood =
+    dietSummary.calories > 0 ||
+    dietSummary.carbs > 0 ||
+    dietSummary.protein > 0 ||
+    dietSummary.fat > 0;
+  if (!hasAnyFood) {
+    return null;
   }
 
   return (

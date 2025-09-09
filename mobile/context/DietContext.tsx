@@ -14,6 +14,7 @@ import React, {
   useEffect,
   useRef,
   useState,
+  startTransition,
 } from "react";
 
 export type DietFood = {

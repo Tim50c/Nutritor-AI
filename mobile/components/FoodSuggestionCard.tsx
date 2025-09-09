@@ -1,7 +1,7 @@
 import { icons } from "@/constants/icons";
 import { images } from "@/constants/images";
 import { router } from "expo-router";
-import React from "react";
+import React, { memo, useCallback } from "react";
 import { Image, TouchableOpacity, View } from "react-native";
 import { Text } from "./CustomText";
 
@@ -24,16 +24,16 @@ interface FoodSuggestionCardProps {
   source?: "suggestions" | "history" | "diet" | "favorites";
 }
 
-export default function FoodSuggestionCard({
+const FoodSuggestionCard = memo(function FoodSuggestionCard({
   food,
   isFavorite = false,
   onToggleFavorite,
   source = "suggestions",
 }: FoodSuggestionCardProps) {
-  // Format calories with comma and unit
+  // Format calories with comma and unit (memoized)
   const formattedCalories = `${food.calories.toString()} kcal`;
 
-  const handleFoodPress = () => {
+  const handleFoodPress = useCallback(() => {
     // Convert food to the format expected by food details page
     const foodData = {
       id: food.id,
@@ -75,7 +75,18 @@ export default function FoodSuggestionCard({
       pathname: "/food/[id]" as const,
       params: navigationParams,
     });
-  };
+  }, [
+    food.id,
+    food.name,
+    food.calories,
+    food.protein,
+    food.carbs,
+    food.fat,
+    food.image,
+    food.addedAt,
+    food.dietIndex,
+    source,
+  ]);
 
   return (
     <TouchableOpacity onPress={handleFoodPress}>
@@ -125,4 +136,6 @@ export default function FoodSuggestionCard({
       </View>
     </TouchableOpacity>
   );
-}
+});
+
+export default FoodSuggestionCard;

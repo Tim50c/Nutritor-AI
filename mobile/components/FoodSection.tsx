@@ -1,6 +1,7 @@
 import { View } from "react-native";
 import { Text } from "./CustomText";
 import FoodSuggestionCard from "./FoodSuggestionCard";
+import React, { useMemo } from "react";
 
 interface FoodItem {
   id: string;
@@ -29,6 +30,44 @@ export default function FoodSection({
   onToggleFavorite,
   source = "suggestions",
 }: FoodSectionProps) {
+  // Memoize the food cards to prevent unnecessary re-renders
+  const foodCards = useMemo(() => {
+    return foods.map((food, index) => {
+      // Create a stable unique key that includes the source to prevent conflicts
+      // between the same food appearing in different contexts (home vs diet)
+      let uniqueKey: string;
+
+      if (
+        source === "diet" &&
+        food.addedAt &&
+        typeof food.addedAt === "string"
+      ) {
+        // For diet foods with timestamp, use that for precise targeting
+        uniqueKey = `diet-${food.id}-${food.addedAt}`;
+      } else {
+        // For other cases, use source + id + index (stable across renders)
+        uniqueKey = `${source}-${food.id}-${index}`;
+      }
+
+      // For diet foods, ensure dietIndex is set to current array position
+      const enhancedFood =
+        source === "diet"
+          ? { ...food, dietIndex: food.dietIndex ?? index }
+          : food;
+
+      return (
+        <FoodSuggestionCard
+          key={uniqueKey}
+          food={enhancedFood}
+          isFavorite={isFavorite ? isFavorite(food.id) : false}
+          onToggleFavorite={
+            onToggleFavorite ? () => onToggleFavorite(food.id) : undefined
+          }
+          source={source}
+        />
+      );
+    });
+  }, [foods, source, isFavorite, onToggleFavorite]);
   return (
     <View className="mb-6">
       {title && (
@@ -36,43 +75,7 @@ export default function FoodSection({
           {title}
         </Text>
       )}
-      <View className="px-4">
-        {foods.map((food, index) => {
-          // Create a stable unique key that includes the source to prevent conflicts
-          // between the same food appearing in different contexts (home vs diet)
-          let uniqueKey: string;
-
-          if (
-            source === "diet" &&
-            food.addedAt &&
-            typeof food.addedAt === "string"
-          ) {
-            // For diet foods with timestamp, use that for precise targeting
-            uniqueKey = `diet-${food.id}-${food.addedAt}`;
-          } else {
-            // For other cases, use source + id + index (stable across renders)
-            uniqueKey = `${source}-${food.id}-${index}`;
-          }
-
-          // For diet foods, ensure dietIndex is set to current array position
-          const enhancedFood =
-            source === "diet"
-              ? { ...food, dietIndex: food.dietIndex ?? index }
-              : food;
-
-          return (
-            <FoodSuggestionCard
-              key={uniqueKey}
-              food={enhancedFood}
-              isFavorite={isFavorite ? isFavorite(food.id) : false}
-              onToggleFavorite={
-                onToggleFavorite ? () => onToggleFavorite(food.id) : undefined
-              }
-              source={source}
-            />
-          );
-        })}
-      </View>
+      <View className="px-4">{foodCards}</View>
     </View>
   );
 }
