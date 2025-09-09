@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import {
   View,
-  Text,
   ScrollView,
   ImageBackground,
   TouchableOpacity,
@@ -11,6 +10,7 @@ import {
   Modal,
   ActivityIndicator,
 } from "react-native";
+import { Text } from "@/components/CustomText";
 import { useLocalSearchParams, router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";

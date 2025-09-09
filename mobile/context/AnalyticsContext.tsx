@@ -159,7 +159,16 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({
       "🔄 [AnalyticsContext] Analytics data invalidated - will refresh on next access"
     );
     setShouldInvalidate(true);
-  }, []);
+
+    // Also immediately refresh if we're currently viewing analytics
+    // This ensures real-time updates when users add/remove foods
+    if (analyticsData && !loading) {
+      console.log(
+        "🔄 [AnalyticsContext] Triggering immediate refresh for real-time sync"
+      );
+      refreshAnalytics();
+    }
+  }, [analyticsData, loading, refreshAnalytics]);
 
   // Auto-refresh when user profile loads or when invalidated
   useEffect(() => {
@@ -171,9 +180,11 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({
 
   // Listen to diet change events
   useEffect(() => {
-    const unsubscribe = analyticsEventEmitter.subscribe(() => {
+    const unsubscribe = analyticsEventEmitter.subscribe((event) => {
       console.log(
-        "📊 [AnalyticsContext] Received diet change event, invalidating analytics"
+        "📊 [AnalyticsContext] Received analytics event:",
+        event?.type || "legacy",
+        event?.data || "no data"
       );
       invalidateAnalytics();
     });

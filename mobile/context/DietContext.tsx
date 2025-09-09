@@ -289,7 +289,11 @@ export function DietProvider({ children }: { children: ReactNode }) {
         console.log(
           "📊 [DietContext] Home data refreshed, invalidating analytics"
         );
-        analyticsEventEmitter.emit();
+        analyticsEventEmitter.emitDietChange({
+          date: formatDateForAPI(homeDate),
+          totalCalories: consumedNutrition.calories,
+          foodCount: allFoods.length,
+        });
       } catch (error) {
         console.error("❌ [DietContext] Failed to refresh home data:", error);
       } finally {
@@ -508,7 +512,11 @@ export function DietProvider({ children }: { children: ReactNode }) {
         }
 
         // Invalidate analytics data for immediate update
-        analyticsEventEmitter.emit();
+        analyticsEventEmitter.emitFoodAdded({
+          foodName: food.name,
+          calories: food.calories,
+          date: formatDateForAPI(homeDate),
+        });
 
         // Clean up old tracking entries (older than 5 seconds)
         setTimeout(() => {
@@ -732,7 +740,11 @@ export function DietProvider({ children }: { children: ReactNode }) {
         }
 
         // Invalidate analytics data for immediate update
-        analyticsEventEmitter.emit();
+        analyticsEventEmitter.emitFoodRemoved({
+          foodName: foodToRemove.name,
+          calories: foodToRemove.calories,
+          date: formatDateForAPI(homeDate),
+        });
 
         // Update food suggestions based on new nutrition data (non-blocking)
         const updatedSummary = {

@@ -385,7 +385,7 @@ const ChatScreen = () => {
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={
-          Platform.OS === "ios" || Platform.OS === "android" ? 0 : 0
+          Platform.OS === "ios" ? 0 : 30
         }
       >
         {!isChatStarted ? (

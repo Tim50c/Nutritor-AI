@@ -21,7 +21,7 @@ interface FoodSuggestionCardProps {
   food: FoodItem;
   isFavorite?: boolean;
   onToggleFavorite?: () => void;
-  source?: "suggestions" | "history" | "diet" | "favorites";
+  source?: "suggestions" | "history" | "diet" | "favorites" | "search";
 }
 
 const FoodSuggestionCard = memo(function FoodSuggestionCard({

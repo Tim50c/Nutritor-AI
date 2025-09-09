@@ -5,7 +5,9 @@ import NutritionTrend from "@/components/NutritionTrend";
 import ToggleTabs, { TabOption } from "@/components/ToggleTabs";
 import { useUser } from "@/context/UserContext";
 import { useAnalytics } from "@/context/AnalyticsContext";
+import { useDietContext } from "@/context/DietContext";
 import { AnalysisService } from "@/services";
+import { analyticsEventEmitter } from "@/utils/analyticsEvents";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -40,11 +42,17 @@ const Analytics = () => {
     getAnalysisData,
     getNutritionData,
     refreshNutritionTab,
+    refreshAnalytics,
+    invalidateAnalytics,
   } = useAnalytics();
+
+  // Access diet context for real-time sync
+  const { homeSummary, homeFoods, syncing: dietSyncing } = useDietContext();
 
   const [tab, setTab] = useState<TabOption>("daily");
   const [nutritionLoading, setNutritionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastDietSync, setLastDietSync] = useState<number>(0);
 
   // State for selected bar and nutrition trend
   const [selectedBarIndex, setSelectedBarIndex] = useState<number | null>(null);
@@ -62,6 +70,73 @@ const Analytics = () => {
       setError(null);
     }
   }, [analyticsError]);
+
+  // Listen for diet changes and sync analytics in real-time
+  useEffect(() => {
+    const unsubscribe = analyticsEventEmitter.subscribe((event) => {
+      if (!event) return;
+
+      console.log(
+        "📊 [Analytics] Received analytics event:",
+        event.type,
+        event.data
+      );
+      setLastDietSync(event.timestamp);
+
+      // Handle different event types
+      switch (event.type) {
+        case "food_added":
+        case "food_removed":
+        case "diet_change":
+          // If we're on daily tab and viewing analytics, refresh immediately for real-time updates
+          if (tab === "daily") {
+            console.log(
+              "📊 [Analytics] Refreshing daily analytics for real-time sync"
+            );
+            refreshNutritionTab("daily").catch((err) => {
+              console.error("Failed to refresh daily analytics:", err);
+            });
+          }
+          break;
+        case "general_update":
+          // For general updates, just invalidate without immediate refresh
+          console.log("📊 [Analytics] General analytics update received");
+          break;
+      }
+    });
+
+    return unsubscribe;
+  }, [tab, refreshNutritionTab]);
+
+  // Sync with diet context changes (home screen data)
+  useEffect(() => {
+    // Only sync if we have meaningful diet data and we're on daily tab
+    if (
+      tab === "daily" &&
+      homeFoods.length > 0 &&
+      !dietSyncing &&
+      !analyticsLoading
+    ) {
+      const now = Date.now();
+      // Throttle syncing to avoid excessive calls (max once per 2 seconds)
+      if (now - lastDietSync > 2000) {
+        console.log("📊 [Analytics] Syncing with diet context changes", {
+          homeFoodsCount: homeFoods.length,
+          homeSummaryCalories: homeSummary.calories,
+        });
+        setLastDietSync(now);
+        invalidateAnalytics();
+      }
+    }
+  }, [
+    tab,
+    homeFoods.length,
+    homeSummary.calories,
+    dietSyncing,
+    analyticsLoading,
+    lastDietSync,
+    invalidateAnalytics,
+  ]);
 
   // Fetch nutrition data when tab changes (for tabs that need fresh data)
   useEffect(() => {
@@ -86,8 +161,20 @@ const Analytics = () => {
     // Show loading only if:
     // 1. We're currently fetching tab-specific data (nutritionLoading is true) AND
     // 2. We don't have data for this tab yet
-    return nutritionLoading && !currentNutritionData;
-  }, [analyticsLoading, analyticsData, nutritionLoading, currentNutritionData]);
+    // 3. OR if diet is syncing and we're on daily tab (for real-time updates)
+    const isTabLoading = nutritionLoading && !currentNutritionData;
+    const isDietSyncing =
+      dietSyncing && tab === "daily" && !currentNutritionData;
+
+    return isTabLoading || isDietSyncing;
+  }, [
+    analyticsLoading,
+    analyticsData,
+    nutritionLoading,
+    currentNutritionData,
+    dietSyncing,
+    tab,
+  ]);
 
   // Transform nutrition data for charts
   const stats = useMemo(() => {
@@ -284,6 +371,9 @@ const Analytics = () => {
       firstFewStats: stats.slice(0, 5),
       chartDataLength: calorieChartData.length,
       firstFewChartData: calorieChartData.slice(0, 5),
+      dietSyncing,
+      homeFoodsCount: homeFoods.length,
+      homeSummaryCalories: homeSummary.calories,
     });
 
     // Additional debug for specific modes
@@ -295,8 +385,21 @@ const Analytics = () => {
     if (tab === "daily") {
       console.log(`📊 Daily Debug - Stats:`, stats);
       console.log(`📊 Daily Debug - Chart data:`, calorieChartData);
+      console.log(`📊 Daily Debug - Home sync:`, {
+        homeFoodsCount: homeFoods.length,
+        homeSummaryCalories: homeSummary.calories,
+        dietSyncing,
+      });
     }
-  }, [tab, currentNutritionData, stats, calorieChartData]);
+  }, [
+    tab,
+    currentNutritionData,
+    stats,
+    calorieChartData,
+    dietSyncing,
+    homeFoods.length,
+    homeSummary.calories,
+  ]);
 
   // Nutrition trend data for NutritionTrend - based on selected bar or default
   const nutritionTrendData = useMemo(() => {
@@ -462,6 +565,30 @@ const Analytics = () => {
         <View className="mt-4">
           <ToggleTabs value={tab} onChange={setTab} />
         </View>
+
+        {/* Show syncing indicator when diet changes are being reflected */}
+        {dietSyncing && tab === "daily" && (
+          <View className="mt-2 px-4 py-2 bg-blue-50 rounded-lg mx-4">
+            <View className="flex-row items-center">
+              <ActivityIndicator size="small" color="#009FFA" />
+              <Text className="ml-2 text-blue-600 text-sm">
+                Syncing with today's diet changes...
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* Show real-time update indicator */}
+        {nutritionLoading && tab === "daily" && (
+          <View className="mt-2 px-4 py-2 bg-green-50 rounded-lg mx-4">
+            <View className="flex-row items-center">
+              <ActivityIndicator size="small" color="#10B981" />
+              <Text className="ml-2 text-green-600 text-sm">
+                Updating analytics with latest data...
+              </Text>
+            </View>
+          </View>
+        )}
 
         {shouldShowLoading ? (
           <View className="mt-4 flex-1 justify-center items-center py-8">
