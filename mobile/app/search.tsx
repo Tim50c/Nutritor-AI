@@ -8,12 +8,13 @@ import {
   Platform,
   KeyboardAvoidingView
 } from "react-native";
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Text } from "../components/CustomText";
 import { useRouter } from "expo-router";
 import { useDietContext, DietFood } from "@/context/DietContext";
 import FoodSection from "@/components/FoodSection";
 import { icons } from "@/constants/icons";
-import Slider from "@react-native-community/slider";
+import CustomSlider from "@/components/CustomSlider";
 import { Ionicons } from "@expo/vector-icons";
 import { SearchService } from "@/services";
 import { ISearchFoodsInput } from "@/interfaces";
@@ -62,13 +63,15 @@ const Search = () => {
   const [liveCarbs, setLiveCarbs] = useState(nutrientRanges.carbs.max);
   const [searchCarbs, setSearchCarbs] = useState(nutrientRanges.carbs.max);
 
+
+
   const [searchResults, setSearchResults] = useState<DietFood[]>([]);
   const [showFilters, setShowFilters] = useState<boolean>(false);
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [hasSearched, setHasSearched] = useState<boolean>(false);
   const [sortBy, setSortBy] = useState<string>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [sliderKey, setSliderKey] = useState<number>(0); // Force slider re-render
+  const [sliderRefresh, setSliderRefresh] = useState<number>(0); // Force slider refresh
   const debounceTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   
 
@@ -92,15 +95,9 @@ const Search = () => {
     try {
       setIsSearching(true);
       
-      console.log('🔍 Frontend performSearch called with:', {
-        searchQuery,
-        filters
-      });
-      
       const trimmedQuery = searchQuery?.trim() || '';
       
       if (!trimmedQuery) {
-        console.log('⚠️ Empty search query and no filters - returning to initial state');
         setSearchResults([]);
         setHasSearched(false);
         setIsSearching(false);
@@ -114,8 +111,6 @@ const Search = () => {
         carbs: filters.carbs < nutrientRanges.carbs.max ? filters.carbs : undefined,
         fat: filters.fat < nutrientRanges.fat.max ? filters.fat : undefined,
       };
-
-      console.log('📤 Sending to SearchService:', searchInput);
 
       const foodsArray: FoodModel[] = (await SearchService.searchFoods(searchInput)) || [];
 
@@ -136,8 +131,6 @@ const Search = () => {
       const sortedResults = sortResults(transformedResults, sortBy, sortOrder);
       setSearchResults(sortedResults);
       setHasSearched(true);
-      
-      console.log(`✅ Search completed: ${sortedResults.length} results`);
     } catch (error) {
       console.error("❌ Search failed:", error);
       setSearchResults([]);
@@ -158,21 +151,10 @@ const Search = () => {
       
       const shouldSearch = searchText.trim() !== "" || hasActiveFilters;
       
-      console.log('🎯 Search trigger check:', {
-        searchText: searchText.trim(),
-        searchCalories,
-        searchProtein,
-        searchFat,
-        searchCarbs,
-        hasActiveFilters,
-        shouldSearch
-      });
-      
       if (shouldSearch) {
         performSearch(searchText, { calories: searchCalories, protein: searchProtein, fat: searchFat, carbs: searchCarbs });
       } else {
         // Clear search results and return to initial state
-        console.log('🏠 Returning to initial state - clearing search');
         setSearchResults([]);
         setHasSearched(false);
         setIsSearching(false);
@@ -208,7 +190,6 @@ const Search = () => {
   };
   
   const resetFilters = () => {
-      console.log('🔄 Resetting all filters to maximum values');
       const maxCalories = nutrientRanges.calories.max;
       const maxProtein = nutrientRanges.protein.max;
       const maxFat = nutrientRanges.fat.max;
@@ -235,8 +216,9 @@ const Search = () => {
   const showResults = hasSearched && searchResults.length > 0 && !isSearching;
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <View className="flex-row items-center justify-between px-4 py-3 bg-white">
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaView className="flex-1 bg-white">
+        <View className="flex-row items-center justify-between px-4 py-3 bg-white">
         <TouchableOpacity
           className="bg-black w-10 h-10 rounded-full justify-center items-center"
           onPress={() => router.back()}
@@ -263,7 +245,6 @@ const Search = () => {
                 {searchText.length > 0 && (
                   <TouchableOpacity
                     onPress={() => {
-                      console.log('🗑️ Clear button pressed - clearing search');
                       setSearchText('');
                     }}
                     className="ml-2"
@@ -276,14 +257,24 @@ const Search = () => {
 
               <TouchableOpacity
                 onPress={() => {
-                  console.log('🔧 Filter button clicked');
-                  // Sync live values with search values when opening filters
                   if (!showFilters) {
+                    // Method 1: Direct sync
                     setLiveCalories(searchCalories);
                     setLiveProtein(searchProtein);
                     setLiveFat(searchFat);
                     setLiveCarbs(searchCarbs);
+                    
+                    // Method 2: Force slider refresh trigger (auto-fix)
+                    setTimeout(() => {
+                      setSliderRefresh(prev => prev + 1);
+                      // Micro-nudge to trigger synchronization
+                      setLiveCalories(searchCalories + 0.001);
+                      setTimeout(() => {
+                        setLiveCalories(searchCalories);
+                      }, 10);
+                    }, 20);
                   }
+                  
                   setShowFilters(!showFilters);
                 }}
                 className={`w-12 h-12 items-center justify-center rounded-xl ${
@@ -300,7 +291,11 @@ const Search = () => {
             </View>
 
             {showFilters && (
-              <Animatable.View animation="fadeInDown" duration={300} className="mb-4 p-4 bg-gray-50 rounded-xl">
+              <Animatable.View 
+                animation="fadeInDown" 
+                duration={300} 
+                className="mb-4 p-4 bg-gray-50 rounded-xl"
+              >
                 <View className="flex-row justify-between items-center mb-3">
                   <Text className="text-lg font-bold text-gray-800">Filter by Nutrients</Text>
                   <TouchableOpacity onPress={resetFilters} className="px-3 py-1 bg-gray-200 rounded-lg">
@@ -308,7 +303,7 @@ const Search = () => {
                   </TouchableOpacity>
                 </View>
                 <NutrientSlider 
-                  key="calories"
+                  key={`calories-${sliderRefresh}`}
                   label="Calories" 
                   value={liveCalories} 
                   onValueChange={setLiveCalories} 
@@ -316,7 +311,7 @@ const Search = () => {
                   range={nutrientRanges.calories} 
                 />
                 <NutrientSlider 
-                  key="protein"
+                  key={`protein-${sliderRefresh}`}
                   label="Protein" 
                   value={liveProtein} 
                   onValueChange={setLiveProtein} 
@@ -324,7 +319,7 @@ const Search = () => {
                   range={nutrientRanges.protein} 
                 />
                 <NutrientSlider 
-                  key="fat"
+                  key={`fat-${sliderRefresh}`}
                   label="Fat" 
                   value={liveFat} 
                   onValueChange={setLiveFat} 
@@ -332,7 +327,7 @@ const Search = () => {
                   range={nutrientRanges.fat} 
                 />
                 <NutrientSlider 
-                  key="carbs"
+                  key={`carbs-${sliderRefresh}`}
                   label="Carbs" 
                   value={liveCarbs} 
                   onValueChange={setLiveCarbs} 
@@ -410,7 +405,8 @@ const Search = () => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+      </SafeAreaView>
+    </GestureHandlerRootView>
   );
 };
 
@@ -443,16 +439,16 @@ function NutrientSlider({ label, value, onValueChange, onSlidingComplete, range 
           {Math.round(value)}
         </Text>
       </View>
-      <Slider
+      <CustomSlider
         minimumValue={range.min}
         maximumValue={range.max}
         value={value}
         onValueChange={handleValueChange}
         onSlidingComplete={handleSlidingComplete}
         step={range.step}
-        minimumTrackTintColor="#ff5a16"
-        maximumTrackTintColor="#E5E7EB"
-        thumbTintColor="#ff5a16"
+        activeTrackColor="#ff5a16"
+        trackColor="#E5E7EB"
+        thumbColor="#ff5a16"
         style={{ width: "100%", height: 40 }}
       />
     </View>
