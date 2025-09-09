@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
   TextInput,
@@ -11,6 +11,7 @@ import {
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Text } from "../components/CustomText";
 import { useRouter } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import { useDietContext, DietFood } from "@/context/DietContext";
 import FoodSection from "@/components/FoodSection";
 import { icons } from "@/constants/icons";
@@ -21,6 +22,7 @@ import { ISearchFoodsInput } from "@/interfaces";
 import { FoodModel } from "@/models";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import * as Animatable from 'react-native-animatable';
+import { foodCacheEvents } from "@/utils/foodCacheEvents";
 
 const AnimatableView = Animatable.createAnimatableComponent(View);
 
@@ -210,6 +212,70 @@ const Search = () => {
       }
     }
   }, [sortBy, sortOrder]);
+
+  // Function to update a specific food item in search results cache
+  const updateFoodInSearchCache = useCallback((foodId: string, imageUrl: string) => {
+    console.log("🔄 [Search] Updating food in cache:", { foodId, imageUrl });
+    
+    const updateFoodItem = (food: DietFood) => {
+      if (food.id === foodId) {
+        return {
+          ...food,
+          image: imageUrl ? { uri: imageUrl } : null
+        };
+      }
+      return food;
+    };
+
+    // Update all search result arrays
+    setAllSearchResults(prev => prev.map(updateFoodItem));
+    setSearchResults(prev => prev.map(updateFoodItem));
+    setDisplayedResults(prev => prev.map(updateFoodItem));
+    
+    console.log("✅ [Search] Food cache updated successfully");
+  }, []);
+
+  // Function to refresh current search results (fallback method)
+  const refreshCurrentSearch = useCallback(() => {
+    if (hasSearched && (searchText.trim() !== "" || 
+        searchCalories < nutrientRanges.calories.max || 
+        searchProtein < nutrientRanges.protein.max || 
+        searchFat < nutrientRanges.fat.max || 
+        searchCarbs < nutrientRanges.carbs.max)) {
+      console.log("🔄 [Search] Refreshing current search results...");
+      performSearch(searchText, { 
+        calories: searchCalories, 
+        protein: searchProtein, 
+        fat: searchFat, 
+        carbs: searchCarbs 
+      });
+    }
+  }, [hasSearched, searchText, searchCalories, searchProtein, searchFat, searchCarbs]);
+
+  // Listen for food image updates from other screens
+  useEffect(() => {
+    const handleFoodImageUpdate = ({ foodId, imageUrl }: { foodId: string; imageUrl: string }) => {
+      console.log("📡 [Search] Received food image update event:", { foodId, imageUrl });
+      updateFoodInSearchCache(foodId, imageUrl);
+    };
+
+    foodCacheEvents.onFoodImageUpdated(handleFoodImageUpdate);
+
+    return () => {
+      foodCacheEvents.offFoodImageUpdated(handleFoodImageUpdate);
+    };
+  }, [updateFoodInSearchCache]);
+
+  // Optional: Refresh search results when returning to this screen (fallback)
+  useFocusEffect(
+    useCallback(() => {
+      // Only refresh if we have active search results and no recent cache updates
+      if (hasSearched && displayedResults.length > 0) {
+        console.log("🔍 [Search] Screen focused with existing results");
+        // Note: We now rely on event-based updates instead of full refresh
+      }
+    }, [hasSearched, displayedResults.length])
+  );
 
   const handleToggleFavorite = async (foodId: string) => {
     const food = searchResults.find(f => f.id === foodId);

@@ -26,6 +26,7 @@ import { images } from "@/constants/images";
 import { icons } from "@/constants/icons";
 import { Camera, CameraView } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
+import { foodCacheEvents } from "@/utils/foodCacheEvents";
 
 // Define the Food interface based on the backend response
 interface FoodData {
@@ -356,14 +357,19 @@ const FoodDetails = () => {
         }
       }
 
-      // IMPORTANT: Refresh global food cache to update all food cards across the app
+      // IMPORTANT: Update all cached food data across the app
       try {
-        // Refresh all cached food data that might contain this food
+        // 1. Refresh global food cache to update home and favorites
         await Promise.all([
           refreshHomeData(), // Refreshes home data (history foods) and suggestions
           fetchFavoriteFoods(), // Refreshes favorite foods cache
         ]);
         console.log("✅ Global food cache refreshed");
+
+        // 2. Emit event to update search cache directly (no need to refetch)
+        const foodId = Array.isArray(food.id) ? food.id[0] : food.id;
+        foodCacheEvents.emitFoodImageUpdated(foodId, uploadResult.imageUrl);
+        console.log("✅ Search cache update event emitted");
       } catch (error) {
         console.error("❌ Error refreshing global cache:", error);
         // Don't fail the whole operation if cache refresh fails
