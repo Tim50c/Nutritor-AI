@@ -4,7 +4,7 @@ import { Text } from "./CustomText";
 import { useDietContext } from "@/context/DietContext";
 
 function getMonthName(year: number, month: number) {
-  return new Date(year, month, 1).toLocaleString("default", { month: "long" });
+  return new Date(year, month, 1).toLocaleString("en-US", { month: "long" });
 }
 
 function getDaysInMonth(year: number, month: number) {
@@ -60,7 +60,7 @@ export default function DietCalendar() {
           <Text className="text-white text-lg">{"<"}</Text>
         </TouchableOpacity>
 
-        <Text className="text-white text-lg font-semibold flex-1 text-center mx-2 truncate">
+        <Text className="text-white text-lg font-semibold flex-1 text-center mx-2 truncate my-1">
           {getMonthName(year, month)} {year}
         </Text>
 
@@ -106,7 +106,7 @@ export default function DietCalendar() {
             >
               {d ? (
                 <View
-                  className={`w-8 h-8 rounded-full items-center justify-center ${isToday ? "bg-white/40" : isSelected ? "bg-white/80" : ""}`}
+                  className={`w-9 h-9 rounded-full items-center justify-center ${isToday ? "bg-white/40" : isSelected ? "bg-white/80" : ""}`}
                 >
                   <Text
                     className={`${isToday || isSelected ? "text-black" : "text-white"} text-sm font-semibold`}
@@ -115,7 +115,7 @@ export default function DietCalendar() {
                   </Text>
                 </View>
               ) : (
-                <View className="w-8 h-8" />
+                <View className="w-9 h-9" />
               )}
             </TouchableOpacity>
           );
