@@ -11,11 +11,13 @@ import { AnalysisService } from "@/services";
 interface AnalyticsHeaderProps {
   weightGoal: number;
   currentWeight: number;
+  weightUnit?: string;
 }
 
 const AnalyticsHeader = ({
   weightGoal,
   currentWeight,
+  weightUnit = "kg",
 }: AnalyticsHeaderProps) => {
   const { userProfile, setUserProfile } = useUser();
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -88,12 +90,16 @@ const AnalyticsHeader = ({
               <Ionicons name="pencil" size={16} color="#6B7280" />
             </TouchableOpacity>
           </View>
-          <Text className="text-2xl font-bold">{displayCurrentWeight} kg</Text>
+          <Text className="text-2xl font-bold">
+            {displayCurrentWeight} {weightUnit}
+          </Text>
         </View>
 
         <View className="flex-1 items-end">
           <Text className="text-gray-700">Weight goal</Text>
-          <Text className="text-2xl font-bold">{displayWeightGoal} kg</Text>
+          <Text className="text-2xl font-bold">
+            {displayWeightGoal} {weightUnit}
+          </Text>
         </View>
       </View>
 
@@ -120,4 +126,3 @@ const AnalyticsHeader = ({
 };
 
 export default AnalyticsHeader;
-
