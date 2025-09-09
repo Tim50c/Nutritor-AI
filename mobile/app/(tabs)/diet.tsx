@@ -2,10 +2,11 @@ import DietCalendar from "@/components/DietCalendar";
 import DietFoodList from "@/components/DietFoodList";
 import DietSummary from "@/components/DietSummary";
 import EmptyDietState from "@/components/EmptyDietState";
+import CustomHeaderWithBack from "@/components/CustomHeaderWithBack";
 import { useDietContext } from "@/context/DietContext";
 import { useFocusEffect } from "@react-navigation/native";
 import React, { useCallback, useEffect, useState } from "react";
-import { ScrollView } from "react-native";
+import { ScrollView, SafeAreaView } from "react-native";
 
 const DietScreen = () => {
   const { dietDate, refreshDietData, dietSummary, loading } = useDietContext();
@@ -35,8 +36,9 @@ const DietScreen = () => {
       dietSummary.fat > 0);
 
   return (
-    <>
-      <ScrollView className="flex-1 bg-white pt-8">
+    <SafeAreaView className="flex-1 bg-white">
+      <CustomHeaderWithBack title="Diet" />
+      <ScrollView className="flex-1 bg-white">
         <DietCalendar />
         {hasAnyFood ? (
           <>
@@ -47,7 +49,7 @@ const DietScreen = () => {
           <EmptyDietState />
         )}
       </ScrollView>
-    </>
+    </SafeAreaView>
   );
 };
 

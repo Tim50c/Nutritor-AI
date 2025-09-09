@@ -11,7 +11,7 @@ function CustomHeader({ title }: { title: string }) {
       <TouchableOpacity onPress={() => router.back()} className="mr-3">
         <Ionicons name="arrow-back" size={24} color="black" />
       </TouchableOpacity>
-      <Text className="text-lg font-semibold">{title}</Text>
+      <Text className="text-lg font-bold">{title}</Text>
     </View>
   );
 }

@@ -7,7 +7,7 @@ import { useUser } from "@/context/UserContext";
 import CustomButton from "@/components/CustomButton";
 import CustomInput from "@/components/CustomInput";
 import CustomModal from "@/components/CustomModal";
-import SHA256 from "crypto-js/sha256";
+import { PasswordService } from "@/services";
 
 const passwordStrengthCheck = (password: string) => {
   // At least 8 chars, one letter, one number, one special char
@@ -20,22 +20,47 @@ const ChangePassword = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState<'success' | 'error'>("error");
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const router = useRouter();
-  const { userProfile, setUserProfile } = useUser();
+  const { userProfile } = useUser();
 
-  const handleSave = () => {
-    if (!passwordStrengthCheck(newPassword) || newPassword !== confirmPassword) {
+  const handleSave = async () => {
+    // Reset error message
+    setErrorMessage("");
+
+    // Validate passwords
+    if (!passwordStrengthCheck(newPassword)) {
+      setErrorMessage("Password must be at least 8 characters, contain a number, a letter, and a special character.");
       setModalType("error");
       setModalVisible(true);
       return;
     }
-    // Hash password and save to context
-    const hashedPassword = SHA256(newPassword).toString();
-    if (userProfile) {
-      setUserProfile({ ...userProfile, password: hashedPassword });
+
+    if (newPassword !== confirmPassword) {
+      setErrorMessage("Passwords do not match.");
+      setModalType("error");
+      setModalVisible(true);
+      return;
     }
-    setModalType("success");
-    setModalVisible(true);
+
+    setLoading(true);
+    try {
+      // Call backend API to change password
+      await PasswordService.changePassword({
+        newPassword: newPassword
+      });
+      
+      setModalType("success");
+      setModalVisible(true);
+    } catch (error: any) {
+      console.error("Password change error:", error);
+      setErrorMessage(error.message || "An error occurred while changing the password.");
+      setModalType("error");
+      setModalVisible(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleModalButton = () => {
@@ -82,17 +107,21 @@ const ChangePassword = () => {
             secureTextEntry
           />
           <View className="mt-8">
-            <CustomButton label="Save" onPress={handleSave} />
+            <CustomButton 
+              label={loading ? "Saving..." : "Save"} 
+              onPress={handleSave}
+              disabled={loading}
+            />
           </View>
         </View>
       </KeyboardAvoidingView>
       <CustomModal
         visible={modalVisible}
-        title={modalType === "success" ? "Password changed" : "Invalid Password"}
+        title={modalType === "success" ? "Password changed" : "Password Change Failed"}
         message={
           modalType === "success"
             ? "Congratulation! Your password has been updated!"
-            : "Password must be at least 8 characters, contain a number, a letter, a special character, and match the confirmation."
+            : errorMessage || "An error occurred while changing the password."
         }
         buttonLabel={modalType === "success" ? "Go Back" : "Try Again"}
         onButtonPress={handleModalButton}
