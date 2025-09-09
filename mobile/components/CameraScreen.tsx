@@ -457,7 +457,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 15,
-    paddingTop: 36,
+    paddingTop: 10,
     paddingBottom: 10,
     backgroundColor: "#000",
   },

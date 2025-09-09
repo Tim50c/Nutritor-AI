@@ -18,12 +18,10 @@ export default function HomeScreen() {
   const historyFoods = homeFoods;
 
   return (
-    <View className="flex-1 bg-gray-50 pt-8">
-      <View className="mt-3">
-        <HomeTopBar />
-      </View>
+    <View className="flex-1 bg-gray-50">
+      <HomeTopBar />
       <ScrollView showsVerticalScrollIndicator={false}>
-        <View className="pt-6">
+        <View className="p-4">
           {loading ? (
             // Show loading spinner only on initial load (when no data exists)
             <View className="flex-1 justify-center items-center py-20">
