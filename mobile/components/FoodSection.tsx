@@ -20,7 +20,7 @@ interface FoodSectionProps {
   foods: FoodItem[];
   isFavorite?: (foodId: string) => boolean;
   onToggleFavorite?: (foodId: string) => void;
-  source?: "suggestions" | "history" | "diet" | "favorites";
+  source?: "suggestions" | "history" | "diet" | "favorites" | "search";
 }
 
 export default function FoodSection({

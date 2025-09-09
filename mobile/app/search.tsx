@@ -435,7 +435,7 @@ const Search = () => {
                     </ScrollView>
                   </View>
                 </View>
-                <FoodSection title="" foods={displayedResults} isFavorite={isFavorite} onToggleFavorite={handleToggleFavorite} />
+                <FoodSection title="" foods={displayedResults} isFavorite={isFavorite} onToggleFavorite={handleToggleFavorite} source = 'search' />
                 
                 {/* See More Button */}
                 {hasMoreResults && (
