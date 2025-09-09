@@ -209,14 +209,19 @@ const Search = () => {
   
   const resetFilters = () => {
       console.log('🔄 Resetting all filters to maximum values');
-      setLiveCalories(nutrientRanges.calories.max);
-      setSearchCalories(nutrientRanges.calories.max);
-      setLiveProtein(nutrientRanges.protein.max);
-      setSearchProtein(nutrientRanges.protein.max);
-      setLiveFat(nutrientRanges.fat.max);
-      setSearchFat(nutrientRanges.fat.max);
-      setLiveCarbs(nutrientRanges.carbs.max);
-      setSearchCarbs(nutrientRanges.carbs.max);
+      const maxCalories = nutrientRanges.calories.max;
+      const maxProtein = nutrientRanges.protein.max;
+      const maxFat = nutrientRanges.fat.max;
+      const maxCarbs = nutrientRanges.carbs.max;
+      
+      setLiveCalories(maxCalories);
+      setSearchCalories(maxCalories);
+      setLiveProtein(maxProtein);
+      setSearchProtein(maxProtein);
+      setLiveFat(maxFat);
+      setSearchFat(maxFat);
+      setLiveCarbs(maxCarbs);
+      setSearchCarbs(maxCarbs);
   };
 
   // Check if any filters are active (not at maximum values)
@@ -272,10 +277,13 @@ const Search = () => {
               <TouchableOpacity
                 onPress={() => {
                   console.log('🔧 Filter button clicked');
-                  setLiveCalories(Math.round(liveCalories));
-                  setLiveProtein(Math.round(liveProtein));
-                  setLiveFat(Math.round(liveFat));
-                  setLiveCarbs(Math.round(liveCarbs));
+                  // Sync live values with search values when opening filters
+                  if (!showFilters) {
+                    setLiveCalories(searchCalories);
+                    setLiveProtein(searchProtein);
+                    setLiveFat(searchFat);
+                    setLiveCarbs(searchCarbs);
+                  }
                   setShowFilters(!showFilters);
                 }}
                 className={`w-12 h-12 items-center justify-center rounded-xl ${
@@ -300,27 +308,31 @@ const Search = () => {
                   </TouchableOpacity>
                 </View>
                 <NutrientSlider 
+                  key="calories"
                   label="Calories" 
                   value={liveCalories} 
                   onValueChange={setLiveCalories} 
-                  onSlidingComplete={(val) => setSearchCalories(Math.round(liveCalories))}
+                  onSlidingComplete={(val) => setSearchCalories(Math.round(val))}
                   range={nutrientRanges.calories} 
                 />
                 <NutrientSlider 
+                  key="protein"
                   label="Protein" 
                   value={liveProtein} 
                   onValueChange={setLiveProtein} 
-                  onSlidingComplete={(val) => setSearchProtein(Math.round(liveProtein))}
+                  onSlidingComplete={(val) => setSearchProtein(Math.round(val))}
                   range={nutrientRanges.protein} 
                 />
                 <NutrientSlider 
+                  key="fat"
                   label="Fat" 
                   value={liveFat} 
                   onValueChange={setLiveFat} 
-                  onSlidingComplete={(val) => setSearchFat(Math.round(liveFat))}
+                  onSlidingComplete={(val) => setSearchFat(Math.round(val))}
                   range={nutrientRanges.fat} 
                 />
                 <NutrientSlider 
+                  key="carbs"
                   label="Carbs" 
                   value={liveCarbs} 
                   onValueChange={setLiveCarbs} 
@@ -411,6 +423,18 @@ interface NutrientSliderProps {
 }
 
 function NutrientSlider({ label, value, onValueChange, onSlidingComplete, range }: NutrientSliderProps) {
+  const [isDragging, setIsDragging] = useState(false);
+  
+  const handleValueChange = (val: number) => {
+    setIsDragging(true);
+    onValueChange(val);
+  };
+  
+  const handleSlidingComplete = (val: number) => {
+    setIsDragging(false);
+    onSlidingComplete(val);
+  };
+
   return (
     <View className="mb-4">
       <View className="flex-row justify-between items-center mb-2">
@@ -423,8 +447,8 @@ function NutrientSlider({ label, value, onValueChange, onSlidingComplete, range 
         minimumValue={range.min}
         maximumValue={range.max}
         value={value}
-        onValueChange={onValueChange}
-        onSlidingComplete={onSlidingComplete}
+        onValueChange={handleValueChange}
+        onSlidingComplete={handleSlidingComplete}
         step={range.step}
         minimumTrackTintColor="#ff5a16"
         maximumTrackTintColor="#E5E7EB"
