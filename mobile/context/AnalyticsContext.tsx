@@ -9,7 +9,7 @@ import React, {
 } from "react";
 import { AnalysisService } from "@/services";
 import { useUser } from "./UserContext";
-import { analyticsEventEmitter } from "@/utils/analyticsEvents";
+import { analyticsEventEmitter, AnalyticsEvent } from "@/utils/analyticsEvents";
 
 interface AnalyticsData {
   analysisData: any;
@@ -29,6 +29,12 @@ interface AnalyticsContextType {
   refreshAnalytics: () => Promise<void>;
   refreshNutritionTab: (tab: "daily" | "weekly" | "monthly") => Promise<void>;
   invalidateAnalytics: () => void; // Call this when diet changes
+  updateTodayNutritionOptimistically: (nutritionChange: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  }) => void; // Optimistic update for immediate feedback
 
   // Getters for specific data
   getAnalysisData: () => any;
@@ -159,16 +165,93 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({
       "🔄 [AnalyticsContext] Analytics data invalidated - will refresh on next access"
     );
     setShouldInvalidate(true);
+  }, []);
 
-    // Also immediately refresh if we're currently viewing analytics
-    // This ensures real-time updates when users add/remove foods
-    if (analyticsData && !loading) {
+  // Optimistic update for today's nutrition - immediate UI feedback
+  const updateTodayNutritionOptimistically = useCallback(
+    (nutritionChange: {
+      calories: number;
+      protein: number;
+      carbs: number;
+      fat: number;
+    }) => {
       console.log(
-        "🔄 [AnalyticsContext] Triggering immediate refresh for real-time sync"
+        "⚡ [AnalyticsContext] Applying optimistic nutrition update:",
+        nutritionChange
       );
-      refreshAnalytics();
-    }
-  }, [analyticsData, loading, refreshAnalytics]);
+
+      setAnalyticsData((prevData) => {
+        if (!prevData) return prevData;
+
+        // Update daily nutrition data if available
+        const updatedData = { ...prevData };
+
+        // Update daily nutrition array (find today's entry and update it)
+        if (updatedData.dailyNutrition?.data?.dailyNutritionArray) {
+          const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
+
+          updatedData.dailyNutrition = {
+            ...updatedData.dailyNutrition,
+            data: {
+              ...updatedData.dailyNutrition.data,
+              dailyNutritionArray:
+                updatedData.dailyNutrition.data.dailyNutritionArray.map(
+                  (day: any) => {
+                    if (day.date === today) {
+                      return {
+                        ...day,
+                        totalNutrition: {
+                          calories:
+                            (day.totalNutrition?.calories || 0) +
+                            nutritionChange.calories,
+                          protein:
+                            (day.totalNutrition?.protein || 0) +
+                            nutritionChange.protein,
+                          carbs:
+                            (day.totalNutrition?.carbs || 0) +
+                            nutritionChange.carbs,
+                          fat:
+                            (day.totalNutrition?.fat || 0) +
+                            nutritionChange.fat,
+                        },
+                      };
+                    }
+                    return day;
+                  }
+                ),
+            },
+          };
+
+          // Also update weekly total if available
+          if (updatedData.dailyNutrition.data.weeklyTotal) {
+            updatedData.dailyNutrition.data.weeklyTotal = {
+              calories:
+                (updatedData.dailyNutrition.data.weeklyTotal.calories || 0) +
+                nutritionChange.calories,
+              protein:
+                (updatedData.dailyNutrition.data.weeklyTotal.protein || 0) +
+                nutritionChange.protein,
+              carbs:
+                (updatedData.dailyNutrition.data.weeklyTotal.carbs || 0) +
+                nutritionChange.carbs,
+              fat:
+                (updatedData.dailyNutrition.data.weeklyTotal.fat || 0) +
+                nutritionChange.fat,
+            };
+          }
+        }
+
+        return updatedData;
+      });
+
+      // Schedule a real refresh after optimistic update for accuracy
+      setTimeout(() => {
+        console.log("🔄 [AnalyticsContext] Refreshing after optimistic update");
+        refreshAnalytics();
+      }, 2000); // Allow time for backend to process the change
+    },
+    [refreshAnalytics]
+  );
 
   // Auto-refresh when user profile loads or when invalidated
   useEffect(() => {
@@ -178,19 +261,49 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({
     }
   }, [shouldInvalidate, userProfile, isLoadingProfile, refreshAnalytics]);
 
-  // Listen to diet change events
+  // Listen to diet change events with immediate optimistic updates
   useEffect(() => {
-    const unsubscribe = analyticsEventEmitter.subscribe((event) => {
-      console.log(
-        "📊 [AnalyticsContext] Received analytics event:",
-        event?.type || "legacy",
-        event?.data || "no data"
-      );
-      invalidateAnalytics();
-    });
+    const unsubscribe = analyticsEventEmitter.subscribe(
+      (event?: AnalyticsEvent) => {
+        console.log("📊 [AnalyticsContext] Received analytics event:", event);
+
+        // Handle different event types
+        if (event?.type === "food_added" || event?.type === "food_removed") {
+          // Apply optimistic update immediately for food changes
+          if (event.data?.nutritionChange) {
+            updateTodayNutritionOptimistically(event.data.nutritionChange);
+          }
+
+          // Clear analytics service cache for fresh data on next request
+          AnalysisService.clearCache();
+        } else {
+          // For general diet changes, clear cache and refresh immediately
+          AnalysisService.clearCache();
+
+          if (userProfile && !isLoadingProfile) {
+            console.log(
+              "📊 [AnalyticsContext] Triggering immediate analytics refresh"
+            );
+            // Use a shorter timeout for immediate response
+            setTimeout(() => {
+              refreshAnalytics();
+            }, 100); // Very short delay to batch multiple rapid changes
+          } else {
+            // Fallback to invalidation if user not ready
+            invalidateAnalytics();
+          }
+        }
+      }
+    );
 
     return unsubscribe;
-  }, [invalidateAnalytics]);
+  }, [
+    userProfile,
+    isLoadingProfile,
+    refreshAnalytics,
+    invalidateAnalytics,
+    updateTodayNutritionOptimistically,
+  ]);
 
   // Getter functions
   const getAnalysisData = useCallback(() => {
@@ -233,6 +346,7 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({
     refreshAnalytics,
     refreshNutritionTab,
     invalidateAnalytics,
+    updateTodayNutritionOptimistically,
     getAnalysisData,
     getNutritionData,
   };
