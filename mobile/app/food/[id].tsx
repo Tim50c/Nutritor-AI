@@ -105,7 +105,8 @@ const GoalCard: React.FC = () => (
 );
 
 const FoodDetails = () => {
-  const { id, foodData, capturedImage, source } = useLocalSearchParams();
+  const { id, foodData, capturedImage, source, addedAt, dietIndex } =
+    useLocalSearchParams();
   const [isAddingToDiet, setIsAddingToDiet] = useState(false);
   const [isRemovingFromDiet, setIsRemovingFromDiet] = useState(false);
   const [isSavingImage, setIsSavingImage] = useState(false);
@@ -119,7 +120,7 @@ const FoodDetails = () => {
   );
 
   const {
-    refreshData,
+    refreshHomeData,
     fetchFavoriteFoods,
     isFavorite,
     toggleFavorite,
@@ -359,7 +360,7 @@ const FoodDetails = () => {
       try {
         // Refresh all cached food data that might contain this food
         await Promise.all([
-          refreshData(), // Refreshes home data (history foods) and suggestions
+          refreshHomeData(), // Refreshes home data (history foods) and suggestions
           fetchFavoriteFoods(), // Refreshes favorite foods cache
         ]);
         console.log("✅ Global food cache refreshed");
@@ -464,25 +465,10 @@ const FoodDetails = () => {
       goToToday();
 
       // IMMEDIATE UI UPDATE: Update UI state instantly (synchronous)
-      addFoodToTodayDiet(dietFood);
+      // Pass the custom alert callback to the context function
+      // The context function handles both UI updates and backend sync
+      addFoodToTodayDiet(dietFood, showCustomAlert);
       console.log("✅ [Food Details] Food added to UI successfully");
-
-      // Show success message immediately
-      showCustomAlert(
-        "Success!",
-        `${food.name} has been added to your diet successfully.`,
-        "success"
-      );
-
-      // BACKGROUND SYNC: Add to backend asynchronously (fire and forget)
-      DietService.addFoodToTodayDiet({ foodId })
-        .then(() => {
-          console.log("✅ [Food Details] Food synced to backend successfully");
-        })
-        .catch((error) => {
-          console.error("❌ [Food Details] Backend sync failed:", error);
-          // Could show a toast notification here for sync failure
-        });
     } catch (error) {
       console.error("❌ [Food Details] Error adding food to diet:", error);
       showCustomAlert(
@@ -511,46 +497,52 @@ const FoodDetails = () => {
       // Ensure food.id is a string
       const foodId = Array.isArray(food.id) ? food.id[0] : food.id;
 
-      console.log(
-        "🗑️ [Food Details] Removing food from diet optimistically:",
-        food.name
-      );
+      // Create targeting information from URL parameters (for diet foods)
+      const foodInstance =
+        addedAt || dietIndex !== undefined
+          ? {
+              addedAt: Array.isArray(addedAt) ? addedAt[0] : addedAt,
+              index:
+                dietIndex !== undefined
+                  ? parseInt(
+                      Array.isArray(dietIndex) ? dietIndex[0] : dietIndex
+                    )
+                  : undefined,
+            }
+          : undefined;
+
+      console.log("🗑️ [Food Details] Removing food from diet optimistically:", {
+        name: food.name,
+        foodId,
+        targetingInfo: foodInstance,
+        source: source,
+      });
 
       // First navigate to today's date to ensure we're viewing the correct day
       goToToday();
 
       // IMMEDIATE UI UPDATE: Update UI state instantly (synchronous)
-      removeFoodFromTodayDiet(foodId);
+      // Pass the custom alert callback to the context function
+      // Use targeting information if available (for diet foods), otherwise remove first occurrence by ID
+      // The context function handles both UI updates and backend sync
+      removeFoodFromTodayDiet(foodId, foodInstance, showCustomAlert);
       console.log("✅ [Food Details] Food removed from UI successfully");
-
-      // Show success message immediately
-      showCustomAlert(
-        "Removed!",
-        `${food.name} has been removed from your diet successfully.`,
-        "success"
-      );
-
-      // BACKGROUND SYNC: Remove from backend asynchronously (fire and forget)
-      DietService.removeFoodFromTodayDiet({ foodId })
-        .then(() => {
-          console.log(
-            "✅ [Food Details] Food removal synced to backend successfully"
-          );
-        })
-        .catch((error) => {
-          console.error(
-            "❌ [Food Details] Backend removal sync failed:",
-            error
-          );
-          // Could show a toast notification here for sync failure
-        });
     } catch (error) {
-      console.error("❌ [Food Details] Error removing food from diet:", error);
-      showCustomAlert(
-        "Error",
-        "Unable to remove food from diet. Please try again.",
-        "error"
+      // Only show user-facing errors for critical failures
+      // Backend sync errors are handled silently above
+      console.log(
+        "ℹ️ [Food Details] Remove operation completed with issues:",
+        error
       );
+
+      // Only show error to user if it's a critical UI operation failure
+      if (error && typeof error === "object" && "critical" in error) {
+        showCustomAlert(
+          "Error",
+          "Unable to remove food from diet. Please try again.",
+          "error"
+        );
+      }
     } finally {
       setIsRemovingFromDiet(false);
     }

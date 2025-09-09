@@ -27,7 +27,7 @@ const MacroItem = ({
       const newValue = Math.round(animation.value);
       const newText = newValue.toString();
       const newProgress = Math.min((newValue / (targetValue || 1)) * 100, 100);
-      
+
       if (newText !== displayText || newProgress !== progressPercent) {
         setDisplayText(newText);
         setProgressPercent(newProgress);
@@ -48,14 +48,14 @@ const MacroItem = ({
           {displayText}g
         </Text>
       </View>
-      
+
       {/* Animated Progress Bar */}
       <View className="h-2 bg-gray-100 rounded-full overflow-hidden">
-        <View 
-          style={{ 
+        <View
+          style={{
             width: `${progressPercent}%`,
             backgroundColor: color,
-            height: '100%',
+            height: "100%",
           }}
           className="rounded-full"
         />
@@ -64,8 +64,12 @@ const MacroItem = ({
   );
 };
 
-export default function DietSummary() {
-  const { summary, targetNutrition, loading } = useDietContext();
+export default function DietSummary({
+  isTabFocused = false,
+}: {
+  isTabFocused?: boolean;
+}) {
+  const { dietSummary, targetNutrition, loading, syncing } = useDietContext();
 
   // Animation values for each metric
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -74,6 +78,10 @@ export default function DietSummary() {
   const proteinAnim = useRef(new Animated.Value(0)).current;
   const fatAnim = useRef(new Animated.Value(0)).current;
 
+  // Animation control for cancellation during rapid updates
+  const animationRef = useRef<Animated.CompositeAnimation | null>(null);
+  const isAnimatingRef = useRef(false);
+
   // State for the main calorie text to fix the re-render bug
   const [animatedCalorieText, setAnimatedCalorieText] = useState("0");
   const [pieChartData, setPieChartData] = useState([
@@ -81,21 +89,30 @@ export default function DietSummary() {
     { value: 100, color: "#F3F4F6" },
   ]);
 
-  // Listener for the main calorie animation
+  // Optimized listener for the main calorie animation with throttling
   useEffect(() => {
+    let lastUpdate = 0;
+    const throttleMs = 16; // ~60fps
+
     const listenerId = caloriesAnim.addListener((animation) => {
+      const now = Date.now();
+      if (now - lastUpdate < throttleMs) return;
+      lastUpdate = now;
+
       // Remove decimal places for calories
       const roundedValue = Math.round(animation.value);
       setAnimatedCalorieText(roundedValue.toString());
-      
+
       // Update pie chart data synchronously with animation
       const targets = { calories: targetNutrition?.calories || 2000 };
-      const animatedCaloriesPercent = (roundedValue / (targets.calories || 1)) * 100;
+      const animatedCaloriesPercent =
+        (roundedValue / (targets.calories || 1)) * 100;
       setPieChartData([
         { value: Math.min(animatedCaloriesPercent, 100), color: "#F97316" },
         { value: Math.max(100 - animatedCaloriesPercent, 0), color: "#F3F4F6" },
       ]);
     });
+
     return () => {
       caloriesAnim.removeListener(listenerId);
     };
@@ -106,63 +123,90 @@ export default function DietSummary() {
     calories: targetNutrition?.calories || 2000,
   };
 
-  // Trigger animations when data changes (not when loading changes)
+  // Optimized animation trigger with debouncing and cancellation
   useEffect(() => {
-    // Only animate if we have actual data and not loading
-    if (!loading && (summary.calories > 0 || summary.carbs > 0 || summary.protein > 0 || summary.fat > 0)) {
-      console.log("🎨 [DietSummary] Starting animations with data:", summary);
-      
-      // Small delay to ensure component is mounted
-      const timeoutId = setTimeout(() => {
-        const animations = [
-          Animated.timing(fadeAnim, {
-            toValue: 1,
-            duration: 600,
-            useNativeDriver: true,
-          }),
-          Animated.timing(caloriesAnim, {
-            toValue: summary.calories,
-            duration: 1000,
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: false,
-          }),
-          Animated.timing(carbsAnim, {
-            toValue: summary.carbs,
-            duration: 1000,
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: false,
-          }),
-          Animated.timing(proteinAnim, {
-            toValue: summary.protein,
-            duration: 1000,
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: false,
-          }),
-          Animated.timing(fatAnim, {
-            toValue: summary.fat,
-            duration: 1000,
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: false,
-          }),
-        ];
-        
-        console.log("🎨 [DietSummary] Animation started!");
-        Animated.parallel(animations).start(() => {
+    // Cancel any running animation
+    if (animationRef.current && isAnimatingRef.current) {
+      animationRef.current.stop();
+      isAnimatingRef.current = false;
+    }
+
+    // Only animate if we have actual data, not loading, AND tab is focused
+    if (
+      !loading &&
+      isTabFocused &&
+      (dietSummary.calories > 0 ||
+        dietSummary.carbs > 0 ||
+        dietSummary.protein > 0 ||
+        dietSummary.fat > 0)
+    ) {
+      console.log(
+        "🎨 [DietSummary] Starting optimized animations with data:",
+        dietSummary
+      );
+
+      // Immediate updates for snappy feel, then animate
+      setAnimatedCalorieText(dietSummary.calories.toString());
+
+      // Reduced animation duration for snappier feel
+      const animations = [
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 300, // Reduced from 600ms
+          useNativeDriver: true,
+        }),
+        Animated.timing(caloriesAnim, {
+          toValue: dietSummary.calories,
+          duration: 400, // Reduced from 1000ms
+          easing: Easing.out(Easing.quad), // Lighter easing than cubic
+          useNativeDriver: false,
+        }),
+        Animated.timing(carbsAnim, {
+          toValue: dietSummary.carbs,
+          duration: 400, // Reduced from 1000ms
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: false,
+        }),
+        Animated.timing(proteinAnim, {
+          toValue: dietSummary.protein,
+          duration: 400, // Reduced from 1000ms
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: false,
+        }),
+        Animated.timing(fatAnim, {
+          toValue: dietSummary.fat,
+          duration: 400, // Reduced from 1000ms
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: false,
+        }),
+      ];
+
+      isAnimatingRef.current = true;
+      animationRef.current = Animated.parallel(animations);
+
+      animationRef.current.start(({ finished }) => {
+        if (finished) {
           console.log("🎨 [DietSummary] Animation completed!");
-        });
-      }, 150);
-      
-      return () => clearTimeout(timeoutId);
-    } else if (!loading) {
-      // If no data, show zeros but still animate the fade in
+          isAnimatingRef.current = false;
+        }
+      });
+    } else if (!loading && isTabFocused) {
+      // If no data but tab is focused, show zeros but still animate the fade in quickly
       console.log("🎨 [DietSummary] No data to animate, showing zeros");
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 300,
+        duration: 200, // Even faster for no-data case
         useNativeDriver: true,
       }).start();
     }
-  }, [summary.calories, summary.carbs, summary.protein, summary.fat, loading]); // Remove summary from dependencies
+  }, [
+    dietSummary.calories,
+    dietSummary.carbs,
+    dietSummary.protein,
+    dietSummary.fat,
+    loading,
+    isTabFocused, // Add isTabFocused to dependencies
+  ]); // Remove summary from dependencies
 
   // Reset animations when starting to load new data
   useEffect(() => {
@@ -188,10 +232,30 @@ export default function DietSummary() {
     );
   }
 
+  // Don't display anything if no food is logged
+  const hasAnyFood =
+    dietSummary.calories > 0 ||
+    dietSummary.carbs > 0 ||
+    dietSummary.protein > 0 ||
+    dietSummary.fat > 0;
+  if (!hasAnyFood) {
+    return null;
+  }
+
   return (
     <Animated.View style={{ opacity: fadeAnim }}>
       <View className="mx-4 mb-6">
-        <Text className="text-xl font-bold text-gray-800 mb-4 ml-2">Today's Diet</Text>
+        <View className="flex-row items-center justify-between mb-4">
+          <Text className="text-xl font-bold text-gray-800 ml-2">
+            Diet Summary
+          </Text>
+          {syncing && (
+            <View className="flex-row items-center mr-2">
+              <LoadingSpinner isProcessing={true} size={16} color="#F97316" />
+              <Text className="text-sm text-orange-500 ml-2">Syncing...</Text>
+            </View>
+          )}
+        </View>
         <View className="flex-row items-center justify-between bg-white rounded-2xl p-6 shadow-sm">
           {/* Left Side: Calorie Donut Chart */}
           <View className="relative w-[140px] h-[140px] items-center justify-center">

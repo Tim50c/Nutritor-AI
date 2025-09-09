@@ -32,13 +32,14 @@ class CameraService {
   }
 
   /**
-   * Get Firebase authentication token
+   * Get Firebase authentication token with caching to prevent quota exhaustion
    */
   private async getAuthToken(): Promise<string | null> {
     try {
       const user = this.auth.currentUser;
       if (user) {
-        return await user.getIdToken();
+        // Use cached token (false parameter) instead of forcing refresh
+        return await user.getIdToken(false);
       }
       console.warn("No authenticated user found");
       return null;

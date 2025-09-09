@@ -1,7 +1,8 @@
 import { View } from "react-native";
-import { Text } from './CustomText';
+import { Text } from "./CustomText";
 import { Svg, Path } from "react-native-svg";
 import { useDietContext } from "@/context/DietContext";
+import LoadingSpinner from "./LoadingSpinner";
 
 interface MacroProps {
   label: string;
@@ -11,7 +12,7 @@ interface MacroProps {
 }
 
 function MacroItem({ label, current, target, color }: MacroProps) {
-  const viewClassName: string = `h-1 rounded-full ${color}`
+  const viewClassName: string = `h-1 rounded-full ${color}`;
 
   return (
     <View className="items-center">
@@ -89,8 +90,17 @@ function CircularProgress({ current, target }: CircularProgressProps) {
   );
 }
 
-export default function TodaySummary({ loading = false }: { loading?: boolean }) {
-  const { summary, targetNutrition, loading: contextLoading } = useDietContext();
+export default function TodaySummary({
+  loading = false,
+}: {
+  loading?: boolean;
+}) {
+  const {
+    homeSummary,
+    targetNutrition,
+    loading: contextLoading,
+    syncing,
+  } = useDietContext();
   const isLoading = loading || contextLoading;
 
   // Show loading state if needed
@@ -98,7 +108,9 @@ export default function TodaySummary({ loading = false }: { loading?: boolean })
     return (
       <View className="bg-white mx-4 rounded-2xl p-6 mb-6 border border-gray-200 shadow-sm">
         <Text className="text-lg font-semibold mb-6">Today Summary</Text>
-        <View className="items-center mb-8"><Text>Loading...</Text></View>
+        <View className="items-center mb-8">
+          <Text>Loading...</Text>
+        </View>
         <View className="flex-row justify-between">
           <Text>Loading...</Text>
         </View>
@@ -107,19 +119,42 @@ export default function TodaySummary({ loading = false }: { loading?: boolean })
   }
 
   const calorieData = {
-    current: summary.calories,
+    current: homeSummary.calories,
     target: targetNutrition.calories,
   };
 
   const macroData = [
-    { label: "Protein", current: summary.protein, target: targetNutrition.protein, color: "bg-protein-100" },
-    { label: "Fats", current: summary.fat, target: targetNutrition.fat, color: "bg-fats-100" },
-    { label: "Carbs", current: summary.carbs, target: targetNutrition.carbs, color: "bg-carbs-300" },
+    {
+      label: "Protein",
+      current: homeSummary.protein,
+      target: targetNutrition.protein,
+      color: "bg-protein-100",
+    },
+    {
+      label: "Fats",
+      current: homeSummary.fat,
+      target: targetNutrition.fat,
+      color: "bg-fats-100",
+    },
+    {
+      label: "Carbs",
+      current: homeSummary.carbs,
+      target: targetNutrition.carbs,
+      color: "bg-carbs-300",
+    },
   ];
 
   return (
     <View className="bg-white mx-4 rounded-2xl p-6 mb-6 border border-gray-200 shadow-sm">
-      <Text className="text-lg font-semibold mb-6">Today Summary</Text>
+      <View className="flex-row items-center justify-between mb-6">
+        <Text className="text-lg font-semibold">Today Summary</Text>
+        {syncing && (
+          <View className="flex-row items-center">
+            <LoadingSpinner isProcessing={true} size={14} color="#F97316" />
+            <Text className="text-xs text-orange-500 ml-1">Syncing...</Text>
+          </View>
+        )}
+      </View>
 
       {/* Circular Progress */}
       <View className="items-center mb-8">

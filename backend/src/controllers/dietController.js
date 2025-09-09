@@ -369,13 +369,14 @@ exports.addFoodToDiet = async (req, res, next) => {
   }
 };
 
-// @desc    Remove food from today's diet
-// @route   DELETE /api/v1/diet/:foodId
+// @desc    Remove specific food instance from today's diet
+// @route   DELETE /api/v1/diet/:foodId?addedAt=timestamp&index=number
 // @access  Private
 exports.removeFoodFromDiet = async (req, res, next) => {
   try {
     const { uid } = res.locals;
     const { foodId } = req.params;
+    const { addedAt, index } = req.query;
     
     if (!foodId) {
       return res.status(400).json({ success: false, error: 'foodId is required' });
@@ -384,7 +385,19 @@ exports.removeFoodFromDiet = async (req, res, next) => {
     // Use timezone-safe date formatting instead of toISOString()
     const date = getLocalDateString();
 
-    console.log(`🗑️ [Backend] Removing food from diet for date: ${date} (local timezone)`);
+    console.log(`🗑️ [Backend] Removing specific food instance from diet for date: ${date}`, {
+      foodId,
+      addedAt,
+      index,
+      timezone: 'local'
+    });
+
+    // Get the food data to subtract its nutrition
+    const foodDoc = await db.collection('foods').doc(foodId).get();
+    if (!foodDoc.exists) {
+      return res.status(404).json({ success: false, error: 'Food not found' });
+    }
+    const food = foodDoc.data();
 
     const dietRef = db.collection('users').doc(uid).collection('diets').doc(date);
     const dietDoc = await dietRef.get();
@@ -393,20 +406,63 @@ exports.removeFoodFromDiet = async (req, res, next) => {
       return res.status(404).json({ success: false, error: 'No diet found for today' });
     }
 
-    const diet = Diet.fromFirestore(dietDoc);
+    const existingData = dietDoc.data();
+    let foodToRemoveIndex = -1;
 
-    // Check if the food exists in the diet
-    const foodExists = diet.foods.some(food => food.foodId === foodId);
-    if (!foodExists) {
+    // Strategy 1: Remove by specific index if provided
+    if (index !== undefined && !isNaN(parseInt(index))) {
+      const targetIndex = parseInt(index);
+      if (targetIndex >= 0 && targetIndex < existingData.foods.length && 
+          existingData.foods[targetIndex].foodId === foodId) {
+        foodToRemoveIndex = targetIndex;
+        console.log(`🎯 Found food by index: ${targetIndex}`);
+      }
+    }
+    
+    // Strategy 2: Remove by addedAt timestamp if index not found
+    if (foodToRemoveIndex === -1 && addedAt) {
+      foodToRemoveIndex = existingData.foods.findIndex(food => 
+        food.foodId === foodId && 
+        food.addedAt && 
+        new Date(food.addedAt.seconds * 1000).toISOString() === addedAt
+      );
+      if (foodToRemoveIndex !== -1) {
+        console.log(`🎯 Found food by addedAt timestamp: ${addedAt}`);
+      }
+    }
+    
+    // Strategy 3: Remove first occurrence if no specific identifier provided
+    if (foodToRemoveIndex === -1) {
+      foodToRemoveIndex = existingData.foods.findIndex(food => food.foodId === foodId);
+      if (foodToRemoveIndex !== -1) {
+        console.log(`🎯 Found food by foodId (first occurrence): ${foodId}`);
+      }
+    }
+
+    if (foodToRemoveIndex === -1) {
       return res.status(404).json({ success: false, error: 'Food not found in today\'s diet' });
     }
 
-    const newFoods = diet.foods.filter(food => food.foodId !== foodId);
+    // Remove the specific food instance
+    const newFoods = [...existingData.foods];
+    newFoods.splice(foodToRemoveIndex, 1);
+
+    // Recalculate total nutrition by subtracting removed food
+    const currentTotal = existingData.totalNutrition || { cal: 0, protein: 0, carbs: 0, fat: 0 };
+    const newTotalNutrition = {
+      cal: Math.max(0, currentTotal.cal - (food.nutrition?.cal || 0)),
+      protein: Math.max(0, Math.round((currentTotal.protein - (food.nutrition?.protein || 0)) * 10) / 10),
+      carbs: Math.max(0, Math.round((currentTotal.carbs - (food.nutrition?.carbs || 0)) * 10) / 10),
+      fat: Math.max(0, Math.round((currentTotal.fat - (food.nutrition?.fat || 0)) * 10) / 10)
+    };
 
     await dietRef.update({ 
       foods: newFoods,
+      totalNutrition: newTotalNutrition,
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
+
+    console.log(`✅ Backend: Food instance removed from diet for ${date}. Index: ${foodToRemoveIndex}, New total nutrition:`, newTotalNutrition);
 
     res.status(200).json({ success: true, message: 'Food removed from diet successfully' });
   } catch (error) {

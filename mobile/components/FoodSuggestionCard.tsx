@@ -1,7 +1,7 @@
 import { icons } from "@/constants/icons";
 import { images } from "@/constants/images";
 import { router } from "expo-router";
-import React from "react";
+import React, { memo, useCallback } from "react";
 import { Image, TouchableOpacity, View } from "react-native";
 import { Text } from "./CustomText";
 
@@ -13,6 +13,8 @@ interface FoodItem {
   protein: number;
   fat: number;
   carbs: number;
+  addedAt?: string; // For diet foods - timestamp when added
+  dietIndex?: number; // For diet foods - index in the diet array
 }
 
 interface FoodSuggestionCardProps {
@@ -22,16 +24,16 @@ interface FoodSuggestionCardProps {
   source?: "suggestions" | "history" | "diet" | "favorites";
 }
 
-export default function FoodSuggestionCard({
+const FoodSuggestionCard = memo(function FoodSuggestionCard({
   food,
   isFavorite = false,
   onToggleFavorite,
   source = "suggestions",
 }: FoodSuggestionCardProps) {
-  // Format calories with comma and unit
+  // Format calories with comma and unit (memoized)
   const formattedCalories = `${food.calories.toString()} kcal`;
 
-  const handleFoodPress = () => {
+  const handleFoodPress = useCallback(() => {
     // Convert food to the format expected by food details page
     const foodData = {
       id: food.id,
@@ -52,17 +54,39 @@ export default function FoodSuggestionCard({
       name: food.name,
       imageUrl: foodData.imageUrl,
       hasImage: !!food.image,
+      source: source,
+      addedAt: food.addedAt,
+      dietIndex: food.dietIndex,
     });
+
+    const navigationParams: any = {
+      id: food.id,
+      foodData: JSON.stringify(foodData),
+      source: source, // Pass the source to determine UI state
+    };
+
+    // For diet foods, pass targeting information to enable precise removal
+    if (source === "diet" && (food.addedAt || food.dietIndex !== undefined)) {
+      navigationParams.addedAt = food.addedAt;
+      navigationParams.dietIndex = food.dietIndex;
+    }
 
     router.push({
       pathname: "/food/[id]" as const,
-      params: {
-        id: food.id,
-        foodData: JSON.stringify(foodData),
-        source: source, // Pass the source to determine UI state
-      },
+      params: navigationParams,
     });
-  };
+  }, [
+    food.id,
+    food.name,
+    food.calories,
+    food.protein,
+    food.carbs,
+    food.fat,
+    food.image,
+    food.addedAt,
+    food.dietIndex,
+    source,
+  ]);
 
   return (
     <TouchableOpacity onPress={handleFoodPress}>
@@ -112,4 +136,6 @@ export default function FoodSuggestionCard({
       </View>
     </TouchableOpacity>
   );
-}
+});
+
+export default FoodSuggestionCard;

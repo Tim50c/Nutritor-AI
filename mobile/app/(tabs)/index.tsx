@@ -8,14 +8,14 @@ export default function HomeScreen() {
   const {
     isFavorite,
     toggleFavorite,
-    foods,
+    homeFoods,
     suggestedFoods,
     loading,
     refreshing,
   } = useDietContext();
 
   // History foods are the consumed foods from the backend
-  const historyFoods = foods;
+  const historyFoods = homeFoods;
 
   return (
     <View className="flex-1 bg-gray-50 pt-8">
