@@ -259,7 +259,7 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({
       console.log("📊 [AnalyticsContext] Auto-refreshing analytics data...");
       refreshAnalytics();
     }
-  }, [shouldInvalidate, userProfile, isLoadingProfile, refreshAnalytics]);
+  }, [shouldInvalidate, userProfile?.id, isLoadingProfile, refreshAnalytics]); // Only depend on user ID, not entire profile
 
   // Listen to diet change events with immediate optimistic updates
   useEffect(() => {
@@ -318,25 +318,19 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({
     [analyticsData]
   );
 
-  // Debug logging
+  // Debug logging - reduce frequency
   useEffect(() => {
-    console.log("📊 [AnalyticsContext] State update:", {
-      hasData: !!analyticsData,
-      loading,
-      error: error ? "Has error" : "No error",
-      lastUpdated: lastUpdated?.toISOString(),
-      shouldInvalidate,
-      userProfileReady: !!userProfile && !isLoadingProfile,
-    });
-  }, [
-    analyticsData,
-    loading,
-    error,
-    lastUpdated,
-    shouldInvalidate,
-    userProfile,
-    isLoadingProfile,
-  ]);
+    if (loading || error) {
+      console.log("📊 [AnalyticsContext] State update:", {
+        hasData: !!analyticsData,
+        loading,
+        error: error ? "Has error" : "No error",
+        lastUpdated: lastUpdated?.toISOString(),
+        shouldInvalidate,
+        userProfileReady: !!userProfile && !isLoadingProfile,
+      });
+    }
+  }, [loading, error]); // Only log when loading or error changes
 
   const contextValue: AnalyticsContextType = {
     analyticsData,

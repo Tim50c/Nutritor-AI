@@ -71,7 +71,7 @@ class ServerWarmupService {
         ? "Request timed out" 
         : error.message || "Unknown error";
       
-      console.error("❌ [ServerWarmup] Failed to warm up server:", errorMessage);
+      // console.error("❌ [ServerWarmup] Failed to warm up server:", errorMessage);
       
       // Don't throw the error - let the app continue even if warmup fails
       // The actual API calls will handle server startup if needed

@@ -920,6 +920,33 @@ export function DietProvider({ children }: { children: ReactNode }) {
     initializeData();
   }, [userProfile, isLoadingProfile, refreshHomeData, fetchFavoriteFoods]);
 
+  // React to changes in user profile target nutrition (e.g., after goal updates)
+  // This only watches userProfile.targetNutrition to avoid dependency loops
+  useEffect(() => {
+    if (userProfile?.targetNutrition) {
+      const newTarget = {
+        calories: userProfile.targetNutrition.cal || 2000,
+        carbs: userProfile.targetNutrition.carbs || 250,
+        protein: userProfile.targetNutrition.protein || 150,
+        fat: userProfile.targetNutrition.fat || 67,
+      };
+
+      console.log(
+        "🎯 [DietContext] User profile target nutrition updated:",
+        newTarget
+      );
+      setTargetNutrition(newTarget);
+
+      // Clear cache to ensure fresh data on next refresh
+      setDataCache(new Map());
+    }
+  }, [
+    userProfile?.targetNutrition?.cal,
+    userProfile?.targetNutrition?.carbs,
+    userProfile?.targetNutrition?.protein,
+    userProfile?.targetNutrition?.fat,
+  ]);
+
   // Sync diet state with home state when viewing today's date
   useEffect(() => {
     const today = new Date();

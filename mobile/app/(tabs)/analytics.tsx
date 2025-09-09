@@ -1,5 +1,4 @@
 import AnalyticsHeader from "@/components/AnalyticsHeader";
-import BMIBar from "@/components/BMIBar";
 import CalorieChart from "@/components/CalorieChart";
 import NutritionTrend from "@/components/NutritionTrend";
 import ToggleTabs, { TabOption } from "@/components/ToggleTabs";
@@ -23,14 +22,6 @@ const formatDateForAPI = (date: Date): string => {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
-};
-
-const getBMIStatus = (bmi: number): string => {
-  if (bmi <= 0 || isNaN(bmi)) return "Unknown"; // Handle invalid BMI
-  if (bmi < 18.5) return "Underweight";
-  if (bmi < 25) return "Normal weight";
-  if (bmi < 30) return "Overweight";
-  return "Obesity";
 };
 
 const Analytics = () => {
@@ -423,24 +414,6 @@ const Analytics = () => {
     }
   }, [refreshAnalytics, refreshNutritionTab, tab]);
 
-  // BMI and status
-  const bmi = analysisData?.bmi ?? 0;
-  const bmiStatus = getBMIStatus(bmi);
-
-  // Debug BMI data
-  console.log("🔍 BMI Debug:", {
-    analysisData: analysisData
-      ? {
-          bmi: analysisData.bmi,
-          currentWeight: analysisData.currentWeight,
-          weightGoal: analysisData.weightGoal,
-        }
-      : null,
-    calculatedBmi: bmi,
-    bmiStatus,
-    isValidBmi: bmi > 0 && bmi < 100,
-  });
-
   // Weight goal and current weight
   const weightGoal = analysisData?.weightGoal ?? 0;
   const currentWeight = analysisData?.currentWeight ?? 0;
@@ -484,10 +457,6 @@ const Analytics = () => {
           weightGoal={weightGoal}
           currentWeight={currentWeight}
         />
-
-        <View className="mt-4">
-          <BMIBar bmi={bmi} status={bmiStatus} />
-        </View>
 
         <View className="mt-4">
           <ToggleTabs value={tab} onChange={setTab} />

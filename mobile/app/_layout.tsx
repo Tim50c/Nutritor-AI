@@ -17,10 +17,11 @@ import { NotificationProvider } from "@/context/NotificationContext";
 import { UserProvider, useUser, defaultUser } from "@/context/UserContext";
 import { DietProvider } from "@/context/DietContext";
 import { AnalyticsProvider } from "@/context/AnalyticsContext";
+import { OnboardingProvider, useOnboarding } from "@/context/OnboardingContext";
 import apiClient from "@/utils/apiClients";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import ServerWarmupService from "@/services/server-warmup-service";
 
 SplashScreen.preventAutoHideAsync();
@@ -63,6 +64,43 @@ function RootLayoutNav() {
   const { userProfile, setUserProfile, isLoadingProfile } = useUser();
   const router = useRouter();
   const segments = useSegments();
+  const [allowOnboardingAccess, setAllowOnboardingAccess] = useState(false);
+
+  // Check for onboarding access flag
+  useEffect(() => {
+    const checkOnboardingFlag = async () => {
+      try {
+        const flag = await AsyncStorage.getItem("allowOnboardingAccess");
+        const shouldAllow = flag === "true";
+        setAllowOnboardingAccess(shouldAllow);
+        console.log("🔍 [Layout] Initial flag check:", { flag, shouldAllow, currentSegments: segments });
+      } catch (error) {
+        console.warn("Error checking onboarding flag:", error);
+        setAllowOnboardingAccess(false);
+      }
+    };
+    checkOnboardingFlag();
+  }, []); // Initial check only
+
+  // Check flag immediately when segments change (especially when entering onboarding)
+  useEffect(() => {
+    const checkFlagOnNavigation = async () => {
+      // Only check if we're navigating to onboarding
+      const isNavigatingToOnboarding = segments.includes("(onboarding)");
+      if (isNavigatingToOnboarding) {
+        try {
+          const flag = await AsyncStorage.getItem("allowOnboardingAccess");
+          const shouldAllow = flag === "true";
+          console.log("🚀 [Layout] Quick flag check for onboarding navigation:", { flag, shouldAllow, segments });
+          setAllowOnboardingAccess(shouldAllow);
+        } catch (error) {
+          console.warn("Error checking onboarding flag on navigation:", error);
+        }
+      }
+    };
+    
+    checkFlagOnNavigation();
+  }, [segments]); // Only when segments change
 
   // Effect 1: Fetches the user's Firestore profile when they log in
   useEffect(() => {
@@ -140,6 +178,12 @@ function RootLayoutNav() {
     // Case 3: User is verified. Now check their profile for onboarding.
     if (userProfile) {
       if (userProfile.onboardingComplete) {
+        // Check if we have permission to access onboarding (for goal updates)
+        if (allowOnboardingAccess && inOnboardingGroup) {
+          // Allow access to onboarding for goal updates
+          return; // Don't redirect, stay in onboarding
+        }
+
         // ONBOARDING COMPLETE: User belongs in the main app.
         if (inAuthGroup || inOnboardingGroup) {
           router.replace("/(tabs)");
@@ -151,7 +195,15 @@ function RootLayoutNav() {
         }
       }
     }
-  }, [user, userProfile, isAuthLoading, isLoadingProfile, segments, router]);
+  }, [
+    user,
+    userProfile,
+    isAuthLoading,
+    isLoadingProfile,
+    segments,
+    router,
+    allowOnboardingAccess,
+  ]);
 
   if (isAuthLoading || isLoadingProfile) {
     return <LoadingScreen showLoadingText={true} />;
@@ -208,7 +260,7 @@ export default function RootLayout() {
     setShowCustomSplash(false);
     SplashScreen.hideAsync();
     // Mark that user has seen the splash screen
-    AsyncStorage.setItem('hasSeenSplash', 'true');
+    AsyncStorage.setItem("hasSeenSplash", "true");
   };
 
   // For testing: Reset splash screen flag (uncomment next line to test splash again)
@@ -218,19 +270,19 @@ export default function RootLayout() {
   useEffect(() => {
     const checkFirstLaunch = async () => {
       try {
-        const hasSeenSplash = await AsyncStorage.getItem('hasSeenSplash');
+        const hasSeenSplash = await AsyncStorage.getItem("hasSeenSplash");
         if (!hasSeenSplash) {
           // First time opening the app, show splash screen
           setShowCustomSplash(true);
         }
       } catch (error) {
-        console.warn('Error checking first launch:', error);
+        console.warn("Error checking first launch:", error);
         // If there's an error, show splash screen to be safe
         setShowCustomSplash(true);
       }
       setIsCheckingFirstLaunch(false);
     };
-    
+
     checkFirstLaunch();
   }, []);
 
@@ -300,7 +352,7 @@ export default function RootLayout() {
 
   if (showCustomSplash) {
     return (
-      <CustomSplashScreen 
+      <CustomSplashScreen
         onAnimationComplete={handleSplashComplete}
         showLoadingText={true}
       />
@@ -323,14 +375,16 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <UserProvider>
-        <DietProvider>
-          <AnalyticsProvider>
-            <NotificationProvider>
-              <StatusBar style="dark" backgroundColor="white" />
-              <RootLayoutNav />
-            </NotificationProvider>
-          </AnalyticsProvider>
-        </DietProvider>
+        <OnboardingProvider>
+          <DietProvider>
+            <AnalyticsProvider>
+              <NotificationProvider>
+                <StatusBar style="dark" backgroundColor="white" />
+                <RootLayoutNav />
+              </NotificationProvider>
+            </AnalyticsProvider>
+          </DietProvider>
+        </OnboardingProvider>
       </UserProvider>
     </AuthProvider>
   );

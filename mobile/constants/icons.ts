@@ -24,6 +24,7 @@ import GalleryModeIcon from "@/assets/icons/gallery-mode-icon.svg";
 import close from "@/assets/icons/close.svg";
 import forwardArrow from "@/assets/icons/forward-arrow.svg";
 import attachmentIcon from "@/assets/icons/attachment-icon.svg";
+import championCup from "@/assets/icons/champion-cup.svg";
 
 export const icons = {
   home,
@@ -52,4 +53,5 @@ export const icons = {
   close,
   forwardArrow,
   attachmentIcon,
+  championCup,
 };
