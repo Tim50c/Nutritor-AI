@@ -65,14 +65,14 @@ const ChatScreen = () => {
     setMessages([
       {
         id: "1",
-        author: "Livechat",
+        author: "Nutritor AI",
         timestamp: getCurrentTimestamp(),
         text: "Hello! Nice to meet you!",
         sender: "bot",
       },
       {
         id: "2",
-        text: "Welcome to LiveChat.\nPlease type down a question, and I will answer right away!",
+        text: "Welcome to Nutritor AI.\nPlease type down a question, and I will answer right away!",
         sender: "bot",
       },
     ]);
@@ -394,18 +394,7 @@ const ChatScreen = () => {
               <icons.chatIcon width={60} height={60} className="mb-5" />
               <Text style={styles.startTitle} className="mt-3">Hello! Nice to see you here!</Text>
               <Text style={styles.startSubtitle}>
-                By pressing the &#34;Start chat&#34; button, you agree to have
-                your personal data processed as described in our{" "}
-                <Text
-                  style={styles.privacyLink}
-                  onPress={() =>
-                    Linking.openURL(
-                      "https://ik.imagekit.io/ltdsword/suss.jpg?updatedAt=1756314071583"
-                    )
-                  }
-                >
-                  Privacy Policy
-                </Text>
+                Start chatting with Nutritor AI, your personal nutrition assistant and get instant answers to your diet and health questions.
               </Text>
               <TouchableOpacity
                 style={styles.startButton}
