@@ -2,6 +2,7 @@ import { View } from "react-native";
 import { Text } from "./CustomText";
 import { Svg, Path } from "react-native-svg";
 import { useDietContext } from "@/context/DietContext";
+import LoadingSpinner from "./LoadingSpinner";
 
 interface MacroProps {
   label: string;
@@ -98,6 +99,7 @@ export default function TodaySummary({
     homeSummary,
     targetNutrition,
     loading: contextLoading,
+    syncing,
   } = useDietContext();
   const isLoading = loading || contextLoading;
 
@@ -144,7 +146,15 @@ export default function TodaySummary({
 
   return (
     <View className="bg-white mx-4 rounded-2xl p-6 mb-6 border border-gray-200 shadow-sm">
-      <Text className="text-lg font-semibold mb-6">Today Summary</Text>
+      <View className="flex-row items-center justify-between mb-6">
+        <Text className="text-lg font-semibold">Today Summary</Text>
+        {syncing && (
+          <View className="flex-row items-center">
+            <LoadingSpinner isProcessing={true} size={14} color="#F97316" />
+            <Text className="text-xs text-orange-500 ml-1">Syncing...</Text>
+          </View>
+        )}
+      </View>
 
       {/* Circular Progress */}
       <View className="items-center mb-8">

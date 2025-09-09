@@ -81,7 +81,6 @@ class AxiosService {
         try {
           const token = await auth.currentUser.getIdToken(true); // always refresh
           request.headers.Authorization = `Bearer ${token}`;
-          console.log("✅ Token added for UID:", auth.currentUser.uid);
         } catch (error) {
           console.error("❌ Failed to fetch fresh token:", error);
         }

@@ -19,8 +19,9 @@ class DietService {
       const response = await authInstance.get(`/diet?date=${input.date}`);
       return response.data as BaseResponse<DietModel>;
     } catch (error: any) {
-      console.error("Error getting diets:", error);
-      throw new Error("An error occurred while getting the diets.");
+      // Log error silently for debugging, don't show to user
+      console.log("ℹ️ [DietService] Get diets operation failed:", error?.response?.status || 'Network error');
+      throw error; // Re-throw to let caller handle appropriately
     }
   }
 
@@ -53,8 +54,9 @@ class DietService {
       
       return response.data as DietModel[];
     } catch (error: any) {
-      console.error("❌ [DietService] Error adding food to diet:", error);
-      throw new Error("An error occurred while adding food to diet.");
+      // Log error silently for debugging, don't show to user
+      console.log("ℹ️ [DietService] Add food operation failed:", error?.response?.status || 'Network error');
+      throw error; // Re-throw to let caller handle appropriately
     }
   }
 
@@ -66,8 +68,9 @@ class DietService {
 
       return response.data as DietModel[];
     } catch (error: any) {
-      console.error("Error removing food from diet:", error);
-      throw new Error("An error occurred while removing food from diet.");
+      // Log error silently for debugging, don't show to user
+      console.log("ℹ️ [DietService] Remove food operation failed:", error?.response?.status || 'Network error');
+      throw error; // Re-throw to let caller handle appropriately
     }
   }
 

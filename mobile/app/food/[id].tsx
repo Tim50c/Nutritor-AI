@@ -119,7 +119,7 @@ const FoodDetails = () => {
   );
 
   const {
-    refreshData,
+    refreshHomeData,
     fetchFavoriteFoods,
     isFavorite,
     toggleFavorite,
@@ -359,7 +359,7 @@ const FoodDetails = () => {
       try {
         // Refresh all cached food data that might contain this food
         await Promise.all([
-          refreshData(), // Refreshes home data (history foods) and suggestions
+          refreshHomeData(), // Refreshes home data (history foods) and suggestions
           fetchFavoriteFoods(), // Refreshes favorite foods cache
         ]);
         console.log("✅ Global food cache refreshed");
@@ -464,15 +464,9 @@ const FoodDetails = () => {
       goToToday();
 
       // IMMEDIATE UI UPDATE: Update UI state instantly (synchronous)
-      addFoodToTodayDiet(dietFood);
+      // Pass the custom alert callback to the context function
+      addFoodToTodayDiet(dietFood, showCustomAlert);
       console.log("✅ [Food Details] Food added to UI successfully");
-
-      // Show success message immediately
-      showCustomAlert(
-        "Success!",
-        `${food.name} has been added to your diet successfully.`,
-        "success"
-      );
 
       // BACKGROUND SYNC: Add to backend asynchronously (fire and forget)
       DietService.addFoodToTodayDiet({ foodId })
@@ -520,15 +514,9 @@ const FoodDetails = () => {
       goToToday();
 
       // IMMEDIATE UI UPDATE: Update UI state instantly (synchronous)
-      removeFoodFromTodayDiet(foodId);
+      // Pass the custom alert callback to the context function
+      removeFoodFromTodayDiet(foodId, showCustomAlert);
       console.log("✅ [Food Details] Food removed from UI successfully");
-
-      // Show success message immediately
-      showCustomAlert(
-        "Removed!",
-        `${food.name} has been removed from your diet successfully.`,
-        "success"
-      );
 
       // BACKGROUND SYNC: Remove from backend asynchronously (fire and forget)
       DietService.removeFoodFromTodayDiet({ foodId })
@@ -538,19 +526,29 @@ const FoodDetails = () => {
           );
         })
         .catch((error) => {
-          console.error(
-            "❌ [Food Details] Backend removal sync failed:",
-            error
+          // Silent failure for backend sync - don't show errors to user
+          // Backend sync failures are handled gracefully, UI has already been updated
+          console.log(
+            "ℹ️ [Food Details] Backend removal sync failed (silent):",
+            error.message || "Network error"
           );
-          // Could show a toast notification here for sync failure
         });
     } catch (error) {
-      console.error("❌ [Food Details] Error removing food from diet:", error);
-      showCustomAlert(
-        "Error",
-        "Unable to remove food from diet. Please try again.",
-        "error"
+      // Only show user-facing errors for critical failures
+      // Backend sync errors are handled silently above
+      console.log(
+        "ℹ️ [Food Details] Remove operation completed with issues:",
+        error
       );
+
+      // Only show error to user if it's a critical UI operation failure
+      if (error && typeof error === "object" && "critical" in error) {
+        showCustomAlert(
+          "Error",
+          "Unable to remove food from diet. Please try again.",
+          "error"
+        );
+      }
     } finally {
       setIsRemovingFromDiet(false);
     }

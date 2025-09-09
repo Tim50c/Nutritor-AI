@@ -65,7 +65,7 @@ const MacroItem = ({
 };
 
 export default function DietSummary() {
-  const { dietSummary, targetNutrition, loading } = useDietContext();
+  const { dietSummary, targetNutrition, loading, syncing } = useDietContext();
 
   // Animation values for each metric
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -207,9 +207,17 @@ export default function DietSummary() {
   return (
     <Animated.View style={{ opacity: fadeAnim }}>
       <View className="mx-4 mb-6">
-        <Text className="text-xl font-bold text-gray-800 mb-4 ml-2">
-          Today's Diet
-        </Text>
+        <View className="flex-row items-center justify-between mb-4">
+          <Text className="text-xl font-bold text-gray-800 ml-2">
+            Diet Summary
+          </Text>
+          {syncing && (
+            <View className="flex-row items-center mr-2">
+              <LoadingSpinner isProcessing={true} size={16} color="#F97316" />
+              <Text className="text-sm text-orange-500 ml-2">Syncing...</Text>
+            </View>
+          )}
+        </View>
         <View className="flex-row items-center justify-between bg-white rounded-2xl p-6 shadow-sm">
           {/* Left Side: Calorie Donut Chart */}
           <View className="relative w-[140px] h-[140px] items-center justify-center">

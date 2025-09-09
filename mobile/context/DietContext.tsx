@@ -55,14 +55,29 @@ interface DietContextType {
   targetNutrition: DietSummary;
   loading: boolean; // Initial data loading state
   refreshing: boolean; // Background refresh state
+  syncing: boolean; // Sync operations state
 
   // Functions
   refreshSuggestions: () => Promise<void>;
   refreshHomeData: (forceRefresh?: boolean) => Promise<void>;
   refreshDietData: (date: Date, forceRefresh?: boolean) => Promise<void>;
   goToToday: () => void;
-  addFoodToTodayDiet: (food: DietFood) => Promise<void>;
-  removeFoodFromTodayDiet: (foodId: string) => Promise<void>;
+  addFoodToTodayDiet: (
+    food: DietFood,
+    onAlert?: (
+      title: string,
+      message: string,
+      type: "success" | "error" | "info"
+    ) => void
+  ) => Promise<void>;
+  removeFoodFromTodayDiet: (
+    foodId: string,
+    onAlert?: (
+      title: string,
+      message: string,
+      type: "success" | "error" | "info"
+    ) => void
+  ) => Promise<void>;
 
   // Diet screen specific functions
   setDietDate: (date: Date) => void;
@@ -101,6 +116,7 @@ export function DietProvider({ children }: { children: ReactNode }) {
     useState<DietSummary>(initialSummary);
   const [loading, setLoading] = useState<boolean>(true); // Initial data loading
   const [refreshing, setRefreshing] = useState<boolean>(false); // Background refresh
+  const [syncing, setSyncing] = useState<boolean>(false); // Sync operations
 
   // Cache system to improve performance
   const [dataCache, setDataCache] = useState<Map<string, any>>(new Map());
@@ -353,139 +369,277 @@ export function DietProvider({ children }: { children: ReactNode }) {
 
   // Add food to today's diet with immediate UI update and background sync
   const addFoodToTodayDiet = useCallback(
-    async (food: DietFood) => {
+    async (
+      food: DietFood,
+      onAlert?: (
+        title: string,
+        message: string,
+        type: "success" | "error" | "info"
+      ) => void
+    ) => {
       console.log("🍽️ [DietContext] Adding food to today's diet:", food.name);
 
-      // IMMEDIATE UI UPDATES - All synchronous for instant feedback
+      setSyncing(true);
 
-      // 1. Update foods list immediately
-      setHomeFoods((prevFoods: DietFood[]) => {
-        // Prevent duplicate food entries
-        const exists = prevFoods.some((f) => f.id === food.id);
-        if (exists) {
-          console.log(
-            "⚠️ [DietContext] Food already exists, skipping addition"
-          );
-          return prevFoods;
-        }
-        return [...prevFoods, food];
-      });
+      try {
+        // IMMEDIATE UI UPDATES - All synchronous for instant feedback
 
-      // 2. Update nutrition summary immediately
-      setHomeSummary((prevSummary: DietSummary) => ({
-        calories: prevSummary.calories + (food.calories || 0),
-        carbs: prevSummary.carbs + (food.carbs || 0),
-        protein: prevSummary.protein + (food.protein || 0),
-        fat: prevSummary.fat + (food.fat || 0),
-      }));
+        // 1. Update foods list immediately
+        setHomeFoods((prevFoods: DietFood[]) => {
+          // Prevent duplicate food entries
+          const exists = prevFoods.some((f) => f.id === food.id);
+          if (exists) {
+            console.log(
+              "⚠️ [DietContext] Food already exists, skipping addition"
+            );
 
-      // BACKGROUND TASKS - All async operations
+            // Show custom alert if callback is provided
+            if (onAlert) {
+              onAlert(
+                "Already Added",
+                `${food.name} is already in your diet today.`,
+                "info"
+              );
+            }
 
-      // Clear cache for current date to ensure fresh data on next refresh
-      const dateString = formatDateForAPI(homeDate);
-      const cacheKey = `home_${dateString}`;
-      setDataCache((prev) => {
-        const newCache = new Map(prev);
-        newCache.delete(cacheKey);
-        return newCache;
-      });
-
-      // Invalidate analytics data for immediate update
-      analyticsEventEmitter.emit();
-
-      // Update food suggestions based on new nutrition data (non-blocking)
-      const updatedSummary = {
-        calories: homeSummary.calories + (food.calories || 0),
-        carbs: homeSummary.carbs + (food.carbs || 0),
-        protein: homeSummary.protein + (food.protein || 0),
-        fat: homeSummary.fat + (food.fat || 0),
-      };
-
-      // Run suggestions update in background without blocking UI
-      fetchFoodSuggestions(updatedSummary, targetNutrition)
-        .then(() => {
-          console.log("✅ [DietContext] Food suggestions updated successfully");
-        })
-        .catch((error) => {
-          console.error(
-            "❌ [DietContext] Failed to update food suggestions:",
-            error
-          );
+            return prevFoods;
+          }
+          return [...prevFoods, food];
         });
+
+        // 2. Update nutrition summary immediately
+        setHomeSummary((prevSummary: DietSummary) => ({
+          calories: prevSummary.calories + (food.calories || 0),
+          carbs: prevSummary.carbs + (food.carbs || 0),
+          protein: prevSummary.protein + (food.protein || 0),
+          fat: prevSummary.fat + (food.fat || 0),
+        }));
+
+        // 3. If diet screen is viewing today's date, sync diet state too
+        const today = new Date();
+        const isViewingToday = dietDate.toDateString() === today.toDateString();
+        if (isViewingToday) {
+          console.log(
+            "📅 [DietContext] Syncing diet state with today's addition"
+          );
+          setDietFoods((prevFoods: DietFood[]) => {
+            const exists = prevFoods.some((f) => f.id === food.id);
+            if (exists) return prevFoods;
+            return [...prevFoods, food];
+          });
+
+          setDietSummary((prevSummary: DietSummary) => ({
+            calories: prevSummary.calories + (food.calories || 0),
+            carbs: prevSummary.carbs + (food.carbs || 0),
+            protein: prevSummary.protein + (food.protein || 0),
+            fat: prevSummary.fat + (food.fat || 0),
+          }));
+        }
+
+        // Show success alert if callback is provided and food was actually added
+        if (onAlert && !homeFoods.some((f) => f.id === food.id)) {
+          onAlert(
+            "Success!",
+            `${food.name} has been added to your diet successfully.`,
+            "success"
+          );
+        }
+
+        // BACKGROUND TASKS - All async operations
+
+        // Clear cache for current date to ensure fresh data on next refresh
+        const dateString = formatDateForAPI(homeDate);
+        const cacheKey = `home_${dateString}`;
+        setDataCache((prev) => {
+          const newCache = new Map(prev);
+          newCache.delete(cacheKey);
+          return newCache;
+        });
+
+        // Also clear diet cache if viewing today
+        if (isViewingToday) {
+          const dietCacheKey = `diet_${dateString}`;
+          setDataCache((prev) => {
+            const newCache = new Map(prev);
+            newCache.delete(dietCacheKey);
+            return newCache;
+          });
+        }
+
+        // Invalidate analytics data for immediate update
+        analyticsEventEmitter.emit();
+
+        // Update food suggestions based on new nutrition data (non-blocking)
+        const updatedSummary = {
+          calories: homeSummary.calories + (food.calories || 0),
+          carbs: homeSummary.carbs + (food.carbs || 0),
+          protein: homeSummary.protein + (food.protein || 0),
+          fat: homeSummary.fat + (food.fat || 0),
+        };
+
+        // Run suggestions update in background without blocking UI
+        fetchFoodSuggestions(updatedSummary, targetNutrition)
+          .then(() => {
+            console.log(
+              "✅ [DietContext] Food suggestions updated successfully"
+            );
+          })
+          .catch((error) => {
+            console.error(
+              "❌ [DietContext] Failed to update food suggestions:",
+              error
+            );
+          });
+      } finally {
+        setSyncing(false);
+      }
     },
-    [homeSummary, targetNutrition, homeDate]
+    [homeSummary, targetNutrition, homeDate, dietDate, homeFoods]
   );
 
   // Remove food from today's diet with immediate UI update and background sync
   const removeFoodFromTodayDiet = useCallback(
-    async (foodId: string) => {
+    async (
+      foodId: string,
+      onAlert?: (
+        title: string,
+        message: string,
+        type: "success" | "error" | "info"
+      ) => void
+    ) => {
       console.log("🗑️ [DietContext] Removing food from today's diet:", foodId);
 
-      // Find the food to remove for nutrition calculation
-      const foodToRemove = homeFoods.find((f) => f.id === foodId);
-      if (!foodToRemove) {
-        console.log("⚠️ [DietContext] Food not found, skipping removal");
-        return;
-      }
+      setSyncing(true);
 
-      // IMMEDIATE UI UPDATES - All synchronous for instant feedback
+      try {
+        // Find the food to remove for nutrition calculation
+        const foodToRemove = homeFoods.find((f) => f.id === foodId);
+        if (!foodToRemove) {
+          console.log("⚠️ [DietContext] Food not found, skipping removal");
 
-      // 1. Remove food from list immediately
-      setHomeFoods((prevFoods: DietFood[]) =>
-        prevFoods.filter((f) => f.id !== foodId)
-      );
+          // Show custom alert if callback is provided
+          if (onAlert) {
+            onAlert(
+              "Food Not Found",
+              "This food is not in your diet today. It may have already been removed.",
+              "error"
+            );
+          }
 
-      // 2. Update nutrition summary immediately
-      setHomeSummary((prevSummary: DietSummary) => ({
-        calories: Math.max(
-          0,
-          prevSummary.calories - (foodToRemove.calories || 0)
-        ),
-        carbs: Math.max(0, prevSummary.carbs - (foodToRemove.carbs || 0)),
-        protein: Math.max(0, prevSummary.protein - (foodToRemove.protein || 0)),
-        fat: Math.max(0, prevSummary.fat - (foodToRemove.fat || 0)),
-      }));
+          return;
+        }
 
-      // BACKGROUND TASKS - All async operations
+        // IMMEDIATE UI UPDATES - All synchronous for instant feedback
 
-      // Clear cache for current date to ensure fresh data on next refresh
-      const dateString = formatDateForAPI(homeDate);
-      const cacheKey = `home_${dateString}`;
-      setDataCache((prev) => {
-        const newCache = new Map(prev);
-        newCache.delete(cacheKey);
-        return newCache;
-      });
+        // 1. Remove food from list immediately
+        setHomeFoods((prevFoods: DietFood[]) =>
+          prevFoods.filter((f) => f.id !== foodId)
+        );
 
-      // Invalidate analytics data for immediate update
-      analyticsEventEmitter.emit();
+        // 2. Update nutrition summary immediately
+        setHomeSummary((prevSummary: DietSummary) => ({
+          calories: Math.max(
+            0,
+            prevSummary.calories - (foodToRemove.calories || 0)
+          ),
+          carbs: Math.max(0, prevSummary.carbs - (foodToRemove.carbs || 0)),
+          protein: Math.max(
+            0,
+            prevSummary.protein - (foodToRemove.protein || 0)
+          ),
+          fat: Math.max(0, prevSummary.fat - (foodToRemove.fat || 0)),
+        }));
 
-      // Update food suggestions based on new nutrition data (non-blocking)
-      const updatedSummary = {
-        calories: Math.max(
-          0,
-          homeSummary.calories - (foodToRemove.calories || 0)
-        ),
-        carbs: Math.max(0, homeSummary.carbs - (foodToRemove.carbs || 0)),
-        protein: Math.max(0, homeSummary.protein - (foodToRemove.protein || 0)),
-        fat: Math.max(0, homeSummary.fat - (foodToRemove.fat || 0)),
-      };
-
-      // Run suggestions update in background without blocking UI
-      fetchFoodSuggestions(updatedSummary, targetNutrition)
-        .then(() => {
+        // 3. If diet screen is viewing today's date, sync diet state too
+        const today = new Date();
+        const isViewingToday = dietDate.toDateString() === today.toDateString();
+        if (isViewingToday) {
           console.log(
-            "✅ [DietContext] Food suggestions updated after removal"
+            "📅 [DietContext] Syncing diet state with today's removal"
           );
-        })
-        .catch((error) => {
-          console.error(
-            "❌ [DietContext] Failed to update food suggestions after removal:",
-            error
+          setDietFoods((prevFoods: DietFood[]) =>
+            prevFoods.filter((f) => f.id !== foodId)
           );
+
+          setDietSummary((prevSummary: DietSummary) => ({
+            calories: Math.max(
+              0,
+              prevSummary.calories - (foodToRemove.calories || 0)
+            ),
+            carbs: Math.max(0, prevSummary.carbs - (foodToRemove.carbs || 0)),
+            protein: Math.max(
+              0,
+              prevSummary.protein - (foodToRemove.protein || 0)
+            ),
+            fat: Math.max(0, prevSummary.fat - (foodToRemove.fat || 0)),
+          }));
+        }
+
+        // Show success alert if callback is provided
+        if (onAlert) {
+          onAlert(
+            "Removed!",
+            `${foodToRemove.name} has been removed from your diet successfully.`,
+            "success"
+          );
+        }
+
+        // BACKGROUND TASKS - All async operations
+
+        // Clear cache for current date to ensure fresh data on next refresh
+        const dateString = formatDateForAPI(homeDate);
+        const cacheKey = `home_${dateString}`;
+        setDataCache((prev) => {
+          const newCache = new Map(prev);
+          newCache.delete(cacheKey);
+          return newCache;
         });
+
+        // Also clear diet cache if viewing today
+        if (isViewingToday) {
+          const dietCacheKey = `diet_${dateString}`;
+          setDataCache((prev) => {
+            const newCache = new Map(prev);
+            newCache.delete(dietCacheKey);
+            return newCache;
+          });
+        }
+
+        // Invalidate analytics data for immediate update
+        analyticsEventEmitter.emit();
+
+        // Update food suggestions based on new nutrition data (non-blocking)
+        const updatedSummary = {
+          calories: Math.max(
+            0,
+            homeSummary.calories - (foodToRemove.calories || 0)
+          ),
+          carbs: Math.max(0, homeSummary.carbs - (foodToRemove.carbs || 0)),
+          protein: Math.max(
+            0,
+            homeSummary.protein - (foodToRemove.protein || 0)
+          ),
+          fat: Math.max(0, homeSummary.fat - (foodToRemove.fat || 0)),
+        };
+
+        // Run suggestions update in background without blocking UI
+        fetchFoodSuggestions(updatedSummary, targetNutrition)
+          .then(() => {
+            console.log(
+              "✅ [DietContext] Food suggestions updated after removal"
+            );
+          })
+          .catch((error) => {
+            console.error(
+              "❌ [DietContext] Failed to update food suggestions after removal:",
+              error
+            );
+          });
+      } finally {
+        setSyncing(false);
+      }
     },
-    [homeSummary, targetNutrition, homeDate, homeFoods]
+    [homeSummary, targetNutrition, homeDate, homeFoods, dietDate]
   );
 
   // Add food to specific diet date
@@ -594,6 +748,44 @@ export function DietProvider({ children }: { children: ReactNode }) {
     initializeData();
   }, [userProfile, isLoadingProfile, refreshHomeData, fetchFavoriteFoods]);
 
+  // Sync diet state with home state when viewing today's date
+  useEffect(() => {
+    const today = new Date();
+    const isViewingToday = dietDate.toDateString() === today.toDateString();
+
+    if (isViewingToday && !loading) {
+      console.log("📅 [DietContext] Syncing diet state with today's home data");
+
+      // Only sync if there's a meaningful difference or if diet state is empty
+      const shouldSync =
+        dietFoods.length === 0 ||
+        homeFoods.length !== dietFoods.length ||
+        Math.abs(homeSummary.calories - dietSummary.calories) > 1;
+
+      if (shouldSync) {
+        console.log(
+          "� [DietContext] Syncing diet state - foods:",
+          homeFoods.length,
+          "calories:",
+          homeSummary.calories
+        );
+        setDietFoods([...homeFoods]);
+        setDietSummary({ ...homeSummary });
+      }
+    } else if (!isViewingToday) {
+      // When viewing a different date, refresh that date's data
+      refreshDietData(dietDate);
+    }
+  }, [
+    dietDate,
+    homeFoods,
+    homeSummary,
+    loading,
+    dietFoods.length,
+    dietSummary.calories,
+    refreshDietData,
+  ]);
+
   const toggleFavorite = async (foodId: string, food?: DietFood) => {
     const prevIds = favoriteFoodIds;
     const isFav = prevIds.includes(foodId);
@@ -647,6 +839,7 @@ export function DietProvider({ children }: { children: ReactNode }) {
         targetNutrition,
         loading,
         refreshing,
+        syncing,
         refreshSuggestions,
         refreshHomeData,
         refreshDietData,
