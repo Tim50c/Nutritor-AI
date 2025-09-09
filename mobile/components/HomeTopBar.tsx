@@ -41,18 +41,14 @@ export default function HomeTopBar() {
     <View className="flex-row items-center justify-between px-4 py-3 bg-white">
       {/* Left side: Avatar + Welcome */}
       <View className="flex-row items-center">
-        {userProfile?.avatar ? (
-          <Image
-            // --- FIX 3.1: Use userProfile.avatar ---
-            source={userProfile.avatar}
-            className="w-10 h-10 rounded-full mr-2"
-          />
-        ) : (
-          <Image
-            source={images.default_avatar}
-            className="w-14 h-14 mr-2"
-          />
-        )}
+        <Image
+          source={
+            userProfile?.avatar && typeof userProfile.avatar === 'string' 
+              ? { uri: userProfile.avatar } 
+              : images.default_avatar
+          }
+          className="w-10 h-10 rounded-full mr-2"
+        />
         <View>
           <Text className="text-sm text-gray-500">Welcome</Text>
           {/* --- FIX 3.2: Combine firstname and lastname for the full name --- */}
