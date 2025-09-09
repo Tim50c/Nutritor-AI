@@ -12,6 +12,7 @@ import {
 import "./global.css";
 import CustomHeader from "@/components/CustomHeader";
 import LoadingScreen from "@/components/LoadingScreen";
+import CustomSplashScreen from "@/components/CustomSplashScreen";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { UserProvider, useUser, defaultUser } from "@/context/UserContext";
 import { DietProvider } from "@/context/DietContext";
@@ -199,6 +200,12 @@ export default function RootLayout() {
   // Track font loading time
   const [fontLoadStartTime] = useState(() => Date.now());
   const [isWarmingUp, setIsWarmingUp] = useState(false);
+  const [showCustomSplash, setShowCustomSplash] = useState(true);
+
+  const handleSplashComplete = () => {
+    setShowCustomSplash(false);
+    SplashScreen.hideAsync();
+  };
 
   const [fontsLoaded, error] = useFonts({
     "SF-Pro-Display-Black": require("../assets/fonts/SF-Pro-Display-Black.otf"),
@@ -231,7 +238,7 @@ export default function RootLayout() {
     if (fontsLoaded) {
       const loadTime = Date.now() - fontLoadStartTime;
       console.log(`✅ Fonts loaded successfully in ${loadTime}ms`);
-      SplashScreen.hideAsync();
+      // Don't hide splash screen immediately, let custom splash handle it
     }
   }, [fontsLoaded, error, fontLoadStartTime]);
 
@@ -258,6 +265,16 @@ export default function RootLayout() {
         });
     }
   }, [fontsLoaded]);
+
+  // Show custom splash screen first (before fonts are loaded)
+  if (showCustomSplash) {
+    return (
+      <CustomSplashScreen 
+        onAnimationComplete={handleSplashComplete}
+        showLoadingText={true}
+      />
+    );
+  }
 
   if (!fontsLoaded) {
     return null;

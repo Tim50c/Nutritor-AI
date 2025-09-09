@@ -19,7 +19,7 @@ export default function HomeScreen() {
 
   return (
     <View
-      className={`flex-1 bg-gray-50 ${Platform.OS === "ios" ? "pt-8" : ""}`}
+      className={`flex-1 bg-gray-50 ${Platform.OS === "ios" ? "pt-10" : ""}`}
     >
       <HomeTopBar />
       <ScrollView showsVerticalScrollIndicator={false}>
