@@ -406,7 +406,7 @@ exports.removeFoodFromDiet = async (req, res, next) => {
     
     if (addedAt) {
       // Remove specific instance by timestamp
-      const targetTimestamp = new Date(addedAt);
+      const targetTimestamp = new Date(parseInt(addedAt)); // Parse timestamp from string
       let removed = false;
       
       newFoods = diet.foods.filter(food => {
