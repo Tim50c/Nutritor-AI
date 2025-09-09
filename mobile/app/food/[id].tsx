@@ -105,7 +105,8 @@ const GoalCard: React.FC = () => (
 );
 
 const FoodDetails = () => {
-  const { id, foodData, capturedImage, source } = useLocalSearchParams();
+  const { id, foodData, capturedImage, source, addedAt, dietIndex } =
+    useLocalSearchParams();
   const [isAddingToDiet, setIsAddingToDiet] = useState(false);
   const [isRemovingFromDiet, setIsRemovingFromDiet] = useState(false);
   const [isSavingImage, setIsSavingImage] = useState(false);
@@ -465,18 +466,9 @@ const FoodDetails = () => {
 
       // IMMEDIATE UI UPDATE: Update UI state instantly (synchronous)
       // Pass the custom alert callback to the context function
+      // The context function handles both UI updates and backend sync
       addFoodToTodayDiet(dietFood, showCustomAlert);
       console.log("✅ [Food Details] Food added to UI successfully");
-
-      // BACKGROUND SYNC: Add to backend asynchronously (fire and forget)
-      DietService.addFoodToTodayDiet({ foodId })
-        .then(() => {
-          console.log("✅ [Food Details] Food synced to backend successfully");
-        })
-        .catch((error) => {
-          console.error("❌ [Food Details] Backend sync failed:", error);
-          // Could show a toast notification here for sync failure
-        });
     } catch (error) {
       console.error("❌ [Food Details] Error adding food to diet:", error);
       showCustomAlert(
@@ -505,34 +497,36 @@ const FoodDetails = () => {
       // Ensure food.id is a string
       const foodId = Array.isArray(food.id) ? food.id[0] : food.id;
 
-      console.log(
-        "🗑️ [Food Details] Removing food from diet optimistically:",
-        food.name
-      );
+      // Create targeting information from URL parameters (for diet foods)
+      const foodInstance =
+        addedAt || dietIndex !== undefined
+          ? {
+              addedAt: Array.isArray(addedAt) ? addedAt[0] : addedAt,
+              index:
+                dietIndex !== undefined
+                  ? parseInt(
+                      Array.isArray(dietIndex) ? dietIndex[0] : dietIndex
+                    )
+                  : undefined,
+            }
+          : undefined;
+
+      console.log("🗑️ [Food Details] Removing food from diet optimistically:", {
+        name: food.name,
+        foodId,
+        targetingInfo: foodInstance,
+        source: source,
+      });
 
       // First navigate to today's date to ensure we're viewing the correct day
       goToToday();
 
       // IMMEDIATE UI UPDATE: Update UI state instantly (synchronous)
       // Pass the custom alert callback to the context function
-      removeFoodFromTodayDiet(foodId, showCustomAlert);
+      // Use targeting information if available (for diet foods), otherwise remove first occurrence by ID
+      // The context function handles both UI updates and backend sync
+      removeFoodFromTodayDiet(foodId, foodInstance, showCustomAlert);
       console.log("✅ [Food Details] Food removed from UI successfully");
-
-      // BACKGROUND SYNC: Remove from backend asynchronously (fire and forget)
-      DietService.removeFoodFromTodayDiet({ foodId })
-        .then(() => {
-          console.log(
-            "✅ [Food Details] Food removal synced to backend successfully"
-          );
-        })
-        .catch((error) => {
-          // Silent failure for backend sync - don't show errors to user
-          // Backend sync failures are handled gracefully, UI has already been updated
-          console.log(
-            "ℹ️ [Food Details] Backend removal sync failed (silent):",
-            error.message || "Network error"
-          );
-        });
     } catch (error) {
       // Only show user-facing errors for critical failures
       // Backend sync errors are handled silently above

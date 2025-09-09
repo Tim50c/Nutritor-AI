@@ -61,10 +61,29 @@ class DietService {
   }
 
   public async removeFoodFromTodayDiet(
-    input: IAddDietInput
+    input: IAddDietInput & { addedAt?: string; index?: number }
   ): Promise<DietModel[]> {
     try {
-      const response = await authInstance.delete(`/diet/${input.foodId}`);
+      // Build query parameters for specific food instance removal
+      const params = new URLSearchParams();
+      if (input.addedAt) {
+        params.append('addedAt', input.addedAt);
+      }
+      if (input.index !== undefined) {
+        params.append('index', input.index.toString());
+      }
+      
+      const queryString = params.toString();
+      const url = `/diet/${input.foodId}${queryString ? `?${queryString}` : ''}`;
+      
+      console.log(`🗑️ [DietService] Removing specific food instance:`, {
+        foodId: input.foodId,
+        addedAt: input.addedAt,
+        index: input.index,
+        url
+      });
+
+      const response = await authInstance.delete(url);
 
       return response.data as DietModel[];
     } catch (error: any) {

@@ -13,6 +13,8 @@ interface FoodItem {
   protein: number;
   fat: number;
   carbs: number;
+  addedAt?: string; // For diet foods - timestamp when added
+  dietIndex?: number; // For diet foods - index in the diet array
 }
 
 interface FoodSuggestionCardProps {
@@ -52,15 +54,26 @@ export default function FoodSuggestionCard({
       name: food.name,
       imageUrl: foodData.imageUrl,
       hasImage: !!food.image,
+      source: source,
+      addedAt: food.addedAt,
+      dietIndex: food.dietIndex,
     });
+
+    const navigationParams: any = {
+      id: food.id,
+      foodData: JSON.stringify(foodData),
+      source: source, // Pass the source to determine UI state
+    };
+
+    // For diet foods, pass targeting information to enable precise removal
+    if (source === "diet" && (food.addedAt || food.dietIndex !== undefined)) {
+      navigationParams.addedAt = food.addedAt;
+      navigationParams.dietIndex = food.dietIndex;
+    }
 
     router.push({
       pathname: "/food/[id]" as const,
-      params: {
-        id: food.id,
-        foodData: JSON.stringify(foodData),
-        source: source, // Pass the source to determine UI state
-      },
+      params: navigationParams,
     });
   };
 

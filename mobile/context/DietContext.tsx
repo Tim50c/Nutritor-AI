@@ -12,6 +12,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -24,6 +25,8 @@ export type DietFood = {
   protein: number;
   fat: number;
   description: string;
+  addedAt?: string; // ISO timestamp when food was added to diet
+  dietIndex?: number; // Index position in the diet array for precise removal
 };
 
 export type DietSummary = {
@@ -72,6 +75,7 @@ interface DietContextType {
   ) => Promise<void>;
   removeFoodFromTodayDiet: (
     foodId: string,
+    foodInstance?: { addedAt?: string; index?: number },
     onAlert?: (
       title: string,
       message: string,
@@ -82,7 +86,11 @@ interface DietContextType {
   // Diet screen specific functions
   setDietDate: (date: Date) => void;
   addFoodToDietDate: (food: DietFood, date: Date) => Promise<void>;
-  removeFoodFromDietDate: (foodId: string, date: Date) => Promise<void>;
+  removeFoodFromDietDate: (
+    foodId: string,
+    date: Date,
+    foodInstance?: { addedAt?: string; index?: number }
+  ) => Promise<void>;
 }
 
 const DietContext = createContext<DietContextType | undefined>(undefined);
@@ -116,6 +124,9 @@ export function DietProvider({ children }: { children: ReactNode }) {
     useState<DietSummary>(initialSummary);
   const [loading, setLoading] = useState<boolean>(true); // Initial data loading
   const [refreshing, setRefreshing] = useState<boolean>(false); // Background refresh
+
+  // Track recent additions to prevent rapid duplicates
+  const recentAdditionsRef = useRef<Map<string, number>>(new Map());
   const [syncing, setSyncing] = useState<boolean>(false); // Sync operations
 
   // Cache system to improve performance
@@ -224,7 +235,7 @@ export function DietProvider({ children }: { children: ReactNode }) {
         setHomeSummary(consumedNutrition);
 
         const allFoods: DietFood[] = (actualData?.diets[0]?.foods || []).map(
-          (food: any) => ({
+          (food: any, index: number) => ({
             id: food.id,
             name: food.name || "Unknown Food",
             image: food.imageUrl ? { uri: food.imageUrl } : null,
@@ -233,6 +244,8 @@ export function DietProvider({ children }: { children: ReactNode }) {
             protein: food.nutrition?.protein || 0,
             fat: food.nutrition?.fat || 0,
             description: food.description || "",
+            addedAt: food.addedAt, // Include timestamp for specific removal
+            dietIndex: index, // Include array index for specific removal
           })
         );
         setHomeFoods(allFoods);
@@ -336,7 +349,7 @@ export function DietProvider({ children }: { children: ReactNode }) {
         setDietSummary(consumedNutrition);
 
         const allFoods: DietFood[] = (actualData?.diets[0]?.foods || []).map(
-          (food: any) => ({
+          (food: any, index: number) => ({
             id: food.id,
             name: food.name || "Unknown Food",
             image: food.imageUrl ? { uri: food.imageUrl } : null,
@@ -345,6 +358,8 @@ export function DietProvider({ children }: { children: ReactNode }) {
             protein: food.nutrition?.protein || 0,
             fat: food.nutrition?.fat || 0,
             description: food.description || "",
+            addedAt: food.addedAt, // Include timestamp for specific removal
+            dietIndex: index, // Include array index for specific removal
           })
         );
         setDietFoods(allFoods);
@@ -379,32 +394,45 @@ export function DietProvider({ children }: { children: ReactNode }) {
     ) => {
       console.log("🍽️ [DietContext] Adding food to today's diet:", food.name);
 
+      // Prevent rapid duplicate additions (within 2 seconds)
+      const now = Date.now();
+      const recentTime = recentAdditionsRef.current.get(food.id);
+      if (recentTime && now - recentTime < 2000) {
+        console.log(
+          "⚠️ [DietContext] Preventing duplicate addition within 2 seconds:",
+          food.name
+        );
+        if (onAlert) {
+          onAlert(
+            "Already Added",
+            `${food.name} was just added to your diet.`,
+            "info"
+          );
+        }
+        return;
+      }
+
+      // Track this addition
+      recentAdditionsRef.current.set(food.id, now);
+
       setSyncing(true);
 
       try {
         // IMMEDIATE UI UPDATES - All synchronous for instant feedback
 
-        // 1. Update foods list immediately
+        // Create enhanced food object with timestamp for targeting
+        const enhancedFood: DietFood = {
+          ...food,
+          addedAt: new Date().toISOString(), // Add timestamp for precise removal targeting
+        };
+
+        // 1. Update foods list immediately - Allow multiple instances of same food
         setHomeFoods((prevFoods: DietFood[]) => {
-          // Prevent duplicate food entries
-          const exists = prevFoods.some((f) => f.id === food.id);
-          if (exists) {
-            console.log(
-              "⚠️ [DietContext] Food already exists, skipping addition"
-            );
-
-            // Show custom alert if callback is provided
-            if (onAlert) {
-              onAlert(
-                "Already Added",
-                `${food.name} is already in your diet today.`,
-                "info"
-              );
-            }
-
-            return prevFoods;
-          }
-          return [...prevFoods, food];
+          console.log(
+            "🍽️ [DietContext] Adding food to home foods list:",
+            enhancedFood.name
+          );
+          return [...prevFoods, enhancedFood];
         });
 
         // 2. Update nutrition summary immediately
@@ -423,9 +451,11 @@ export function DietProvider({ children }: { children: ReactNode }) {
             "📅 [DietContext] Syncing diet state with today's addition"
           );
           setDietFoods((prevFoods: DietFood[]) => {
-            const exists = prevFoods.some((f) => f.id === food.id);
-            if (exists) return prevFoods;
-            return [...prevFoods, food];
+            console.log(
+              "🍽️ [DietContext] Adding food to diet foods list:",
+              enhancedFood.name
+            );
+            return [...prevFoods, enhancedFood];
           });
 
           setDietSummary((prevSummary: DietSummary) => ({
@@ -436,8 +466,8 @@ export function DietProvider({ children }: { children: ReactNode }) {
           }));
         }
 
-        // Show success alert if callback is provided and food was actually added
-        if (onAlert && !homeFoods.some((f) => f.id === food.id)) {
+        // Show success alert if callback is provided
+        if (onAlert) {
           onAlert(
             "Success!",
             `${food.name} has been added to your diet successfully.`,
@@ -445,29 +475,58 @@ export function DietProvider({ children }: { children: ReactNode }) {
           );
         }
 
-        // BACKGROUND TASKS - All async operations
+        // BACKGROUND TASKS - Call the API to persist changes
+        try {
+          console.log(
+            "🌐 [DietContext] Calling backend API to add food:",
+            food.id
+          );
+          await DietService.addFoodToTodayDiet({ foodId: food.id });
+          console.log("✅ [DietContext] Food added to backend successfully");
 
-        // Clear cache for current date to ensure fresh data on next refresh
-        const dateString = formatDateForAPI(homeDate);
-        const cacheKey = `home_${dateString}`;
-        setDataCache((prev) => {
-          const newCache = new Map(prev);
-          newCache.delete(cacheKey);
-          return newCache;
-        });
-
-        // Also clear diet cache if viewing today
-        if (isViewingToday) {
-          const dietCacheKey = `diet_${dateString}`;
+          // Only clear cache on successful API call to prevent duplicates
+          // This ensures the next natural refresh will get fresh data
+          const dateString = formatDateForAPI(homeDate);
+          const cacheKey = `home_${dateString}`;
           setDataCache((prev) => {
             const newCache = new Map(prev);
-            newCache.delete(dietCacheKey);
+            newCache.delete(cacheKey);
             return newCache;
           });
+
+          // Also clear diet cache if viewing today
+          if (isViewingToday) {
+            const dietCacheKey = `diet_${dateString}`;
+            setDataCache((prev) => {
+              const newCache = new Map(prev);
+              newCache.delete(dietCacheKey);
+              return newCache;
+            });
+          }
+        } catch (error) {
+          console.error(
+            "❌ [DietContext] Failed to add food to backend:",
+            error
+          );
+          // Note: We don't revert the UI changes as they provide better UX
+          // We also don't clear cache since the backend addition failed
         }
 
         // Invalidate analytics data for immediate update
         analyticsEventEmitter.emit();
+
+        // Clean up old tracking entries (older than 5 seconds)
+        setTimeout(() => {
+          const cutoff = Date.now() - 5000;
+          for (const [
+            foodId,
+            timestamp,
+          ] of recentAdditionsRef.current.entries()) {
+            if (timestamp < cutoff) {
+              recentAdditionsRef.current.delete(foodId);
+            }
+          }
+        }, 5000);
 
         // Update food suggestions based on new nutrition data (non-blocking)
         const updatedSummary = {
@@ -501,23 +560,61 @@ export function DietProvider({ children }: { children: ReactNode }) {
   const removeFoodFromTodayDiet = useCallback(
     async (
       foodId: string,
+      foodInstance?: { addedAt?: string; index?: number },
       onAlert?: (
         title: string,
         message: string,
         type: "success" | "error" | "info"
       ) => void
     ) => {
-      console.log("🗑️ [DietContext] Removing food from today's diet:", foodId);
+      console.log(
+        "🗑️ [DietContext] Removing food from today's diet:",
+        foodId,
+        foodInstance
+      );
 
       setSyncing(true);
 
       try {
         // Find the food to remove for nutrition calculation
-        const foodToRemove = homeFoods.find((f) => f.id === foodId);
-        if (!foodToRemove) {
-          console.log("⚠️ [DietContext] Food not found, skipping removal");
+        let foodToRemove: DietFood | undefined;
+        let removalIndex: number = -1;
 
-          // Show custom alert if callback is provided
+        if (foodInstance?.index !== undefined) {
+          // Remove by specific index (most precise)
+          removalIndex = foodInstance.index;
+          foodToRemove = homeFoods[removalIndex];
+          if (!foodToRemove || foodToRemove.id !== foodId) {
+            console.log(
+              "⚠️ [DietContext] Food at index not found or ID mismatch"
+            );
+            if (onAlert) {
+              onAlert(
+                "Food Not Found",
+                "This food is not in your diet today. It may have already been removed.",
+                "error"
+              );
+            }
+            return;
+          }
+        } else if (foodInstance?.addedAt) {
+          // Remove by timestamp (fallback)
+          removalIndex = homeFoods.findIndex(
+            (f) => f.id === foodId && f.addedAt === foodInstance.addedAt
+          );
+          if (removalIndex !== -1) {
+            foodToRemove = homeFoods[removalIndex];
+          }
+        } else {
+          // Remove first occurrence by ID (legacy behavior)
+          removalIndex = homeFoods.findIndex((f) => f.id === foodId);
+          if (removalIndex !== -1) {
+            foodToRemove = homeFoods[removalIndex];
+          }
+        }
+
+        if (!foodToRemove || removalIndex === -1) {
+          console.log("⚠️ [DietContext] Food not found, skipping removal");
           if (onAlert) {
             onAlert(
               "Food Not Found",
@@ -525,16 +622,17 @@ export function DietProvider({ children }: { children: ReactNode }) {
               "error"
             );
           }
-
           return;
         }
 
         // IMMEDIATE UI UPDATES - All synchronous for instant feedback
 
-        // 1. Remove food from list immediately
-        setHomeFoods((prevFoods: DietFood[]) =>
-          prevFoods.filter((f) => f.id !== foodId)
-        );
+        // 1. Remove specific food instance from list immediately
+        setHomeFoods((prevFoods: DietFood[]) => {
+          const newFoods = [...prevFoods];
+          newFoods.splice(removalIndex, 1);
+          return newFoods;
+        });
 
         // 2. Update nutrition summary immediately
         setHomeSummary((prevSummary: DietSummary) => ({
@@ -557,9 +655,25 @@ export function DietProvider({ children }: { children: ReactNode }) {
           console.log(
             "📅 [DietContext] Syncing diet state with today's removal"
           );
-          setDietFoods((prevFoods: DietFood[]) =>
-            prevFoods.filter((f) => f.id !== foodId)
-          );
+          setDietFoods((prevFoods: DietFood[]) => {
+            const targetIndex =
+              foodInstance?.index !== undefined
+                ? foodInstance.index
+                : prevFoods.findIndex(
+                    (f, idx) =>
+                      f.id === foodId &&
+                      (foodInstance?.addedAt
+                        ? f.addedAt === foodInstance.addedAt
+                        : idx === removalIndex)
+                  );
+
+            if (targetIndex !== -1) {
+              const newFoods = [...prevFoods];
+              newFoods.splice(targetIndex, 1);
+              return newFoods;
+            }
+            return prevFoods;
+          });
 
           setDietSummary((prevSummary: DietSummary) => ({
             calories: Math.max(
@@ -584,7 +698,24 @@ export function DietProvider({ children }: { children: ReactNode }) {
           );
         }
 
-        // BACKGROUND TASKS - All async operations
+        // BACKGROUND TASKS - Call the API with specific instance details
+        try {
+          await DietService.removeFoodFromTodayDiet({
+            foodId,
+            addedAt: foodInstance?.addedAt,
+            index: foodInstance?.index,
+          });
+          console.log(
+            "✅ [DietContext] Food removed from backend successfully"
+          );
+        } catch (error) {
+          console.error(
+            "❌ [DietContext] Failed to remove food from backend:",
+            error
+          );
+          // Note: We don't revert the UI changes as they provide better UX
+          // The next refresh will sync with server state if needed
+        }
 
         // Clear cache for current date to ensure fresh data on next refresh
         const dateString = formatDateForAPI(homeDate);
@@ -662,8 +793,10 @@ export function DietProvider({ children }: { children: ReactNode }) {
       // Update diet state if viewing the same date
       if (date.toDateString() === dietDate.toDateString()) {
         setDietFoods((prevFoods: DietFood[]) => {
-          const exists = prevFoods.some((f) => f.id === food.id);
-          if (exists) return prevFoods;
+          console.log(
+            "🍽️ [DietContext] Adding food to diet foods for date:",
+            food.name
+          );
           return [...prevFoods, food];
         });
 
@@ -680,11 +813,16 @@ export function DietProvider({ children }: { children: ReactNode }) {
 
   // Remove food from specific diet date
   const removeFoodFromDietDate = useCallback(
-    async (foodId: string, date: Date) => {
+    async (
+      foodId: string,
+      date: Date,
+      foodInstance?: { addedAt?: string; index?: number }
+    ) => {
       console.log(
         "🗑️ [DietContext] Removing food from diet date:",
         foodId,
-        date
+        date,
+        foodInstance
       );
 
       // If it's today's date, update home state as well
@@ -692,17 +830,48 @@ export function DietProvider({ children }: { children: ReactNode }) {
       const isToday = date.toDateString() === today.toDateString();
 
       if (isToday) {
-        await removeFoodFromTodayDiet(foodId);
+        await removeFoodFromTodayDiet(foodId, foodInstance);
       }
 
       // Update diet state if viewing the same date
       if (date.toDateString() === dietDate.toDateString()) {
-        const foodToRemove = dietFoods.find((f) => f.id === foodId);
-        if (!foodToRemove) return;
+        // Find the specific food instance to remove
+        let removalIndex = -1;
+        let foodToRemove: DietFood | undefined;
 
-        setDietFoods((prevFoods: DietFood[]) =>
-          prevFoods.filter((f) => f.id !== foodId)
-        );
+        if (foodInstance?.index !== undefined) {
+          // Remove by specific index
+          removalIndex = foodInstance.index;
+          foodToRemove = dietFoods[removalIndex];
+          if (!foodToRemove || foodToRemove.id !== foodId) {
+            console.log(
+              "⚠️ [DietContext] Diet food at index not found or ID mismatch"
+            );
+            return;
+          }
+        } else if (foodInstance?.addedAt) {
+          // Remove by timestamp
+          removalIndex = dietFoods.findIndex(
+            (f) => f.id === foodId && f.addedAt === foodInstance.addedAt
+          );
+          if (removalIndex !== -1) {
+            foodToRemove = dietFoods[removalIndex];
+          }
+        } else {
+          // Remove first occurrence by ID
+          removalIndex = dietFoods.findIndex((f) => f.id === foodId);
+          if (removalIndex !== -1) {
+            foodToRemove = dietFoods[removalIndex];
+          }
+        }
+
+        if (!foodToRemove || removalIndex === -1) return;
+
+        setDietFoods((prevFoods: DietFood[]) => {
+          const newFoods = [...prevFoods];
+          newFoods.splice(removalIndex, 1);
+          return newFoods;
+        });
 
         setDietSummary((prevSummary: DietSummary) => ({
           calories: Math.max(
@@ -753,8 +922,8 @@ export function DietProvider({ children }: { children: ReactNode }) {
     const today = new Date();
     const isViewingToday = dietDate.toDateString() === today.toDateString();
 
-    if (isViewingToday && !loading) {
-      console.log("📅 [DietContext] Syncing diet state with today's home data");
+    if (isViewingToday && !loading && !syncing) {
+      console.log("📅 [DietContext] Checking if diet state sync is needed");
 
       // Only sync if there's a meaningful difference or if diet state is empty
       const shouldSync =
@@ -781,6 +950,7 @@ export function DietProvider({ children }: { children: ReactNode }) {
     homeFoods,
     homeSummary,
     loading,
+    syncing, // Add syncing to dependencies to avoid overriding during sync operations
     dietFoods.length,
     dietSummary.calories,
     refreshDietData,

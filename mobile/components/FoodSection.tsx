@@ -10,6 +10,8 @@ interface FoodItem {
   protein: number;
   fat: number;
   carbs: number;
+  addedAt?: string; // For diet foods - timestamp when added
+  dietIndex?: number; // For diet foods - index in the diet array
 }
 
 interface FoodSectionProps {
@@ -35,17 +37,33 @@ export default function FoodSection({
         </Text>
       )}
       <View className="px-4">
-        {foods.map((food) => (
-          <FoodSuggestionCard
-            key={food.id + Math.random().toString(36).substring(7)} // Ensure unique key
-            food={food}
-            isFavorite={isFavorite ? isFavorite(food.id) : false}
-            onToggleFavorite={
-              onToggleFavorite ? () => onToggleFavorite(food.id) : undefined
-            }
-            source={source}
-          />
-        ))}
+        {foods.map((food, index) => {
+          // Create a unique key for diet foods that includes targeting info
+          const uniqueKey =
+            source === "diet" && food.addedAt
+              ? `${food.id}-${food.addedAt}`
+              : source === "diet"
+                ? `${food.id}-${index}`
+                : `${food.id}-${Math.random().toString(36).substring(7)}`;
+
+          // For diet foods, ensure dietIndex is set to current array position
+          const enhancedFood =
+            source === "diet"
+              ? { ...food, dietIndex: food.dietIndex ?? index }
+              : food;
+
+          return (
+            <FoodSuggestionCard
+              key={uniqueKey}
+              food={enhancedFood}
+              isFavorite={isFavorite ? isFavorite(food.id) : false}
+              onToggleFavorite={
+                onToggleFavorite ? () => onToggleFavorite(food.id) : undefined
+              }
+              source={source}
+            />
+          );
+        })}
       </View>
     </View>
   );
