@@ -404,7 +404,7 @@ const Search = () => {
                     </ScrollView>
                   </View>
                 </View>
-                <FoodSection title="" foods={searchResults} isFavorite={isFavorite} onToggleFavorite={handleToggleFavorite} />
+                <FoodSection title="" foods={searchResults} isFavorite={isFavorite} onToggleFavorite={handleToggleFavorite} source="search"/>
               </AnimatableView>
             )}
           </View>
