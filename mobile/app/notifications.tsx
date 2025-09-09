@@ -7,31 +7,89 @@ import {
   TouchableOpacity,
   SafeAreaView,
 } from "react-native";
-import { Text } from '../components/CustomText';
+import { Text } from "@/components/CustomText";
 import { useRouter } from "expo-router";
-import { useNotificationContext } from "@/context/NotificationContext";
+import {
+  useNotificationContext,
+  type Notification,
+} from "@/context/NotificationContext";
 import { images } from "@/constants/images";
 import { icons } from "@/constants/icons";
 
 function NotificationCard({
-  message,
+  notification,
   onPress,
 }: {
-  message: string;
+  notification: Notification;
   onPress: () => void;
 }) {
+  const { read, message, createdAt } = notification;
+
+  // Format the timestamp if available
+  const formatTimestamp = (timestamp: any) => {
+    if (!timestamp) return "";
+
+    try {
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      const now = new Date();
+      const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+
+      if (diffInHours < 1) {
+        const diffInMinutes = Math.floor(diffInHours * 60);
+        return diffInMinutes <= 0 ? "Just now" : `${diffInMinutes}m ago`;
+      } else if (diffInHours < 24) {
+        return `${Math.floor(diffInHours)}h ago`;
+      } else {
+        const diffInDays = Math.floor(diffInHours / 24);
+        return diffInDays === 1 ? "1 day ago" : `${diffInDays} days ago`;
+      }
+    } catch (error) {
+      return "";
+    }
+  };
+
   return (
     <TouchableOpacity
-      className="flex-row items-center bg-gray-100 rounded-2xl p-4 mb-4"
+      className={`flex-row items-center rounded-2xl p-4 mb-3 ${
+        read
+          ? "bg-gray-50 border border-gray-100"
+          : "bg-orange-50 border border-orange-200"
+      }`}
       activeOpacity={0.8}
       onPress={onPress}
     >
-      <View className="w-12 h-12 rounded-full bg-[#FFEAE0] justify-center items-center mr-4">
-        <icons.notifications width={24} height={24} color="#FF6F2D" />
+      {/* Notification Icon */}
+      <View
+        className={`w-12 h-12 rounded-full justify-center items-center mr-4 ${
+          read ? "bg-gray-200" : "bg-orange-100"
+        }`}
+      >
+        <icons.notifications
+          width={24}
+          height={24}
+          color={read ? "#9CA3AF" : "#FF6F2D"}
+        />
       </View>
-      <Text className="flex-1 text-base text-gray-800" numberOfLines={2}>
-        {message}
-      </Text>
+
+      {/* Content */}
+      <View className="flex-1">
+        <Text
+          className={`text-base ${read ? "text-gray-600" : "text-gray-900 font-medium"}`}
+          numberOfLines={2}
+        >
+          {message}
+        </Text>
+        {createdAt && (
+          <Text
+            className={`text-xs mt-1 ${read ? "text-gray-400" : "text-orange-600"}`}
+          >
+            {formatTimestamp(createdAt)}
+          </Text>
+        )}
+      </View>
+
+      {/* Unread indicator */}
+      {!read && <View className="w-3 h-3 bg-orange-500 rounded-full ml-3" />}
     </TouchableOpacity>
   );
 }
@@ -41,31 +99,61 @@ const NotificationsScreen = () => {
   const { notifications, markAsRead } = useNotificationContext();
   const hasNotifications = notifications.length > 0;
 
+  // Separate read and unread notifications
+  const unreadNotifications = notifications.filter((n) => !n.read);
+  const readNotifications = notifications.filter((n) => n.read);
+
   return (
     <SafeAreaView className="flex-1 bg-white">
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 py-3">
-        <TouchableOpacity 
-          className="bg-black w-10 h-10 rounded-full justify-center items-center" 
+        <TouchableOpacity
+          className="bg-black w-10 h-10 rounded-full justify-center items-center"
           onPress={() => router.back()}
         >
-          <View style={{ transform: [{ rotate: '0deg' }] }}>
+          <View style={{ transform: [{ rotate: "0deg" }] }}>
             <icons.arrow width={20} height={20} color="#FFFFFF" />
           </View>
         </TouchableOpacity>
         <Text className="text-xl font-bold text-black">Notifications</Text>
         <View className="w-10 h-10" />
       </View>
-      
+
       {hasNotifications ? (
         <ScrollView className="px-6 pt-4" showsVerticalScrollIndicator={false}>
-          {notifications.map((n) => (
-            <NotificationCard
-              key={n.id}
-              message={n.message}
-              onPress={() => markAsRead(n.id)}
-            />
-          ))}
+          {/* Unread notifications section */}
+          {unreadNotifications.length > 0 && (
+            <View className="mb-6">
+              <Text className="text-lg font-semibold text-gray-900 mb-3">
+                New ({unreadNotifications.length})
+              </Text>
+              {unreadNotifications.map((notification) => (
+                <NotificationCard
+                  key={notification.id}
+                  notification={notification}
+                  onPress={() => markAsRead(notification.id)}
+                />
+              ))}
+            </View>
+          )}
+
+          {/* Read notifications section */}
+          {readNotifications.length > 0 && (
+            <View>
+              <Text className="text-lg font-semibold text-gray-600 mb-3">
+                Earlier
+              </Text>
+              {readNotifications.map((notification) => (
+                <NotificationCard
+                  key={notification.id}
+                  notification={notification}
+                  onPress={() => {
+                    /* Already read, no action needed */
+                  }}
+                />
+              ))}
+            </View>
+          )}
         </ScrollView>
       ) : (
         <View className="flex-1 items-center justify-center px-6">
