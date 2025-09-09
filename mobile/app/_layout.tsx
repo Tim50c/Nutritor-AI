@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import "./global.css";
 import CustomHeader from "@/components/CustomHeader";
+import LoadingScreen from "@/components/LoadingScreen";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { UserProvider, useUser, defaultUser } from "@/context/UserContext";
 import { DietProvider } from "@/context/DietContext";
@@ -151,18 +152,7 @@ function RootLayoutNav() {
   }, [user, userProfile, isAuthLoading, isLoadingProfile, segments, router]);
 
   if (isAuthLoading || isLoadingProfile) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: "white",
-        }}
-      >
-        <ActivityIndicator size="large" color="#ff5a16" />
-      </View>
-    );
+    return <LoadingScreen showLoadingText={true} />;
   }
 
   return (
@@ -208,6 +198,7 @@ function RootLayoutNav() {
 export default function RootLayout() {
   // Track font loading time
   const [fontLoadStartTime] = useState(() => Date.now());
+  const [isWarmingUp, setIsWarmingUp] = useState(false);
 
   const [fontsLoaded, error] = useFonts({
     "SF-Pro-Display-Black": require("../assets/fonts/SF-Pro-Display-Black.otf"),
@@ -247,13 +238,24 @@ export default function RootLayout() {
   // Warm up the server when the app launches
   useEffect(() => {
     if (fontsLoaded) {
-      // Start server warmup in the background (don't wait for it)
-      ServerWarmupService.warmupServer().catch((error) => {
-        console.warn(
-          "🚀 [App] Server warmup failed, but app will continue:",
-          error.message
-        );
-      });
+      setIsWarmingUp(true);
+      // Start server warmup in the background
+      ServerWarmupService.warmupServer()
+        .then(() => {
+          console.log("🚀 [App] Server warmup completed successfully");
+        })
+        .catch((error) => {
+          console.warn(
+            "🚀 [App] Server warmup failed, but app will continue:",
+            error.message
+          );
+        })
+        .finally(() => {
+          // Add a small delay so user can see the loading text
+          setTimeout(() => {
+            setIsWarmingUp(false);
+          }, 1000);
+        });
     }
   }, [fontsLoaded]);
 
@@ -263,6 +265,11 @@ export default function RootLayout() {
 
   if (!fontsLoaded && !error) {
     return null;
+  }
+
+  // Show loading screen during server warmup
+  if (isWarmingUp) {
+    return <LoadingScreen showLoadingText={true} />;
   }
 
   return (
