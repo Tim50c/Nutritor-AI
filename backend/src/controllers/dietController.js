@@ -376,6 +376,7 @@ exports.removeFoodFromDiet = async (req, res, next) => {
   try {
     const { uid } = res.locals;
     const { foodId } = req.params;
+    const { addedAt } = req.body; // Optional timestamp to identify specific instance
     
     if (!foodId) {
       return res.status(400).json({ success: false, error: 'foodId is required' });
@@ -384,7 +385,7 @@ exports.removeFoodFromDiet = async (req, res, next) => {
     // Use timezone-safe date formatting instead of toISOString()
     const date = getLocalDateString();
 
-    console.log(`🗑️ [Backend] Removing food from diet for date: ${date} (local timezone)`);
+    console.log(`🗑️ [Backend] Removing food from diet for date: ${date} (local timezone)${addedAt ? ` at ${addedAt}` : ' (first occurrence)'}`);
 
     const dietRef = db.collection('users').doc(uid).collection('diets').doc(date);
     const dietDoc = await dietRef.get();
@@ -401,7 +402,38 @@ exports.removeFoodFromDiet = async (req, res, next) => {
       return res.status(404).json({ success: false, error: 'Food not found in today\'s diet' });
     }
 
-    const newFoods = diet.foods.filter(food => food.foodId !== foodId);
+    let newFoods;
+    
+    if (addedAt) {
+      // Remove specific instance by timestamp
+      const targetTimestamp = new Date(addedAt);
+      let removed = false;
+      
+      newFoods = diet.foods.filter(food => {
+        if (!removed && food.foodId === foodId) {
+          const foodTimestamp = food.addedAt?.toDate ? food.addedAt.toDate() : new Date(food.addedAt);
+          if (Math.abs(foodTimestamp.getTime() - targetTimestamp.getTime()) < 1000) { // 1 second tolerance
+            removed = true;
+            return false; // Remove this one
+          }
+        }
+        return true; // Keep this one
+      });
+      
+      if (!removed) {
+        return res.status(404).json({ success: false, error: 'Specific food instance not found in today\'s diet' });
+      }
+    } else {
+      // Remove first occurrence only (for backward compatibility)
+      let removed = false;
+      newFoods = diet.foods.filter(food => {
+        if (!removed && food.foodId === foodId) {
+          removed = true;
+          return false; // Remove first occurrence
+        }
+        return true; // Keep all others
+      });
+    }
 
     await dietRef.update({ 
       foods: newFoods,
