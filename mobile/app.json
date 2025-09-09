@@ -13,6 +13,12 @@
       "expo-router",
       "expo-notifications",
       [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Nutritor AI to access your camera to scan barcodes and recognize food."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
@@ -27,6 +33,11 @@
       "package": "com.tduongvn.nutritorai",
       "versionCode": 1,
       "googleServicesFile": "./google-services.json",
+      "permissions": [
+        "CAMERA",
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_EXTERNAL_STORAGE"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
@@ -36,7 +47,8 @@
       "bundleIdentifier": "com.tduongvn.nutritorai",
       "buildNumber": "1",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Nutritor AI needs access to your camera to scan barcodes and recognize food for nutritional analysis."
       }
     },
     "extra": {

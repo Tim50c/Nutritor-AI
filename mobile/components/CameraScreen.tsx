@@ -18,6 +18,7 @@ import { icons } from "@/constants/icons";
 import LoadingSpinner from "./LoadingSpinner";
 import { CameraService } from "@/services";
 import NavigationUtils from "@/utils/NavigationUtils";
+import CustomHeaderWithBack from "./CustomHeaderWithBack";
 
 const CameraScreen = () => {
   const [mode, setMode] = useState("camera"); // "camera" | "barcode" | "gallery"
@@ -39,8 +40,6 @@ const CameraScreen = () => {
     setIsProcessing(true);
 
     try {
-      console.log("🔍 Barcode scanned:", result.data);
-
       // Use CameraService for barcode lookup
       const barcodeResult = await CameraService.lookupBarcode(result.data);
 
@@ -64,7 +63,6 @@ const CameraScreen = () => {
         );
       }
     } catch (error) {
-      console.error("💥 Barcode lookup error:", error);
       Alert.alert(
         "Lookup Failed",
         "Could not look up this barcode. Please try again or use the camera instead.",
@@ -89,11 +87,23 @@ const CameraScreen = () => {
   // Animation for scanning line
   const scanLinePosition = useRef(new Animated.Value(0)).current;
 
+  // Request camera permissions with better error handling
   React.useEffect(() => {
-    (async () => {
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      setHasPermission(status === "granted");
-    })();
+    const requestPermissions = async () => {
+      try {
+        const { status } = await Camera.requestCameraPermissionsAsync();
+
+        if (status === "granted") {
+          setHasPermission(true);
+        } else {
+          setHasPermission(false);
+        }
+      } catch (error) {
+        setHasPermission(false);
+      }
+    };
+
+    requestPermissions();
   }, []);
 
   // Animate scanning line when in barcode mode
@@ -121,7 +131,6 @@ const CameraScreen = () => {
   const recognizeFood = async (imageUri: string) => {
     try {
       setIsProcessing(true);
-      console.log("📸 Starting food recognition...");
 
       // Use CameraService for food recognition
       const result = await CameraService.recognizeFood(imageUri);
@@ -143,7 +152,6 @@ const CameraScreen = () => {
         );
       }
     } catch (error) {
-      console.error("💥 Food recognition error:", error);
       Alert.alert(
         "Error",
         "An error occurred while recognizing the food. Please try again.",
@@ -157,17 +165,42 @@ const CameraScreen = () => {
 
   if (hasPermission === null) {
     return (
-      <View className="flex-1 bg-white items-center justify-center">
-        <Text>Requesting Camera Permission...</Text>
-      </View>
+      <SafeAreaView className="flex-1 bg-white">
+        <CustomHeaderWithBack title="AI Camera" />
+        <View className="flex-1 items-center justify-center">
+          <LoadingSpinner isProcessing={true} />
+          <Text className="mt-4 text-gray-600">
+            Requesting Camera Permission...
+          </Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   if (hasPermission === false) {
     return (
-      <View className="flex-1 bg-white items-center justify-center">
-        <Text>No access to camera</Text>
-      </View>
+      <SafeAreaView className="flex-1 bg-white">
+        <CustomHeaderWithBack title="AI Camera" />
+        <View className="flex-1 items-center justify-center px-6">
+          <icons.camera width={64} height={64} color="#9CA3AF" />
+          <Text className="text-xl font-semibold mt-4 text-center">
+            Camera Access Required
+          </Text>
+          <Text className="text-gray-600 text-center mt-2 mb-6">
+            Please enable camera access in your device settings to use the AI
+            food recognition feature.
+          </Text>
+          <TouchableOpacity
+            className="bg-orange-500 px-6 py-3 rounded-lg"
+            onPress={async () => {
+              const { status } = await Camera.requestCameraPermissionsAsync();
+              setHasPermission(status === "granted");
+            }}
+          >
+            <Text className="text-white font-semibold">Request Permission</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -175,7 +208,6 @@ const CameraScreen = () => {
     if (cameraRef && !isProcessing) {
       try {
         const photo = await cameraRef.takePictureAsync();
-        console.log("Captured Photo:", photo.uri);
 
         // Store the captured image for display during processing
         setCapturedImage(photo.uri);
@@ -187,7 +219,6 @@ const CameraScreen = () => {
         }
         // Note: Barcode mode uses live scanning, not photo capture
       } catch (error) {
-        console.error("Error capturing photo:", error);
         // Clear captured image on error
         setCapturedImage(null);
       }
@@ -206,7 +237,6 @@ const CameraScreen = () => {
 
     if (!result.canceled) {
       setSelectedImage(result.assets[0].uri);
-      console.log("Selected Image:", result.assets[0].uri);
 
       // Send selected image to backend for food recognition
       await recognizeFood(result.assets[0].uri);
@@ -222,15 +252,10 @@ const CameraScreen = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-black">
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backArrowContainer}
-          onPress={() => NavigationUtils.goBack()}
-        >
-          <Ionicons name="arrow-back" size={20} color="#fff" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>AI Camera</Text>
-      </View>
+      <CustomHeaderWithBack
+        title="AI Camera"
+        onBackPress={() => NavigationUtils.goBack()}
+      />
 
       {/* Full Screen Camera View - extends over bottom controls */}
       <View className="flex-1 relative">
@@ -248,7 +273,9 @@ const CameraScreen = () => {
           />
         ) : (
           <CameraView
-            ref={(ref) => setCameraRef(ref)}
+            ref={(ref) => {
+              setCameraRef(ref);
+            }}
             style={{ flex: 1 }}
             facing="back"
             barcodeScannerSettings={
@@ -269,6 +296,12 @@ const CameraScreen = () => {
             onBarcodeScanned={
               mode === "barcode" ? handleBarcodeScanned : undefined
             }
+            onMountError={(error) => {
+              Alert.alert(
+                "Camera Error",
+                "Failed to start camera. Please try again or restart the app."
+              );
+            }}
           />
         )}
 
@@ -453,28 +486,6 @@ const CameraScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 15,
-    paddingTop: 10,
-    paddingBottom: 10,
-    backgroundColor: "#000",
-  },
-  backArrowContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#333",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 15,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#fff",
-  },
   bottomControls: {
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
