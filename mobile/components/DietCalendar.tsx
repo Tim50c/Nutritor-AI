@@ -106,10 +106,29 @@ export default function DietCalendar() {
             >
               {d ? (
                 <View
-                  className={`w-9 h-9 rounded-full items-center justify-center ${isToday ? "bg-white/40" : isSelected ? "bg-white/80" : ""}`}
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18, // Half of width/height for perfect circle
+                    backgroundColor:
+                      isToday && isSelected
+                        ? "white"
+                        : isToday
+                          ? "rgba(255, 255, 255, 0.4)"
+                          : isSelected
+                            ? "white"
+                            : "transparent",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    overflow: "hidden",
+                  }}
                 >
                   <Text
-                    className={`${isToday || isSelected ? "text-black" : "text-white"} text-sm font-semibold`}
+                    className={`${
+                      isToday || isSelected
+                        ? "text-orange-500 font-bold"
+                        : "text-white"
+                    } text-sm font-semibold`}
                   >
                     {d}
                   </Text>
