@@ -3,6 +3,7 @@ import BMIBar from "@/components/BMIBar";
 import CalorieChart from "@/components/CalorieChart";
 import NutritionTrend from "@/components/NutritionTrend";
 import ToggleTabs, { TabOption } from "@/components/ToggleTabs";
+import CustomHeaderWithBack from "@/components/CustomHeaderWithBack";
 import { useUser } from "@/context/UserContext";
 import { useAnalytics } from "@/context/AnalyticsContext";
 import { useDietContext } from "@/context/DietContext";
@@ -549,6 +550,7 @@ const Analytics = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
+      <CustomHeaderWithBack title="Analytics" />
       <ScrollView
         contentContainerStyle={{ paddingBottom: 120 }}
         className="px-4"

@@ -9,10 +9,19 @@ exports.changePassword = async (req, res, next) => {
     const { newPassword } = req.body;
 
     // --- IMPROVEMENT 1: Input Validation ---
-    if (!newPassword || newPassword.length < 6) {
+    if (!newPassword || newPassword.length < 8) {
       return res.status(400).json({ 
         success: false, 
-        error: 'Password must be at least 6 characters long.' 
+        error: 'Password must be at least 8 characters long.' 
+      });
+    }
+
+    // Check password strength: at least one letter, one number, one special character
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Password must contain at least one letter, one number, and one special character.'
       });
     }
 
