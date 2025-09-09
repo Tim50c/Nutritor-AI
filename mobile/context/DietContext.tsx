@@ -289,11 +289,7 @@ export function DietProvider({ children }: { children: ReactNode }) {
         console.log(
           "📊 [DietContext] Home data refreshed, invalidating analytics"
         );
-        analyticsEventEmitter.emitDietChange({
-          date: formatDateForAPI(homeDate),
-          totalCalories: consumedNutrition.calories,
-          foodCount: allFoods.length,
-        });
+        analyticsEventEmitter.emitDietChange();
       } catch (error) {
         console.error("❌ [DietContext] Failed to refresh home data:", error);
       } finally {
@@ -511,12 +507,8 @@ export function DietProvider({ children }: { children: ReactNode }) {
           // We also don't clear cache since the backend addition failed
         }
 
-        // Invalidate analytics data for immediate update
-        analyticsEventEmitter.emitFoodAdded({
-          foodName: food.name,
-          calories: food.calories,
-          date: formatDateForAPI(homeDate),
-        });
+        // Invalidate analytics data for immediate update with nutrition data
+        analyticsEventEmitter.emitFoodAdded(nutritionUpdate, food.name);
 
         // Clean up old tracking entries (older than 5 seconds)
         setTimeout(() => {
@@ -739,12 +731,16 @@ export function DietProvider({ children }: { children: ReactNode }) {
           });
         }
 
-        // Invalidate analytics data for immediate update
-        analyticsEventEmitter.emitFoodRemoved({
-          foodName: foodToRemove.name,
-          calories: foodToRemove.calories,
-          date: formatDateForAPI(homeDate),
-        });
+        // Invalidate analytics data for immediate update with nutrition data
+        analyticsEventEmitter.emitFoodRemoved(
+          {
+            calories: foodToRemove.calories || 0,
+            protein: foodToRemove.protein || 0,
+            carbs: foodToRemove.carbs || 0,
+            fat: foodToRemove.fat || 0,
+          },
+          foodToRemove.name
+        );
 
         // Update food suggestions based on new nutrition data (non-blocking)
         const updatedSummary = {

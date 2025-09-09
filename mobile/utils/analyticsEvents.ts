@@ -1,10 +1,18 @@
-// Enhanced event emitter for analytics invalidation with event types
-export type AnalyticsEventType = 'diet_change' | 'food_added' | 'food_removed' | 'general_update';
+// Enhanced event emitter for analytics invalidation with nutritional data
+export type AnalyticsEventType = 'diet_change' | 'food_added' | 'food_removed';
 
 export interface AnalyticsEvent {
   type: AnalyticsEventType;
-  data?: any;
-  timestamp: number;
+  data?: {
+    nutritionChange?: {
+      calories: number;
+      protein: number;
+      carbs: number;
+      fat: number;
+    };
+    foodId?: string;
+    foodName?: string;
+  };
 }
 
 class AnalyticsEventEmitter {
@@ -22,13 +30,8 @@ class AnalyticsEventEmitter {
     };
   }
 
-  emit(type: AnalyticsEventType = 'general_update', data?: any): void {
-    const event: AnalyticsEvent = {
-      type,
-      data,
-      timestamp: Date.now()
-    };
-
+  emit(event?: AnalyticsEvent): void {
+    console.log("📡 [AnalyticsEventEmitter] Emitting event:", event);
     this.listeners.forEach(callback => {
       try {
         callback(event);
@@ -38,17 +41,31 @@ class AnalyticsEventEmitter {
     });
   }
 
-  // Backward compatibility method
-  emitDietChange(data?: any): void {
-    this.emit('diet_change', data);
+  // Convenience methods for common events
+  emitFoodAdded(nutritionChange: { calories: number; protein: number; carbs: number; fat: number }, foodName?: string): void {
+    this.emit({
+      type: 'food_added',
+      data: { nutritionChange, foodName }
+    });
   }
 
-  emitFoodAdded(food?: any): void {
-    this.emit('food_added', food);
+  emitFoodRemoved(nutritionChange: { calories: number; protein: number; carbs: number; fat: number }, foodName?: string): void {
+    this.emit({
+      type: 'food_removed',
+      data: { 
+        nutritionChange: {
+          calories: -nutritionChange.calories,
+          protein: -nutritionChange.protein,
+          carbs: -nutritionChange.carbs,
+          fat: -nutritionChange.fat,
+        }, 
+        foodName 
+      }
+    });
   }
 
-  emitFoodRemoved(food?: any): void {
-    this.emit('food_removed', food);
+  emitDietChange(): void {
+    this.emit({ type: 'diet_change' });
   }
 }
 

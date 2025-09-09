@@ -5,6 +5,9 @@ import DietService from "./diet-service";
 
 class AnalysisService {
   private static instance: AnalysisService;
+  private cache = new Map<string, { data: any; timestamp: number }>();
+  private readonly CACHE_DURATION = 30000; // 30 seconds
+  
   private constructor() {}
 
   public static getInstance(): AnalysisService {
@@ -12,6 +15,27 @@ class AnalysisService {
       AnalysisService.instance = new AnalysisService();
     }
     return AnalysisService.instance;
+  }
+
+  // Clear cache when diet changes for immediate refresh
+  public clearCache(): void {
+    console.log("🗑️ [AnalysisService] Clearing cache for fresh data");
+    this.cache.clear();
+  }
+
+  // Get cached data if available and fresh
+  private getCachedData(key: string): any | null {
+    const cached = this.cache.get(key);
+    if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
+      console.log(`📦 [AnalysisService] Using cached data for: ${key}`);
+      return cached.data;
+    }
+    return null;
+  }
+
+  // Set cached data
+  private setCachedData(key: string, data: any): void {
+    this.cache.set(key, { data, timestamp: Date.now() });
   }
 
   public async getAnalysis(): Promise<BaseResponse<AnalysisModel>> {
