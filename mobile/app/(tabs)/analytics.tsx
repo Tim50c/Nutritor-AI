@@ -1,20 +1,19 @@
 import AnalyticsHeader from "@/components/AnalyticsHeader";
 import BMIBar from "@/components/BMIBar";
 import CalorieChart from "@/components/CalorieChart";
+import CustomHeaderWithBack from "@/components/CustomHeaderWithBack";
 import NutritionTrend from "@/components/NutritionTrend";
 import ToggleTabs, { TabOption } from "@/components/ToggleTabs";
-import { useUser } from "@/context/UserContext";
 import { useAnalytics } from "@/context/AnalyticsContext";
-import CustomHeaderWithBack from "@/components/CustomHeaderWithBack";
-import { AnalysisService } from "@/services";
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useUser } from "@/context/UserContext";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  RefreshControl,
   SafeAreaView,
   ScrollView,
   Text,
   View,
-  RefreshControl,
 } from "react-native";
 
 // Helper function for timezone-safe date formatting
@@ -35,6 +34,8 @@ const getBMIStatus = (bmi: number): string => {
 
 const Analytics = () => {
   const { userProfile } = useUser();
+  // Determine weight unit from user profile
+  const weightUnit = userProfile?.unitPreferences?.weight || "kg";
   const {
     analyticsData,
     loading: analyticsLoading,
@@ -439,14 +440,20 @@ const Analytics = () => {
     calculatedBmi: bmi,
     bmiStatus,
     isValidBmi: bmi > 0 && bmi < 100,
+    weightUnit,
   });
 
-  // Weight goal and current weight
-  const weightGoal = analysisData?.weightGoal ?? 0;
-  const currentWeight = analysisData?.currentWeight ?? 0;
-
-  // Optimistic UI update example: handle weight update
-  // (You can add a function to update weight and update state optimistically)
+  // Weight goal and current weight, synchronized with unit
+  let weightGoal = analysisData?.weightGoal ?? 0;
+  let currentWeight = analysisData?.currentWeight ?? 0;
+  // Conversion logic (same as profile.tsx)
+  const KG_TO_LBS = 2.20462;
+  const kgToLbs = (kg: number) => (kg * KG_TO_LBS).toFixed(1);
+  if (weightUnit === "lbs") {
+    weightGoal = weightGoal ? parseFloat(kgToLbs(weightGoal)) : 0;
+    currentWeight = currentWeight ? parseFloat(kgToLbs(currentWeight)) : 0;
+  }
+  // ...existing code...
 
   if (analyticsLoading && !analyticsData) {
     return (
@@ -483,6 +490,7 @@ const Analytics = () => {
         <AnalyticsHeader
           weightGoal={weightGoal}
           currentWeight={currentWeight}
+          weightUnit={weightUnit}
         />
 
         <View className="mt-4">
