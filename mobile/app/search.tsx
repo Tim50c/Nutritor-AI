@@ -66,6 +66,9 @@ const Search = () => {
 
 
   const [searchResults, setSearchResults] = useState<DietFood[]>([]);
+  const [allSearchResults, setAllSearchResults] = useState<DietFood[]>([]); // Store all results
+  const [displayedResults, setDisplayedResults] = useState<DietFood[]>([]); // Currently displayed results
+  const [currentPage, setCurrentPage] = useState<number>(1);
   const [showFilters, setShowFilters] = useState<boolean>(false);
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [hasSearched, setHasSearched] = useState<boolean>(false);
@@ -74,7 +77,24 @@ const Search = () => {
   const [sliderRefresh, setSliderRefresh] = useState<number>(0); // Force slider refresh
   const debounceTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   
+  // Pagination constants
+  const ITEMS_PER_PAGE = 15;
 
+  // Pagination functions
+  const updateDisplayedResults = (results: DietFood[], page: number = 1) => {
+    const startIndex = 0;
+    const endIndex = page * ITEMS_PER_PAGE;
+    const newDisplayedResults = results.slice(startIndex, endIndex);
+    setDisplayedResults(newDisplayedResults);
+    setCurrentPage(page);
+  };
+
+  const loadMoreResults = () => {
+    const nextPage = currentPage + 1;
+    updateDisplayedResults(allSearchResults, nextPage);
+  };
+
+  const hasMoreResults = allSearchResults.length > displayedResults.length;
 
   const sortResults = (results: DietFood[], sortKey: string, order: 'asc' | 'desc'): DietFood[] => {
     return [...results].sort((a, b) => {
@@ -98,7 +118,10 @@ const Search = () => {
       const trimmedQuery = searchQuery?.trim() || '';
       
       if (!trimmedQuery) {
+        setAllSearchResults([]);
         setSearchResults([]);
+        setDisplayedResults([]);
+        setCurrentPage(1);
         setHasSearched(false);
         setIsSearching(false);
         return;
@@ -129,11 +152,18 @@ const Search = () => {
       }));
 
       const sortedResults = sortResults(transformedResults, sortBy, sortOrder);
-      setSearchResults(sortedResults);
+      
+      // Store all results and set up pagination
+      setAllSearchResults(sortedResults);
+      setSearchResults(sortedResults); // Keep for backward compatibility
+      updateDisplayedResults(sortedResults, 1); // Show first page
       setHasSearched(true);
     } catch (error) {
       console.error("❌ Search failed:", error);
+      setAllSearchResults([]);
       setSearchResults([]);
+      setDisplayedResults([]);
+      setCurrentPage(1);
       setHasSearched(true);
     } finally {
       setIsSearching(false);
@@ -155,7 +185,10 @@ const Search = () => {
         performSearch(searchText, { calories: searchCalories, protein: searchProtein, fat: searchFat, carbs: searchCarbs });
       } else {
         // Clear search results and return to initial state
+        setAllSearchResults([]);
         setSearchResults([]);
+        setDisplayedResults([]);
+        setCurrentPage(1);
         setHasSearched(false);
         setIsSearching(false);
       }
@@ -167,8 +200,11 @@ const Search = () => {
   }, [searchText, searchCalories, searchProtein, searchFat, searchCarbs]);
 
   useEffect(() => {
-    if (searchResults.length > 0 && hasSearched) {
-      setSearchResults(prevResults => sortResults(prevResults, sortBy, sortOrder));
+    if (allSearchResults.length > 0 && hasSearched) {
+      const sortedResults = sortResults(allSearchResults, sortBy, sortOrder);
+      setAllSearchResults(sortedResults);
+      setSearchResults(sortedResults); // Keep for backward compatibility
+      updateDisplayedResults(sortedResults, 1); // Reset to first page after sort
       if (resultsViewRef.current) {
         resultsViewRef.current.fadeInUp?.(400);
       }
@@ -212,8 +248,8 @@ const Search = () => {
                           searchCarbs < nutrientRanges.carbs.max;
 
   const showInitialState = !hasSearched && !isSearching;
-  const showNoResults = hasSearched && searchResults.length === 0 && !isSearching;
-  const showResults = hasSearched && searchResults.length > 0 && !isSearching;
+  const showNoResults = hasSearched && allSearchResults.length === 0 && !isSearching;
+  const showResults = hasSearched && allSearchResults.length > 0 && !isSearching;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -380,7 +416,7 @@ const Search = () => {
               <AnimatableView ref={resultsViewRef} animation="fadeInUp" duration={500} className="px-4">
                 <View className="mb-4">
                   <Text className="text-lg font-bold text-gray-800 mb-3">
-                    Search Results ({searchResults.length})
+                    Search Results ({allSearchResults.length})
                   </Text>
                   <View className="flex-row items-center">
                     <Text className="text-sm text-gray-600 mr-2">Sort:</Text>
@@ -399,7 +435,20 @@ const Search = () => {
                     </ScrollView>
                   </View>
                 </View>
-                <FoodSection title="" foods={searchResults} isFavorite={isFavorite} onToggleFavorite={handleToggleFavorite} />
+                <FoodSection title="" foods={displayedResults} isFavorite={isFavorite} onToggleFavorite={handleToggleFavorite} />
+                
+                {/* See More Button */}
+                {hasMoreResults && (
+                  <TouchableOpacity 
+                    onPress={loadMoreResults}
+                    className="mx-4 my-4 py-3 bg-orange-50 border border-orange-200 rounded-lg"
+                    activeOpacity={0.7}
+                  >
+                    <Text className="text-center text-orange-600 font-semibold text-base">
+                      See More ({allSearchResults.length - displayedResults.length} remaining)
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </AnimatableView>
             )}
           </View>
