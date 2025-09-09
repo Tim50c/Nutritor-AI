@@ -18,6 +18,7 @@ import * as DocumentPicker from "expo-document-picker";
 import { Ionicons } from "@expo/vector-icons"; // <-- Import DocumentPicker
 import { useRouter } from "expo-router";
 import ImageUtils from "@/utils/ImageUtils";
+import CustomHeaderWithBack from "./CustomHeaderWithBack";
 
 // icon defined here
 import { icons } from "@/constants/icons";
@@ -176,7 +177,7 @@ const ChatScreen = () => {
         id: Date.now().toString() + "b",
         text: data.text,
         sender: "bot",
-        author: "Livechat",
+        author: "Nutritor AI",
         timestamp: getCurrentTimestamp(),
       };
       setMessages((prev) => [...prev, botMessage]);
@@ -231,7 +232,7 @@ const ChatScreen = () => {
               id: Date.now().toString() + "b",
               text: fallbackData.text,
               sender: "bot",
-              author: "Livechat",
+              author: "Nutritor AI",
               timestamp: getCurrentTimestamp(),
             };
             setMessages((prev) => [...prev, botMessage]);
@@ -249,7 +250,7 @@ const ChatScreen = () => {
           ? "Connection error. Please check your internet and try again."
           : "Sorry, I couldn't connect to the server. Please try again.",
         sender: "bot",
-        author: "Livechat",
+        author: "Nutritor AI",
         timestamp: getCurrentTimestamp(),
       };
       setMessages((prev) => [...prev, errorMessage]);
@@ -369,17 +370,7 @@ const ChatScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backArrowContainer}
-          onPress={() => router.back()}
-        >
-        <View style={{ transform: [{ rotate: '0deg' }] }}>
-            <icons.arrow width={20} height={20} color="#FFFFFF" />
-        </View>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Nutritor AI</Text>
-      </View>
+      <CustomHeaderWithBack title="Nutritor AI" />
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -537,23 +528,6 @@ const ChatScreen = () => {
 // --- (CHANGE 6) - ADDED STYLE FOR CHAT IMAGE ---
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F9F9F9" },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    backgroundColor: "#fff",
-  },
-  backArrowContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#000",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 15,
-  },
-  headerTitle: { fontSize: 18, fontWeight: "600" },
   startContainer: {
     flex: 1,
     justifyContent: "center",
