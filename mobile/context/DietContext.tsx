@@ -244,7 +244,8 @@ export function DietProvider({ children }: { children: ReactNode }) {
             protein: food.nutrition?.protein || 0,
             fat: food.nutrition?.fat || 0,
             description: food.description || "",
-            addedAt: food.addedAt, // Include timestamp for specific removal
+            addedAt:
+              typeof food.addedAt === "string" ? food.addedAt : undefined, // Ensure addedAt is a string or undefined
             dietIndex: index, // Include array index for specific removal
           })
         );

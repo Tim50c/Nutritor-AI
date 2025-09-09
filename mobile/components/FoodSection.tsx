@@ -38,13 +38,21 @@ export default function FoodSection({
       )}
       <View className="px-4">
         {foods.map((food, index) => {
-          // Create a unique key for diet foods that includes targeting info
-          const uniqueKey =
-            source === "diet" && food.addedAt
-              ? `${food.id}-${food.addedAt}`
-              : source === "diet"
-                ? `${food.id}-${index}`
-                : `${food.id}-${Math.random().toString(36).substring(7)}`;
+          // Create a unique key that includes the source to prevent conflicts
+          // between the same food appearing in different contexts (home vs diet)
+          let uniqueKey = `${source}-${food.id}-${index}`;
+
+          // For diet foods with addedAt, use that for more precise targeting
+          if (
+            source === "diet" &&
+            food.addedAt &&
+            typeof food.addedAt === "string"
+          ) {
+            uniqueKey = `diet-${food.id}-${food.addedAt}`;
+          }
+
+          // Add a random suffix to ensure absolute uniqueness in edge cases
+          uniqueKey += `-${Math.random().toString(36).substring(7)}`;
 
           // For diet foods, ensure dietIndex is set to current array position
           const enhancedFood =
