@@ -20,6 +20,7 @@ import { AnalyticsProvider } from "@/context/AnalyticsContext";
 import apiClient from "@/utils/apiClients";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import ServerWarmupService from "@/services/server-warmup-service";
 
 SplashScreen.preventAutoHideAsync();
@@ -200,12 +201,38 @@ export default function RootLayout() {
   // Track font loading time
   const [fontLoadStartTime] = useState(() => Date.now());
   const [isWarmingUp, setIsWarmingUp] = useState(false);
-  const [showCustomSplash, setShowCustomSplash] = useState(true);
+  const [showCustomSplash, setShowCustomSplash] = useState(false);
+  const [isCheckingFirstLaunch, setIsCheckingFirstLaunch] = useState(true);
 
   const handleSplashComplete = () => {
     setShowCustomSplash(false);
     SplashScreen.hideAsync();
+    // Mark that user has seen the splash screen
+    AsyncStorage.setItem('hasSeenSplash', 'true');
   };
+
+  // For testing: Reset splash screen flag (uncomment next line to test splash again)
+  // AsyncStorage.removeItem('hasSeenSplash');
+
+  // Check if this is the first launch
+  useEffect(() => {
+    const checkFirstLaunch = async () => {
+      try {
+        const hasSeenSplash = await AsyncStorage.getItem('hasSeenSplash');
+        if (!hasSeenSplash) {
+          // First time opening the app, show splash screen
+          setShowCustomSplash(true);
+        }
+      } catch (error) {
+        console.warn('Error checking first launch:', error);
+        // If there's an error, show splash screen to be safe
+        setShowCustomSplash(true);
+      }
+      setIsCheckingFirstLaunch(false);
+    };
+    
+    checkFirstLaunch();
+  }, []);
 
   const [fontsLoaded, error] = useFonts({
     "SF-Pro-Display-Black": require("../assets/fonts/SF-Pro-Display-Black.otf"),
@@ -266,7 +293,11 @@ export default function RootLayout() {
     }
   }, [fontsLoaded]);
 
-  // Show custom splash screen first (before fonts are loaded)
+  // Show custom splash screen on first launch only
+  if (isCheckingFirstLaunch) {
+    return null; // Or could show a simple loading state
+  }
+
   if (showCustomSplash) {
     return (
       <CustomSplashScreen 
