@@ -420,6 +420,7 @@ export function DietProvider({ children }: { children: ReactNode }) {
 
       try {
         // IMMEDIATE UI UPDATES - All synchronous for instant feedback
+        // Use React 18's automatic batching for performance
 
         // Create enhanced food object with timestamp for targeting
         const enhancedFood: DietFood = {
@@ -427,43 +428,35 @@ export function DietProvider({ children }: { children: ReactNode }) {
           addedAt: new Date().toISOString(), // Add timestamp for precise removal targeting
         };
 
+        // Calculate nutrition update once to avoid repeated calculations
+        const nutritionUpdate = {
+          calories: food.calories || 0,
+          carbs: food.carbs || 0,
+          protein: food.protein || 0,
+          fat: food.fat || 0,
+        };
+
         // 1. Update foods list immediately - Allow multiple instances of same food
-        setHomeFoods((prevFoods: DietFood[]) => {
-          console.log(
-            "🍽️ [DietContext] Adding food to home foods list:",
-            enhancedFood.name
-          );
-          return [...prevFoods, enhancedFood];
-        });
+        setHomeFoods((prevFoods: DietFood[]) => [...prevFoods, enhancedFood]);
 
         // 2. Update nutrition summary immediately
         setHomeSummary((prevSummary: DietSummary) => ({
-          calories: prevSummary.calories + (food.calories || 0),
-          carbs: prevSummary.carbs + (food.carbs || 0),
-          protein: prevSummary.protein + (food.protein || 0),
-          fat: prevSummary.fat + (food.fat || 0),
+          calories: prevSummary.calories + nutritionUpdate.calories,
+          carbs: prevSummary.carbs + nutritionUpdate.carbs,
+          protein: prevSummary.protein + nutritionUpdate.protein,
+          fat: prevSummary.fat + nutritionUpdate.fat,
         }));
 
         // 3. If diet screen is viewing today's date, sync diet state too
         const today = new Date();
         const isViewingToday = dietDate.toDateString() === today.toDateString();
         if (isViewingToday) {
-          console.log(
-            "📅 [DietContext] Syncing diet state with today's addition"
-          );
-          setDietFoods((prevFoods: DietFood[]) => {
-            console.log(
-              "🍽️ [DietContext] Adding food to diet foods list:",
-              enhancedFood.name
-            );
-            return [...prevFoods, enhancedFood];
-          });
-
+          setDietFoods((prevFoods: DietFood[]) => [...prevFoods, enhancedFood]);
           setDietSummary((prevSummary: DietSummary) => ({
-            calories: prevSummary.calories + (food.calories || 0),
-            carbs: prevSummary.carbs + (food.carbs || 0),
-            protein: prevSummary.protein + (food.protein || 0),
-            fat: prevSummary.fat + (food.fat || 0),
+            calories: prevSummary.calories + nutritionUpdate.calories,
+            carbs: prevSummary.carbs + nutritionUpdate.carbs,
+            protein: prevSummary.protein + nutritionUpdate.protein,
+            fat: prevSummary.fat + nutritionUpdate.fat,
           }));
         }
 
@@ -627,6 +620,15 @@ export function DietProvider({ children }: { children: ReactNode }) {
         }
 
         // IMMEDIATE UI UPDATES - All synchronous for instant feedback
+        // Use React 18's automatic batching for performance
+
+        // Calculate nutrition update once to avoid repeated calculations
+        const nutritionUpdate = {
+          calories: foodToRemove.calories || 0,
+          carbs: foodToRemove.carbs || 0,
+          protein: foodToRemove.protein || 0,
+          fat: foodToRemove.fat || 0,
+        };
 
         // 1. Remove specific food instance from list immediately
         setHomeFoods((prevFoods: DietFood[]) => {
@@ -639,23 +641,17 @@ export function DietProvider({ children }: { children: ReactNode }) {
         setHomeSummary((prevSummary: DietSummary) => ({
           calories: Math.max(
             0,
-            prevSummary.calories - (foodToRemove.calories || 0)
+            prevSummary.calories - nutritionUpdate.calories
           ),
-          carbs: Math.max(0, prevSummary.carbs - (foodToRemove.carbs || 0)),
-          protein: Math.max(
-            0,
-            prevSummary.protein - (foodToRemove.protein || 0)
-          ),
-          fat: Math.max(0, prevSummary.fat - (foodToRemove.fat || 0)),
+          carbs: Math.max(0, prevSummary.carbs - nutritionUpdate.carbs),
+          protein: Math.max(0, prevSummary.protein - nutritionUpdate.protein),
+          fat: Math.max(0, prevSummary.fat - nutritionUpdate.fat),
         }));
 
         // 3. If diet screen is viewing today's date, sync diet state too
         const today = new Date();
         const isViewingToday = dietDate.toDateString() === today.toDateString();
         if (isViewingToday) {
-          console.log(
-            "📅 [DietContext] Syncing diet state with today's removal"
-          );
           setDietFoods((prevFoods: DietFood[]) => {
             const targetIndex =
               foodInstance?.index !== undefined
@@ -679,14 +675,11 @@ export function DietProvider({ children }: { children: ReactNode }) {
           setDietSummary((prevSummary: DietSummary) => ({
             calories: Math.max(
               0,
-              prevSummary.calories - (foodToRemove.calories || 0)
+              prevSummary.calories - nutritionUpdate.calories
             ),
-            carbs: Math.max(0, prevSummary.carbs - (foodToRemove.carbs || 0)),
-            protein: Math.max(
-              0,
-              prevSummary.protein - (foodToRemove.protein || 0)
-            ),
-            fat: Math.max(0, prevSummary.fat - (foodToRemove.fat || 0)),
+            carbs: Math.max(0, prevSummary.carbs - nutritionUpdate.carbs),
+            protein: Math.max(0, prevSummary.protein - nutritionUpdate.protein),
+            fat: Math.max(0, prevSummary.fat - nutritionUpdate.fat),
           }));
         }
 
