@@ -90,7 +90,7 @@ export default function TabsLayout() {
         name="diet"
         options={{
           title: "Diet",
-          headerShown: true,
+          headerShown: false,
           tabBarIcon: ({ focused }) => (
             <TabIcon
               Icon={focused ? icons.dietActive : icons.diet}
@@ -103,7 +103,7 @@ export default function TabsLayout() {
         name="analytics"
         options={{
           title: "Analytics",
-          headerShown: true,
+          headerShown: false,
           tabBarIcon: ({ focused }) => (
             <TabIcon
               Icon={focused ? icons.analyticsActive : icons.analytics}
