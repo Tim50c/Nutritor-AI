@@ -24,7 +24,7 @@ function MacroItem({ label, current, target, color }: MacroProps) {
         />
       </View>
       <Text className="text-xs text-gray-500 mt-1">
-        {current}/{target}g
+        {current.toFixed(1)}/{target}g
       </Text>
     </View>
   );
@@ -82,7 +82,7 @@ function CircularProgress({ current, target }: CircularProgressProps) {
         <View className="items-center -mt-6">
           <Text className="text-lg font-semibold mb-1">Calories</Text>
           <Text className="text-2xl font-bold text-gray-700">
-            {current}/{target}
+            {current.toFixed(1)}/{target}
           </Text>
         </View>
       </View>
