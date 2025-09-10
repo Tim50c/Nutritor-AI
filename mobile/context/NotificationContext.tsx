@@ -90,15 +90,36 @@ const defaultPreferences: NotificationPreferences = {
 
 // Configure local notification behavior
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true, 
-    shouldShowList: true, 
-    ios: {
-      _displayInForeground: true, // Show notifications even when app is active
-    },
-  }),
+  handleNotification: async () => {
+    if (Platform.OS === "android") {
+      // For Android, show notifications in foreground
+      return {
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldShowAlert: true,
+        // Force foreground display on Android
+        android: {
+          priority: "high",
+          sticky: false,
+          showBigText: true,
+        },
+      };
+    } else {
+      // For iOS
+      return {
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldShowAlert: true,
+        ios: {
+          _displayInForeground: true, // Show notifications even when app is active
+        },
+      };
+    }
+  },
 });
 
 export type Notification = {
@@ -357,23 +378,22 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   // Trigger local notification
   const triggerLocalNotification = useCallback(async (notification: any) => {
-    // ✅ Now works for both iOS and Android when app is active
-    // if (AppState.currentState === 'active') {
-    if (Platform.OS === "ios") {
-      try {
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: notification.title || "Nutritor AI",
-            body: notification.body || "You have a new notification",
-            data: notification.type || {},
-            sound: "default",
-          },
-          trigger: null, // Show immediately
-        });
-        console.log(`✅ Local notification triggered for ${Platform.OS}:`, notification.title);
-      } catch (error) {
-        console.error("❌ Error triggering local notification:", error);
-      }
+    try {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: notification.title || "Nutritor AI",
+          body: notification.body || "You have a new notification",
+          data: notification.type || {},
+          sound: "default",
+        },
+        trigger: null, // Show immediately
+      });
+      console.log(
+        `✅ Local notification triggered for ${Platform.OS}:`,
+        notification.title
+      );
+    } catch (error) {
+      console.error("❌ Error triggering local notification:", error);
     }
   }, []);
 
@@ -397,6 +417,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       // Batch changes to prevent excessive re-renders
       let batchTimeout: NodeJS.Timeout | null = null;
       const pendingChanges: any[] = [];
+      const triggeredNotifications = new Set<string>(); // Track already triggered notifications
 
       const unsubscribe = onSnapshot(q, (snapshot) => {
         // Collect all changes
@@ -414,11 +435,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
           if (change.type === "added") {
             pendingChanges.push({ type: "add", notification });
-
-            // Trigger local notification for new ones (not on first load)
-            if (!isFirstLoadRef.current) {
-              triggerLocalNotification(notification);
-            }
           } else if (change.type === "modified") {
             pendingChanges.push({ type: "modify", notification });
           }
@@ -437,6 +453,19 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
                   // Add if not exists
                   if (!updated.find((n) => n.id === notification.id)) {
                     updated.unshift(notification);
+
+                    // Trigger local notification for new ones (not on first load) with deduplication
+                    console.log(
+                      "isFirstLoadRef.current:",
+                      isFirstLoadRef.current
+                    );
+                    if (
+                      !isFirstLoadRef.current &&
+                      !triggeredNotifications.has(notification.id)
+                    ) {
+                      triggeredNotifications.add(notification.id);
+                      triggerLocalNotification(notification);
+                    }
                   }
                 } else if (type === "modify") {
                   // Update existing
@@ -703,7 +732,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     hasUnread: notifications.some((n) => !n.read),
     preferences,
     markAsRead,
-    updatePreferences, 
+    updatePreferences,
     startListening,
     stopListening,
     refreshNotifications,
