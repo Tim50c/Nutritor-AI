@@ -11,7 +11,7 @@ import React, {
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
-import { Platform, AppState } from "react-native";
+import { Platform, AppState, AppStateStatus } from "react-native";
 import { auth, db } from "../config/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import {
@@ -91,14 +91,21 @@ const defaultPreferences: NotificationPreferences = {
 // Configure local notification behavior
 Notifications.setNotificationHandler({
   handleNotification: async () => {
+    const appState = AppState.currentState;
+    const shouldShowInForeground = appState === "active";
+
+    console.log(
+      `🔔 Notification handler called - AppState: ${appState}, Show in foreground: ${shouldShowInForeground}`
+    );
+
     if (Platform.OS === "android") {
       // For Android, show notifications in foreground
       return {
-        shouldPlaySound: true,
+        shouldPlaySound: shouldShowInForeground,
         shouldSetBadge: true,
-        shouldShowBanner: true,
-        shouldShowList: true,
-        shouldShowAlert: true,
+        shouldShowBanner: shouldShowInForeground,
+        shouldShowList: shouldShowInForeground,
+        shouldShowAlert: shouldShowInForeground,
         // Force foreground display on Android
         android: {
           priority: "high",
@@ -109,13 +116,13 @@ Notifications.setNotificationHandler({
     } else {
       // For iOS
       return {
-        shouldPlaySound: true,
+        shouldPlaySound: shouldShowInForeground,
         shouldSetBadge: true,
-        shouldShowBanner: true,
-        shouldShowList: true,
-        shouldShowAlert: true,
+        shouldShowBanner: shouldShowInForeground,
+        shouldShowList: shouldShowInForeground,
+        shouldShowAlert: shouldShowInForeground,
         ios: {
-          _displayInForeground: true, // Show notifications even when app is active
+          _displayInForeground: shouldShowInForeground, // Show notifications when app is active
         },
       };
     }
@@ -195,11 +202,16 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     useState<NotificationPreferences>(defaultPreferences);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [appState, setAppState] = useState<AppStateStatus>(
+    AppState.currentState
+  );
 
   const unsubscribeRef = useRef<(() => void) | null>(null);
   const isFirstLoadRef = useRef(true);
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pendingUpdatesRef = useRef<Partial<NotificationPreferences>>({});
+  const batchTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Add this line
+  const processedNotificationIds = useRef<Set<string>>(new Set());
 
   const hasUnread = notifications.some((n) => !n.read);
 
@@ -320,6 +332,28 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let isMounted = true;
 
+    // Track app state changes
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      console.log(`📱 App state changed from ${appState} to ${nextAppState}`);
+      setAppState(nextAppState);
+
+      // When app comes to foreground, clear processed notifications after a delay
+      // This prevents duplicate notifications when returning to app
+      if (appState.match(/inactive|background/) && nextAppState === "active") {
+        console.log(
+          "🔄 App came to foreground, clearing processed notification IDs"
+        );
+        setTimeout(() => {
+          processedNotificationIds.current.clear();
+        }, 2000); // 2 second delay to allow any pending notifications to be processed
+      }
+    };
+
+    const appStateSubscription = AppState.addEventListener(
+      "change",
+      handleAppStateChange
+    );
+
     // Register for push notifications when user is authenticated
     const setupPushNotifications = async () => {
       try {
@@ -374,25 +408,46 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     return () => {
       isMounted = false;
+      appStateSubscription?.remove();
       Notifications.removeNotificationSubscription(notificationListener);
       Notifications.removeNotificationSubscription(responseListener);
     };
-  }, []);
+  }, [appState]);
 
   // Trigger local notification
   const triggerLocalNotification = useCallback(async (notification: any) => {
     try {
+      // Check if we've already processed this notification
+      if (processedNotificationIds.current.has(notification.id)) {
+        console.log(`🚫 Skipping duplicate notification: ${notification.id}`);
+        return;
+      }
+
+      // Add to processed set
+      processedNotificationIds.current.add(notification.id);
+
+      const currentAppState = AppState.currentState;
+      console.log(
+        `🔔 Triggering local notification - App state: ${currentAppState}`
+      );
+
+      // Always schedule the notification, let the handler decide whether to show it
       await Notifications.scheduleNotificationAsync({
         content: {
           title: notification.title || "Nutritor AI",
           body: notification.body || "You have a new notification",
-          data: notification.type || {},
+          data: {
+            ...notification.type,
+            notificationId: notification.id,
+            timestamp: Date.now(),
+          },
           sound: "default",
         },
         trigger: null, // Show immediately
       });
+
       console.log(
-        `✅ Local notification triggered for ${Platform.OS}:`,
+        `✅ Local notification scheduled for ${Platform.OS} (App state: ${currentAppState}):`,
         notification.title
       );
     } catch (error) {
@@ -400,14 +455,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Efficient Firestore listener with batching
+  // Better batching implementation
   const startListening = useCallback(() => {
     const currentUser = auth.currentUser;
     if (!currentUser) return;
 
     const uid = currentUser.uid;
     console.log(`🔥 Starting optimized Firestore listener for:`, uid);
-    setError(null); // Clear any previous errors
+    setError(null);
     setLoading(true);
 
     // Stop existing listener
@@ -419,24 +474,22 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       const notificationsRef = collection(db, "users", uid, "notifications");
       const q = query(notificationsRef, orderBy("createdAt", "desc"));
 
-      // Batch changes to prevent excessive re-renders
-      let batchTimeout: NodeJS.Timeout | null = null;
+      // Use ref to track batch timeout
       const pendingChanges: any[] = [];
-      const triggeredNotifications = new Set<string>(); // Track already triggered notifications
 
       const unsubscribe = onSnapshot(
         q,
         (snapshot) => {
-          console.log(
-            `📋 Firestore snapshot received - ${snapshot.docs.length} documents`
-          );
+          console.log(`📋 Firestore snapshot received - ${snapshot.docs.length} documents`);
+
+          // Clear existing timeout
+          if (batchTimeoutRef.current) {
+            clearTimeout(batchTimeoutRef.current);
+          }
 
           // Collect all changes
           snapshot.docChanges().forEach((change) => {
             const data = change.doc.data();
-            console.log(
-              `📝 Document change - Type: ${change.type}, ID: ${change.doc.id}`
-            );
             const notification = {
               id: change.doc.id,
               title: data.title,
@@ -454,11 +507,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             }
           });
 
-          // If this is the first load, also process existing documents
+          // Process first load
           if (isFirstLoadRef.current && snapshot.docs.length > 0) {
-            console.log(
-              `🔄 First load - processing ${snapshot.docs.length} existing notifications`
-            );
+            console.log(`🔄 First load - processing ${snapshot.docs.length} existing notifications`);
             snapshot.docs.forEach((doc) => {
               const data = doc.data();
               const notification = {
@@ -470,7 +521,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
                 type: data.type,
                 createdAt: data.createdAt,
               };
-              // Add to pending changes if not already added
+              
               const existsInPending = pendingChanges.some(
                 (change) => change.notification.id === notification.id
               );
@@ -480,74 +531,53 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             });
           }
 
-          // Batch process changes every 200ms
-          if (batchTimeout) clearTimeout(batchTimeout);
-
-          batchTimeout = setTimeout(() => {
-            console.log(
-              `⚡ Processing ${pendingChanges.length} pending changes`
-            );
+          // Batch process changes
+          batchTimeoutRef.current = setTimeout(() => {
             if (pendingChanges.length > 0) {
+              console.log(`⚡ Processing ${pendingChanges.length} pending changes`);
+              
               setNotifications((prev) => {
                 let updated = [...prev];
 
                 pendingChanges.forEach(({ type, notification }) => {
                   if (type === "add") {
-                    // Add if not exists
                     if (!updated.find((n) => n.id === notification.id)) {
                       updated.unshift(notification);
-                      console.log(`➕ Added notification: ${notification.id}`);
+                      
+                      // Trigger local notification logic
+                      const isRecentNotification = notification.createdAt?.seconds
+                        ? Date.now() / 1000 - notification.createdAt.seconds < 30
+                        : true;
 
-                      // Trigger local notification for new ones (not on first load) with deduplication
-                      console.log(
-                        "isFirstLoadRef.current:",
-                        isFirstLoadRef.current
-                      );
-                      if (
+                      const shouldTriggerNotification =
                         !isFirstLoadRef.current &&
-                        !triggeredNotifications.has(notification.id)
-                      ) {
-                        triggeredNotifications.add(notification.id);
+                        isRecentNotification &&
+                        !processedNotificationIds.current.has(notification.id);
+
+                      if (shouldTriggerNotification) {
                         triggerLocalNotification(notification);
                       }
                     }
                   } else if (type === "modify") {
-                    // Update existing
-                    const index = updated.findIndex(
-                      (n) => n.id === notification.id
-                    );
+                    const index = updated.findIndex((n) => n.id === notification.id);
                     if (index >= 0) {
                       updated[index] = notification;
-                      console.log(
-                        `✏️ Updated notification: ${notification.id}`
-                      );
                     }
                   }
                 });
 
-                // Sort by createdAt and limit to recent 100 for performance
-                const sortedNotifications = updated
-                  .sort(
-                    (a, b) =>
-                      (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)
-                  )
+                return updated
+                  .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
                   .slice(0, 100);
-
-                console.log(
-                  `📊 Final notification count: ${sortedNotifications.length}`
-                );
-                return sortedNotifications;
               });
 
-              pendingChanges.length = 0; // Clear
-              setLoading(false);
-              setError(null); // Clear error on successful load
-              isFirstLoadRef.current = false;
-            } else {
-              // No changes but we got a snapshot, still mark as loaded
-              setLoading(false);
-              isFirstLoadRef.current = false;
+              // Clear pending changes
+              pendingChanges.length = 0;
             }
+            
+            setLoading(false);
+            setError(null);
+            isFirstLoadRef.current = false;
           }, 200);
         },
         (error) => {
@@ -559,11 +589,11 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
       unsubscribeRef.current = unsubscribe;
     } catch (error: any) {
-      console.error("❌ Error setting up optimized Firestore listener:", error);
+      console.error("❌ Error setting up Firestore listener:", error);
       setError(`Failed to setup notifications: ${error.message}`);
       setLoading(false);
     }
-  }, []);
+  }, [triggerLocalNotification]);
 
   // Stop listening
   const stopListening = useCallback(() => {
@@ -727,26 +757,37 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     };
   }, [startListening, stopListening]);
 
-  const markAsRead = useCallback(async (id: string) => {
+  // Add retry logic for failed operations
+  const markAsRead = useCallback(async (id: string, retries = 3) => {
     // Immediate UI update
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, read: true } : n))
     );
 
-    // Background sync
-    try {
-      const user = auth.currentUser;
-      if (user) {
-        await updateDoc(doc(db, "users", user.uid, "notifications", id), {
-          read: true,
-        });
+    // Background sync with retry
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const user = auth.currentUser;
+        if (user) {
+          await updateDoc(doc(db, "users", user.uid, "notifications", id), {
+            read: true,
+          });
+          console.log(`✅ Marked notification ${id} as read`);
+          return; // Success, exit retry loop
+        }
+      } catch (error) {
+        console.error(`❌ Error marking notification as read (attempt ${attempt}):`, error);
+        
+        if (attempt === retries) {
+          // Final attempt failed, revert UI
+          setNotifications((prev) =>
+            prev.map((n) => (n.id === id ? { ...n, read: false } : n))
+          );
+        } else {
+          // Wait before retry
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+        }
       }
-    } catch (error) {
-      console.error("❌ Error marking notification as read:", error);
-      // Revert optimistic update on failure
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, read: false } : n))
-      );
     }
   }, []);
 
@@ -775,7 +816,19 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   // Cleanup
   useEffect(() => {
+    // Clean up processed notification IDs periodically
+    const cleanupInterval = setInterval(() => {
+      const currentSize = processedNotificationIds.current.size;
+      if (currentSize > 100) {
+        console.log(
+          `🧹 Cleaning up processed notification IDs (${currentSize} -> 0)`
+        );
+        processedNotificationIds.current.clear();
+      }
+    }, 300000); // Every 5 minutes
+
     return () => {
+      clearInterval(cleanupInterval);
       if (updateTimeoutRef.current) {
         clearTimeout(updateTimeoutRef.current);
       }
@@ -790,10 +843,16 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       console.log(`🔄 Refreshing notifications...`);
       setLoading(true);
       setError(null);
+      
+      // Properly wait for stopListening to complete
       stopListening();
-      setTimeout(() => {
-        startListening();
-      }, 1000);
+      
+      // Reset state
+      isFirstLoadRef.current = true;
+      setNotifications([]);
+      
+      // Start listening immediately
+      startListening();
     } catch (error: any) {
       console.error("❌ Error refreshing notifications:", error);
       setError(`Failed to refresh notifications: ${error.message}`);
