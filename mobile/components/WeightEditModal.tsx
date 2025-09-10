@@ -95,7 +95,6 @@ const WeightEditModal: React.FC<WeightEditModalProps> = ({
                 value={inputValue}
                 onChangeText={setInputValue}
                 placeholder={`Enter weight in ${weightUnit}`}
-                keyboardType="numeric"
                 className="border border-gray-300 rounded-lg px-4 py-3 text-base"
                 editable={!isUpdating}
                 selectTextOnFocus
