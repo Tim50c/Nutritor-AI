@@ -116,8 +116,8 @@ const AnalyticsHeader = ({
         </View>
 
         <View className="flex-1 items-end">
-          <Text className="text-gray-700">Weight goal</Text>
-          <Text className="text-2xl font-bold">
+          <Text className="text-gray-700" style={{ marginTop: 2 }}>Weight goal</Text>
+          <Text className="text-2xl font-bold" style={{ marginTop: 4 }}>
             {displayWeightGoal} {weightUnit}
           </Text>
         </View>
