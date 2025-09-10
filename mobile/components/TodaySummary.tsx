@@ -24,7 +24,7 @@ function MacroItem({ label, current, target, color }: MacroProps) {
         />
       </View>
       <Text className="text-xs text-gray-500 mt-1">
-        {current}/{target}g
+        {current.toFixed(1)}/{target}g
       </Text>
     </View>
   );

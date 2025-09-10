@@ -77,7 +77,6 @@ function NotificationCard({
       <View className="flex-1">
         <Text
           className={`text-base ${read ? "text-gray-600" : "text-gray-900 font-medium"}`}
-          numberOfLines={2}
         >
           {message}
         </Text>

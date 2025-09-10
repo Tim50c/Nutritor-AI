@@ -116,7 +116,7 @@ const createMealReminder = async (uid, mealType) => {
 const createWeeklyProgress = async (uid, progress) => {
   const notification = {
     title: '📊 Weekly Progress Report',
-    body: `You've achieved ${progress}% of your nutrition goals this week!`,
+    body: `You've achieved ${progress}% of your nutrition goals this week! Don't forget to log your current weight!`,
     type: { progressType: 'weekly', progress: progress },
   };
   
