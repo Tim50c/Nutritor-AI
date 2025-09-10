@@ -32,11 +32,30 @@ interface OnboardingContextType {
   data: OnboardingData;
   updateData: (updates: Partial<OnboardingData>) => void;
   initializeFromProfile: (userProfile: any) => void; // New method to populate from existing profile
+  resetToDefaults: () => void; // Method to reset to fresh onboarding state
 }
 
-const OnboardingContext = createContext<OnboardingContextType | undefined>(
-  undefined
-);
+const OnboardingContext = createContext<OnboardingContextType>({
+  data: {
+    age: 25,
+    gender: null,
+    weightCurrent: 60,
+    weightGoal: 55,
+    weightUnit: "kg",
+    height: 170,
+    heightUnit: "cm",
+    targetNutrition: {
+      calories: 2000,
+      protein: 200,
+      carbs: 500,
+      fat: 50,
+      fiber: 60,
+    },
+  },
+  updateData: () => {},
+  initializeFromProfile: () => {},
+  resetToDefaults: () => {},
+});
 
 export const OnboardingProvider = ({ children }: { children: ReactNode }) => {
   const { userProfile } = useUser();
@@ -59,7 +78,7 @@ export const OnboardingProvider = ({ children }: { children: ReactNode }) => {
 
   // Auto-initialize from user profile when available
   useEffect(() => {
-    if (userProfile && userProfile.gender) {
+    if (userProfile && userProfile.gender && userProfile.onboardingComplete) {
       console.log("🔄 [OnboardingContext] Auto-initializing from user profile");
       initializeFromProfile(userProfile);
     }
@@ -67,6 +86,26 @@ export const OnboardingProvider = ({ children }: { children: ReactNode }) => {
 
   const updateData = (updates: Partial<OnboardingData>) => {
     setData((prevData) => ({ ...prevData, ...updates }));
+  };
+
+  const resetToDefaults = () => {
+    setData({
+      age: 25,
+      gender: null,
+      weightCurrent: 60,
+      weightGoal: 55,
+      weightUnit: "kg",
+      height: 170,
+      heightUnit: "cm",
+      targetNutrition: {
+        calories: 2000,
+        protein: 200,
+        carbs: 500,
+        fat: 50,
+        fiber: 60,
+      },
+      // Don't set isGoalUpdate for fresh reset
+    });
   };
 
   const initializeFromProfile = (userProfile: any) => {
@@ -107,7 +146,7 @@ export const OnboardingProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <OnboardingContext.Provider
-      value={{ data, updateData, initializeFromProfile }}
+      value={{ data, updateData, initializeFromProfile, resetToDefaults }}
     >
       {children}
     </OnboardingContext.Provider>
@@ -116,7 +155,7 @@ export const OnboardingProvider = ({ children }: { children: ReactNode }) => {
 
 export const useOnboarding = () => {
   const context = useContext(OnboardingContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error("useOnboarding must be used within an OnboardingProvider");
   }
   return context;
