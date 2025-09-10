@@ -129,15 +129,51 @@ const handleDecimalInput = (value: string) => {
           style: "destructive",
           onPress: async () => {
             try {
+              setLoading(true);
+              
+              // Reset profile to default values on the backend
+              await ProfileService.updateProfile({
+                name: userProfile?.firstname || "User",
+                email: userProfile?.email || "",
+                dob: "",
+                gender: "Male",
+                height: undefined,
+                weight: undefined,
+                image: undefined,
+              });
+
+              // Reset local user profile to default state but keep essential info
+              const resetProfile: import("@/context/UserContext").User = {
+                id: userProfile?.id || "",
+                firstname: userProfile?.firstname || "User",
+                lastname: "",
+                email: userProfile?.email || "",
+                avatar: null,
+                dob: null,
+                gender: null,
+                height: null,
+                weightCurrent: null,
+                weightGoal: null,
+                targetNutrition: undefined,
+                onboardingComplete: false,
+                unitPreferences: {
+                  weight: 'kg',
+                  height: 'cm',
+                },
+              };
+              
+              setUserProfile(resetProfile);
+              
               // Set flag to allow onboarding access
               await AsyncStorage.setItem('allowOnboardingAccess', 'true');
               
               // Navigate to first onboarding screen
               router.push("/(onboarding)/age");
             } catch (error) {
-              console.error("Error resetting:", error);
-              // Still try to navigate even if flag setting fails
-              router.push("/(onboarding)/age");
+              console.error("Error resetting profile:", error);
+              Alert.alert("Error", "Failed to reset profile. Please try again.");
+            } finally {
+              setLoading(false);
             }
           }
         }
@@ -682,11 +718,14 @@ const handleDecimalInput = (value: string) => {
               {/* Reset All Button */}
               <View className="mt-4">
                 <TouchableOpacity
-                  className="bg-red-100 border border-red-200 rounded-xl py-3 items-center"
+                  className={`bg-red-100 border border-red-200 rounded-xl py-3 items-center ${loading ? "opacity-50" : ""}`}
                   onPress={handleResetAll}
                   activeOpacity={0.7}
+                  disabled={loading}
                 >
-                  <Text className="text-red-600 text-base font-semibold">Reset All Settings</Text>
+                  <Text className="text-red-600 text-base font-semibold">
+                    {loading ? "Resetting..." : "Reset All Settings"}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
