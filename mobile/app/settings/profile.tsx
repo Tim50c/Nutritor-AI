@@ -127,7 +127,7 @@ const Profile = () => {
       // Initialize onboarding context with current user profile
       if (userProfile) {
         console.log("🔄 [Profile] Initializing with profile:", userProfile);
-        initializeFromProfile(userProfile);
+        await initializeFromProfile(userProfile);
       } else {
         console.warn(
           "❌ [Profile] No user profile available for initialization"
@@ -206,12 +206,17 @@ const Profile = () => {
               // Set flag to allow onboarding access
               await AsyncStorage.setItem('allowOnboardingAccess', 'true');
               
+              // Set a specific flag to indicate this is a full reset, not a goal update
+              await AsyncStorage.setItem('isFullReset', 'true');
+              
               // Clear any existing onboarding flags to prevent auto-initialization as goal update
               await AsyncStorage.removeItem('isGoalUpdate');
               
               // Reset onboarding context to defaults (no isGoalUpdate flag)
+              console.log("🔄 [Profile] Calling resetToDefaults before navigation");
               resetToDefaults();
               
+              console.log("🧭 [Profile] Navigating to onboarding/age with reset profile");
               // Navigate to first onboarding screen
               router.push("/(onboarding)/age");
             } catch (error) {

@@ -162,7 +162,7 @@ const GoalAchievedModal: React.FC<GoalAchievedModalProps> = ({
           "🔄 [GoalAchievedModal] Initializing with profile:",
           userProfile
         );
-        initializeFromProfile(userProfile);
+        await initializeFromProfile(userProfile);
       } else {
         console.warn(
           "❌ [GoalAchievedModal] No user profile available for initialization"

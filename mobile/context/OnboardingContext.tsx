@@ -6,6 +6,7 @@ import React, {
   useEffect,
 } from "react";
 import { useUser } from "./UserContext";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // (Assuming TargetNutrition is already defined as in the previous step)
 interface TargetNutrition {
@@ -31,8 +32,9 @@ interface OnboardingData {
 interface OnboardingContextType {
   data: OnboardingData;
   updateData: (updates: Partial<OnboardingData>) => void;
-  initializeFromProfile: (userProfile: any) => void; // New method to populate from existing profile
+  initializeFromProfile: (userProfile: any) => Promise<void>; // New method to populate from existing profile
   resetToDefaults: () => void; // Method to reset to fresh onboarding state
+  clearResetFlag: () => void; // Method to clear the reset flag
 }
 
 const OnboardingContext = createContext<OnboardingContextType>({
@@ -53,12 +55,14 @@ const OnboardingContext = createContext<OnboardingContextType>({
     },
   },
   updateData: () => {},
-  initializeFromProfile: () => {},
+  initializeFromProfile: async () => {},
   resetToDefaults: () => {},
+  clearResetFlag: () => {},
 });
 
 export const OnboardingProvider = ({ children }: { children: ReactNode }) => {
   const { userProfile } = useUser();
+  const [hasBeenReset, setHasBeenReset] = useState(false);
   const [data, setData] = useState<OnboardingData>({
     age: 25,
     gender: null,
@@ -77,18 +81,28 @@ export const OnboardingProvider = ({ children }: { children: ReactNode }) => {
   });
 
   // Auto-initialize from user profile when available
+  // Only auto-initialize if we're in goal update mode (when user clicks "Set New Goal")
   useEffect(() => {
-    if (userProfile && userProfile.gender && userProfile.onboardingComplete) {
-      console.log("🔄 [OnboardingContext] Auto-initializing from user profile");
-      initializeFromProfile(userProfile);
-    }
-  }, [userProfile]);
+    const checkAutoInit = async () => {
+      if (userProfile && userProfile.gender && userProfile.onboardingComplete && !hasBeenReset) {
+        // Only auto-initialize if there's an explicit flag for goal updates
+        const allowOnboardingAccess = await AsyncStorage.getItem('allowOnboardingAccess');
+        if (allowOnboardingAccess === 'true') {
+          console.log("🔄 [OnboardingContext] Auto-initializing from user profile for goal update");
+          await initializeFromProfile(userProfile);
+        }
+      }
+    };
+    checkAutoInit();
+  }, [userProfile, hasBeenReset]);
 
   const updateData = (updates: Partial<OnboardingData>) => {
     setData((prevData) => ({ ...prevData, ...updates }));
   };
 
   const resetToDefaults = () => {
+    console.log("🔄 [OnboardingContext] resetToDefaults called - setting isGoalUpdate to FALSE");
+    setHasBeenReset(true); // Mark as reset to prevent auto-initialization
     setData({
       age: 25,
       gender: null,
@@ -104,11 +118,18 @@ export const OnboardingProvider = ({ children }: { children: ReactNode }) => {
         fat: 50,
         fiber: 60,
       },
-      // Don't set isGoalUpdate for fresh reset
+      isGoalUpdate: false, // Explicitly set to false for fresh onboarding
     });
   };
 
-  const initializeFromProfile = (userProfile: any) => {
+  const clearResetFlag = () => {
+    setHasBeenReset(false);
+  };
+
+  const initializeFromProfile = async (userProfile: any) => {
+    // Check if this is a full reset - if so, don't mark as goal update
+    const isFullReset = await AsyncStorage.getItem('isFullReset');
+    const shouldMarkAsGoalUpdate = isFullReset !== 'true';
 
     // Handle Firebase Timestamp object for dob
     let age = 25; // Default fallback
@@ -134,9 +155,11 @@ export const OnboardingProvider = ({ children }: { children: ReactNode }) => {
       weightUnit: userProfile.unitPreferences?.weight || "kg",
       heightUnit: userProfile.unitPreferences?.height || "cm",
       targetNutrition: userProfile.targetNutrition,
-      isGoalUpdate: true, // Mark this as a goal update flow
+      isGoalUpdate: shouldMarkAsGoalUpdate, // Only mark as goal update if not a full reset
       activityLevel: "moderate", // Add default activity level for nutrition API
     };
+    
+    console.log("🔄 [OnboardingContext] initializeFromProfile called - setting isGoalUpdate to:", shouldMarkAsGoalUpdate, "(isFullReset:", isFullReset, ")");
 
     setData((prevData) => ({
       ...prevData,
@@ -146,7 +169,7 @@ export const OnboardingProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <OnboardingContext.Provider
-      value={{ data, updateData, initializeFromProfile, resetToDefaults }}
+      value={{ data, updateData, initializeFromProfile, resetToDefaults, clearResetFlag }}
     >
       {children}
     </OnboardingContext.Provider>

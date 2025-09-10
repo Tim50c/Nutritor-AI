@@ -18,13 +18,34 @@ const lbsToKg = (lbs: number) => lbs / KG_TO_LBS;
 
 export default function CompletionScreen() {
   const router = useRouter();
-  const { data } = useOnboarding();
+  const { data, clearResetFlag } = useOnboarding();
   const { setUserProfile } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  console.log("🎯 [CompletionScreen] Rendering with isGoalUpdate:", data.isGoalUpdate);
+
+  const navigateToHome = () => {
+    console.log("🏠 [CompletionScreen] Forcing navigation to home...");
+    try {
+      router.replace("/(tabs)");
+    } catch (error) {
+      console.error("❌ [CompletionScreen] Navigation failed:", error);
+      // Try alternative navigation methods
+      router.push("/(tabs)");
+    }
+  };
 
   const handleFinishOnboarding = async () => {
     setIsSubmitting(true);
     console.log("--- Starting Onboarding Completion ---");
+    console.log("🔍 [CompletionScreen] Current data:", JSON.stringify(data, null, 2));
+
+    // Set up a timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      console.log("⏰ [CompletionScreen] Operation timed out, forcing navigation...");
+      setIsSubmitting(false);
+      navigateToHome();
+    }, 15000); // 15 second timeout
 
     try {
       const user = auth.currentUser;
@@ -90,15 +111,17 @@ export default function CompletionScreen() {
       }
 
       // Make the first API call to UPDATE the profile
+      console.log("🚀 [CompletionScreen] Sending PATCH request...");
       const response = await apiClient.patch(
         "/api/v1/profile",
         profilePayload,
         {
           headers: { Authorization: `Bearer ${idToken}` },
+          timeout: 30000, // Add 30 second timeout
         }
       );
 
-      console.log("PATCH response received:", response.data);
+      console.log("✅ [CompletionScreen] PATCH response received:", response.data);
 
       if (!response.data.success) {
         throw new Error(
@@ -111,11 +134,13 @@ export default function CompletionScreen() {
       );
 
       // Make the second API call to GET the updated profile
+      console.log("🚀 [CompletionScreen] Fetching updated profile...");
       const updatedProfileResponse = await apiClient.get("/api/v1/profile", {
         headers: { Authorization: `Bearer ${idToken}` },
+        timeout: 30000, // Add 30 second timeout
       });
 
-      console.log("GET response received:", updatedProfileResponse.data);
+      console.log("✅ [CompletionScreen] GET response received:", updatedProfileResponse.data);
 
       if (updatedProfileResponse.data.success) {
         console.log(
@@ -125,13 +150,31 @@ export default function CompletionScreen() {
 
         // Clear the onboarding access flag since we're done
         await AsyncStorage.removeItem("allowOnboardingAccess");
+        
+        // Clear the full reset flag since onboarding is now complete
+        await AsyncStorage.removeItem("isFullReset");
+        
+        // Clear the reset flag to allow future auto-initialization
+        clearResetFlag();
 
-        // For goal updates, explicitly navigate to home
+        // Navigate to home screen
+        console.log("🧭 [CompletionScreen] About to navigate to home...");
+        console.log("🧭 [CompletionScreen] isGoalUpdate:", data.isGoalUpdate);
+        
         if (data.isGoalUpdate) {
-          console.log("Goal update completed, navigating to home...");
-          router.replace("/(tabs)");
+          console.log("🎯 [CompletionScreen] Goal update completed, navigating to home...");
+        } else {
+          console.log("🎉 [CompletionScreen] Original onboarding completed, navigating to home...");
         }
-        // For original onboarding, let the automatic navigation in _layout.tsx handle it
+        
+        // Clear the timeout since we're navigating successfully
+        clearTimeout(timeoutId);
+        
+        // Always navigate to tabs regardless of goal update status
+        navigateToHome();
+        
+        // Add a small delay to ensure navigation happens
+        await new Promise(resolve => setTimeout(resolve, 100));
       } else {
         throw new Error("Failed to retrieve updated profile after setup.");
       }
