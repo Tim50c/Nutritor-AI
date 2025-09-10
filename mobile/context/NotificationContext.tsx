@@ -96,7 +96,7 @@ Notifications.setNotificationHandler({
     shouldShowBanner: true, 
     shouldShowList: true, 
     ios: {
-      _displayInForeground: true,
+      _displayInForeground: true, // Show notifications even when app is active
     },
   }),
 });
@@ -358,7 +358,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   // Trigger local notification
   const triggerLocalNotification = useCallback(async (notification: any) => {
     // ✅ Now works for both iOS and Android when app is active
-    if (AppState.currentState === 'active') {
+    // if (AppState.currentState === 'active') {
+    if (Platform.OS === "ios") {
       try {
         await Notifications.scheduleNotificationAsync({
           content: {
