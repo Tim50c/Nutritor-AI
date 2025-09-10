@@ -2,9 +2,6 @@ import React, { useEffect, useRef } from 'react';
 import { View, Image, Text, Animated, Dimensions, StyleSheet } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 
-// Prevent the splash screen from auto-hiding
-SplashScreen.preventAutoHideAsync();
-
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 interface CustomSplashScreenProps {
@@ -20,10 +17,7 @@ const CustomSplashScreen: React.FC<CustomSplashScreenProps> = ({
   const textOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Hide the native splash screen
-    SplashScreen.hideAsync();
-    
-    // Start animations
+    // Start animations immediately
     Animated.sequence([
       // Background fade in
       Animated.timing(fadeAnim, {
@@ -40,10 +34,11 @@ const CustomSplashScreen: React.FC<CustomSplashScreenProps> = ({
     ]).start(() => {
       // Wait a bit more then call completion
       setTimeout(() => {
+        console.log("🎯 [CustomSplashScreen] Animation complete, calling onAnimationComplete");
         onAnimationComplete();
       }, 1500);
     });
-  }, []);
+  }, [onAnimationComplete]);
 
   return (
     <View style={styles.container}>
@@ -67,15 +62,7 @@ const CustomSplashScreen: React.FC<CustomSplashScreenProps> = ({
         </View>
         <Text style={styles.subText}>made easy!</Text>
       </Animated.View>
-      
-      {/* Loading Text at Bottom */}
-      {showLoadingText && (
-        <Animated.View
-          style={[styles.loadingContainer, { opacity: textOpacity }]}
-        >
-          <Text style={styles.loadingText}>Loading...</Text>
-        </Animated.View>
-      )}
+    
     </View>
   );
 };

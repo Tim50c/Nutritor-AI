@@ -1,8 +1,11 @@
 import { icons } from "@/constants/icons";
 import { images } from "@/constants/images";
 import { useUser } from "@/context/UserContext";
+import { useOnboarding } from "@/context/OnboardingContext";
 import AnalysisService from "@/services/analysis-service";
 import ProfileService from "@/services/profile-service";
+import GoalAchievedModal from "@/components/GoalAchievedModal";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from "@expo/vector-icons";
 import { Camera, CameraView } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
@@ -47,9 +50,7 @@ const genders = ["Male", "Female", "Other"];
 // Helper function to handle comma/dot conversion for decimal input
 const handleDecimalInput = (value: string) => {
   return value.replace(',', '.');
-};
-
-const Profile = () => {
+};const Profile = () => {
   const { userProfile, setUserProfile } = useUser();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -82,6 +83,67 @@ const Profile = () => {
   const [heightUnit, setHeightUnit] = useState<"cm" | "ft">("cm");
   const [heightFeet, setHeightFeet] = useState("");
   const [heightInches, setHeightInches] = useState("");
+
+  // Goal achievement modal state
+  const [goalAchievedModalVisible, setGoalAchievedModalVisible] = useState(false);
+  const { initializeFromProfile } = useOnboarding();
+
+
+
+  const handleSetNewGoal = async () => {
+    try {
+      // Set a flag to allow onboarding navigation
+      await AsyncStorage.setItem('allowOnboardingAccess', 'true');
+      console.log("✅ [Profile] Flag set successfully");
+      
+      // Initialize onboarding context with current user profile
+      if (userProfile) {
+        console.log("🔄 [Profile] Initializing with profile:", userProfile);
+        initializeFromProfile(userProfile);
+      } else {
+        console.warn("❌ [Profile] No user profile available for initialization");
+      }
+      
+      // Navigate to goal weight
+      console.log("🧭 [Profile] Navigating to goal_weight");
+      router.push("/(onboarding)/goal_weight");
+      
+    } catch (error) {
+      console.error("❌ [Profile] Error setting flag:", error);
+      // Still try to navigate even if flag setting fails
+      router.push("/(onboarding)/goal_weight");
+    }
+  };
+
+  const handleResetAll = async () => {
+    Alert.alert(
+      "Reset All Settings",
+      "This will reset all your profile settings and guide you through the setup process again. Are you sure?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Reset",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              // Set flag to allow onboarding access
+              await AsyncStorage.setItem('allowOnboardingAccess', 'true');
+              
+              // Navigate to first onboarding screen
+              router.push("/(onboarding)/age");
+            } catch (error) {
+              console.error("Error resetting:", error);
+              // Still try to navigate even if flag setting fails
+              router.push("/(onboarding)/age");
+            }
+          }
+        }
+      ]
+    );
+  };
 
   const getDateFromDob = (dobValue: any): Date => {
     if (!dobValue) return new Date();
@@ -326,6 +388,14 @@ const Profile = () => {
           currentWeight: weightInKg,
           goalWeight: userProfile?.weightGoal || weightInKg,
         });
+
+        // Check for goal achievement after successful weight update
+        if (userProfile?.weightGoal && userProfile.weightGoal > 0) {
+          if (Math.abs(weightInKg - userProfile.weightGoal) <= 0.1) {
+            setTimeout(() => setGoalAchievedModalVisible(true), 500);
+            return; // Don't navigate away if showing goal achievement modal
+          }
+        }
       }
 
       setNewAvatarUri(null);
@@ -597,13 +667,27 @@ const Profile = () => {
                   <TextInput
                     className="border border-gray-300 rounded-xl px-4 py-3 text-base bg-white"
                     value={weightValue}
-                    onChangeText={(value) => setWeightValue(handleDecimalInput(value))}
+                    onChangeText={(value) => {
+                      const processedValue = handleDecimalInput(value);
+                      setWeightValue(processedValue);
+                    }}
                     placeholder={weightUnit === "kg" ? "65" : "143"}
                     keyboardType="decimal-pad"
                     placeholderTextColor="#9CA3AF"
                     returnKeyType="done"
                   />
                 </View>
+              </View>
+
+              {/* Reset All Button */}
+              <View className="mt-4">
+                <TouchableOpacity
+                  className="bg-red-100 border border-red-200 rounded-xl py-3 items-center"
+                  onPress={handleResetAll}
+                  activeOpacity={0.7}
+                >
+                  <Text className="text-red-600 text-base font-semibold">Reset All Settings</Text>
+                </TouchableOpacity>
               </View>
             </View>
 
@@ -620,6 +704,13 @@ const Profile = () => {
           </ScrollView>
         </KeyboardAvoidingView>
       </View>
+
+      {/* Goal Achievement Modal */}
+      <GoalAchievedModal
+        visible={goalAchievedModalVisible}
+        onClose={() => setGoalAchievedModalVisible(false)}
+        onSetNewGoal={handleSetNewGoal}
+      />
     </SafeAreaView>
   );
 };

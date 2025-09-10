@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/config/firebase";
@@ -24,7 +24,10 @@ import * as SplashScreen from "expo-splash-screen";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import ServerWarmupService from "@/services/server-warmup-service";
 
-SplashScreen.preventAutoHideAsync();
+// Prevent native splash from auto-hiding
+SplashScreen.preventAutoHideAsync().catch(console.warn);
+
+// Note: Removed SplashScreen.preventAutoHideAsync() to fix stuck splash screen in Expo Go
 
 type AuthContextType = {
   user: User | null;
@@ -57,6 +60,22 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
+}
+
+function AppContentWithSplashHandling({ 
+  isWarmingUp, 
+  isAppReady 
+}: { 
+  isWarmingUp: boolean; 
+  isAppReady: boolean; 
+}) {
+  // Show loading screen if server is still warming up after splash
+  if (isWarmingUp && isAppReady) {
+    console.log("🎯 [Layout] Showing LoadingScreen (server warming up)");
+    return <LoadingScreen showLoadingText={true} />;
+  }
+
+  return <RootLayoutNav />;
 }
 
 function RootLayoutNav() {
@@ -253,38 +272,8 @@ export default function RootLayout() {
   // Track font loading time
   const [fontLoadStartTime] = useState(() => Date.now());
   const [isWarmingUp, setIsWarmingUp] = useState(false);
-  const [showCustomSplash, setShowCustomSplash] = useState(false);
-  const [isCheckingFirstLaunch, setIsCheckingFirstLaunch] = useState(true);
-
-  const handleSplashComplete = () => {
-    setShowCustomSplash(false);
-    SplashScreen.hideAsync();
-    // Mark that user has seen the splash screen
-    AsyncStorage.setItem("hasSeenSplash", "true");
-  };
-
-  // For testing: Reset splash screen flag (uncomment next line to test splash again)
-  // AsyncStorage.removeItem('hasSeenSplash');
-
-  // Check if this is the first launch
-  useEffect(() => {
-    const checkFirstLaunch = async () => {
-      try {
-        const hasSeenSplash = await AsyncStorage.getItem("hasSeenSplash");
-        if (!hasSeenSplash) {
-          // First time opening the app, show splash screen
-          setShowCustomSplash(true);
-        }
-      } catch (error) {
-        console.warn("Error checking first launch:", error);
-        // If there's an error, show splash screen to be safe
-        setShowCustomSplash(true);
-      }
-      setIsCheckingFirstLaunch(false);
-    };
-
-    checkFirstLaunch();
-  }, []);
+  const [showCustomSplash, setShowCustomSplash] = useState(true);
+  const [isAppReady, setIsAppReady] = useState(false);
 
   const [fontsLoaded, error] = useFonts({
     "SF-Pro-Display-Black": require("../assets/fonts/SF-Pro-Display-Black.otf"),
@@ -307,6 +296,14 @@ export default function RootLayout() {
     "SF-Pro-Display-UltralightItalic": require("../assets/fonts/SF-Pro-Display-UltralightItalic.otf"),
   });
 
+  const handleSplashComplete = useCallback(() => {
+    console.log("🎯 [Layout] Splash animation completed");
+    setShowCustomSplash(false);
+    setIsAppReady(true);
+    // Hide native splash after custom splash completes
+    SplashScreen.hideAsync().catch(console.warn);
+  }, []);
+
   useEffect(() => {
     if (error) {
       const loadTime = Date.now() - fontLoadStartTime;
@@ -317,40 +314,58 @@ export default function RootLayout() {
     if (fontsLoaded) {
       const loadTime = Date.now() - fontLoadStartTime;
       console.log(`✅ Fonts loaded successfully in ${loadTime}ms`);
-      // Don't hide splash screen immediately, let custom splash handle it
     }
   }, [fontsLoaded, error, fontLoadStartTime]);
 
+  // Failsafe timeout to hide splash screen after 8 seconds
+  useEffect(() => {
+    const splashTimeout = setTimeout(() => {
+      if (showCustomSplash) {
+        console.warn("🚨 [Layout] Splash screen timeout reached, forcing hide");
+        handleSplashComplete();
+      }
+    }, 8000);
+
+    return () => clearTimeout(splashTimeout);
+  }, [showCustomSplash, handleSplashComplete]);
+
   // Warm up the server when the app launches
   useEffect(() => {
-    if (fontsLoaded) {
-      setIsWarmingUp(true);
-      // Start server warmup in the background
-      ServerWarmupService.warmupServer()
-        .then(() => {
-          console.log("🚀 [App] Server warmup completed successfully");
-        })
-        .catch((error) => {
-          console.warn(
-            "🚀 [App] Server warmup failed, but app will continue:",
-            error.message
-          );
-        })
-        .finally(() => {
-          // Add a small delay so user can see the loading text
-          setTimeout(() => {
-            setIsWarmingUp(false);
-          }, 1000);
-        });
-    }
-  }, [fontsLoaded]);
+    // Start server warmup immediately, don't wait for fonts
+    setIsWarmingUp(true);
+    ServerWarmupService.warmupServer()
+      .then(() => {
+        console.log("🚀 [App] Server warmup completed successfully");
+      })
+      .catch((error) => {
+        console.warn(
+          "🚀 [App] Server warmup failed, but app will continue:",
+          error.message
+        );
+      })
+      .finally(() => {
+        setIsWarmingUp(false);
+      });
+  }, []); // Run once on mount
 
-  // Show custom splash screen on first launch only
-  if (isCheckingFirstLaunch) {
-    return null; // Or could show a simple loading state
+  // Debug current state
+  console.log("🎯 [Layout] Render State:", {
+    fontsLoaded,
+    showCustomSplash,
+    isAppReady,
+    isWarmingUp,
+    error: !!error
+  });
+
+  if (error) {
+    const loadTime = Date.now() - fontLoadStartTime;
+    console.log(`❌ Font loading failed after ${loadTime}ms:`, error);
+    throw error;
   }
 
+  // Always show custom splash screen first, regardless of other states
   if (showCustomSplash) {
+    console.log("🎯 [Layout] Showing CustomSplashScreen");
     return (
       <CustomSplashScreen
         onAnimationComplete={handleSplashComplete}
@@ -359,33 +374,33 @@ export default function RootLayout() {
     );
   }
 
+  // Don't show the main app until fonts are loaded after splash is complete
   if (!fontsLoaded) {
-    return null;
-  }
-
-  if (!fontsLoaded && !error) {
-    return null;
-  }
-
-  // Show loading screen during server warmup
-  if (isWarmingUp) {
+    console.log("🎯 [Layout] Splash complete but fonts not loaded, showing loading");
     return <LoadingScreen showLoadingText={true} />;
   }
 
+  console.log("🎯 [Layout] Showing main app");
+
   return (
-    <AuthProvider>
-      <UserProvider>
-        <OnboardingProvider>
-          <DietProvider>
-            <AnalyticsProvider>
-              <NotificationProvider>
-                <StatusBar style="dark" backgroundColor="white" />
-                <RootLayoutNav />
-              </NotificationProvider>
-            </AnalyticsProvider>
-          </DietProvider>
-        </OnboardingProvider>
-      </UserProvider>
-    </AuthProvider>
+    <View style={{ flex: 1 }}>
+      <AuthProvider>
+        <UserProvider>
+          <OnboardingProvider>
+            <DietProvider>
+              <AnalyticsProvider>
+                <NotificationProvider>
+                  <StatusBar style="dark" backgroundColor="white" />
+                  <AppContentWithSplashHandling 
+                    isWarmingUp={isWarmingUp}
+                    isAppReady={isAppReady}
+                  />
+                </NotificationProvider>
+              </AnalyticsProvider>
+            </DietProvider>
+          </OnboardingProvider>
+        </UserProvider>
+      </AuthProvider>
+    </View>
   );
 }
