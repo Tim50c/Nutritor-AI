@@ -110,7 +110,7 @@ function RootLayoutNav() {
     };
     checkOnboardingFlag();
 
-    // Also listen for storage changes if available
+    // More aggressive monitoring for flag changes
     const checkOnInterval = setInterval(async () => {
       try {
         const flag = await AsyncStorage.getItem("allowOnboardingAccess");
@@ -125,12 +125,13 @@ function RootLayoutNav() {
       } catch (error) {
         // Silent fail for interval checks
       }
-    }, 100); // Check every 100ms for quick response
+    }, 50); // Check every 50ms for faster response
 
-    // Clear interval after 5 seconds to avoid unnecessary checks
+    // Clear interval after 10 seconds instead of 5 for longer monitoring
     const clearTimer = setTimeout(() => {
       clearInterval(checkOnInterval);
-    }, 5000);
+      console.log("🔄 [Layout] Stopping aggressive flag monitoring");
+    }, 10000);
 
     return () => {
       clearInterval(checkOnInterval);
@@ -145,26 +146,48 @@ function RootLayoutNav() {
       const isNavigatingToOnboarding = segments.includes("(onboarding)");
       if (isNavigatingToOnboarding) {
         try {
-          const flag = await AsyncStorage.getItem("allowOnboardingAccess");
-          const shouldAllow = flag === "true";
-          console.log(
-            "🚀 [Layout] Quick flag check for onboarding navigation:",
-            { flag, shouldAllow, segments }
-          );
-          setAllowOnboardingAccess(shouldAllow);
+          // Multiple quick checks to ensure we catch the flag
+          for (let i = 0; i < 3; i++) {
+            const flag = await AsyncStorage.getItem("allowOnboardingAccess");
+            const shouldAllow = flag === "true";
+            console.log(
+              `🚀 [Layout] Quick flag check ${i + 1} for onboarding navigation:`,
+              { flag, shouldAllow, segments }
+            );
 
-          // If flag is set, ensure it persists for the duration of onboarding
-          if (shouldAllow) {
-            console.log("✅ [Layout] Onboarding access granted");
+            if (shouldAllow) {
+              setAllowOnboardingAccess(true);
+              console.log("✅ [Layout] Onboarding access granted");
+              break;
+            }
+
+            // Wait a bit before next check
+            if (i < 2) await new Promise((resolve) => setTimeout(resolve, 50));
           }
         } catch (error) {
           console.warn("Error checking onboarding flag on navigation:", error);
+        }
+      } else {
+        // If we're leaving onboarding and flag is still set, clean it up after a delay
+        if (allowOnboardingAccess) {
+          console.log(
+            "🧹 [Layout] Scheduling cleanup of onboarding access flag"
+          );
+          setTimeout(async () => {
+            try {
+              await AsyncStorage.removeItem("allowOnboardingAccess");
+              setAllowOnboardingAccess(false);
+              console.log("✅ [Layout] Cleaned up onboarding access flag");
+            } catch (error) {
+              console.warn("Error cleaning up onboarding flag:", error);
+            }
+          }, 2000); // Wait 2 seconds before cleanup
         }
       }
     };
 
     checkFlagOnNavigation();
-  }, [segments]); // Only when segments change
+  }, [segments, allowOnboardingAccess]); // Watch both segments and flag state
 
   // Effect 1: Fetches the user's Firestore profile when they log in
   useEffect(() => {
@@ -245,11 +268,39 @@ function RootLayoutNav() {
         // Check if we have permission to access onboarding (for goal updates)
         if (allowOnboardingAccess && inOnboardingGroup) {
           // Allow access to onboarding for goal updates
+          console.log("✅ [Layout] Allowing onboarding access for goal update");
           return; // Don't redirect, stay in onboarding
         }
 
+        // If trying to access onboarding but no permission, check the flag one more time
+        if (inOnboardingGroup && !allowOnboardingAccess) {
+          // Quick check of the flag before redirecting
+          AsyncStorage.getItem("allowOnboardingAccess")
+            .then((flag) => {
+              if (flag === "true") {
+                console.log(
+                  "🔄 [Layout] Found onboarding flag on last check, allowing access"
+                );
+                setAllowOnboardingAccess(true);
+                return;
+              } else {
+                console.log(
+                  "❌ [Layout] No onboarding access, redirecting to tabs"
+                );
+                router.replace("/(tabs)");
+              }
+            })
+            .catch(() => {
+              console.log(
+                "❌ [Layout] Error checking flag, redirecting to tabs"
+              );
+              router.replace("/(tabs)");
+            });
+          return;
+        }
+
         // ONBOARDING COMPLETE: User belongs in the main app.
-        if (inAuthGroup || inOnboardingGroup) {
+        if (inAuthGroup || (inOnboardingGroup && !allowOnboardingAccess)) {
           router.replace("/(tabs)");
         }
       } else {

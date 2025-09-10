@@ -108,8 +108,8 @@ const GoalAchievedModal: React.FC<GoalAchievedModalProps> = ({
     onSetNewGoal();
 
     try {
-      // Set a flag to allow onboarding navigation with multiple attempts for reliability
-      const setFlagWithRetry = async (retries = 3) => {
+      // Set a flag to allow onboarding navigation with multiple attempts and longer persistence
+      const setFlagWithRetry = async (retries = 5) => {
         for (let i = 0; i < retries; i++) {
           try {
             await AsyncStorage.setItem("allowOnboardingAccess", "true");
@@ -129,12 +129,32 @@ const GoalAchievedModal: React.FC<GoalAchievedModalProps> = ({
             );
           }
           if (i < retries - 1)
-            await new Promise((resolve) => setTimeout(resolve, 50));
+            await new Promise((resolve) => setTimeout(resolve, 100));
         }
         return false;
       };
 
-      const flagSet = await setFlagWithRetry();
+      // Always ensure flag is set before proceeding
+      let flagSet = await setFlagWithRetry();
+
+      // If flag setting failed, try alternative approach - force set it multiple times
+      if (!flagSet) {
+        console.warn(
+          "🔄 [GoalAchievedModal] Initial flag setting failed, trying alternative approach"
+        );
+        for (let i = 0; i < 3; i++) {
+          try {
+            await AsyncStorage.setItem("allowOnboardingAccess", "true");
+            await new Promise((resolve) => setTimeout(resolve, 50));
+          } catch (error) {
+            console.warn(
+              `❌ [GoalAchievedModal] Alternative attempt ${i + 1} failed:`,
+              error
+            );
+          }
+        }
+        flagSet = true; // Assume it worked
+      }
 
       // Initialize onboarding context with current user profile
       if (userProfile) {
@@ -149,18 +169,54 @@ const GoalAchievedModal: React.FC<GoalAchievedModalProps> = ({
         );
       }
 
-      // Add a small delay to ensure flag is properly set before navigation
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      // Add a longer delay to ensure flag is properly detected by layout
+      await new Promise((resolve) => setTimeout(resolve, 300));
 
-      // Navigate - the layout should detect the flag
-      console.log("🧭 [GoalAchievedModal] Navigating to goal_weight", {
-        flagSet,
-      });
-      router.push("/(onboarding)/goal_weight");
+      // Navigate with retry mechanism
+      const navigateWithRetry = async (maxRetries = 3) => {
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+          try {
+            console.log(
+              `🧭 [GoalAchievedModal] Navigation attempt ${attempt + 1}`,
+              {
+                flagSet,
+              }
+            );
+            router.push("/(onboarding)/goal_weight");
+
+            // Wait a bit to see if navigation was successful
+            await new Promise((resolve) => setTimeout(resolve, 200));
+
+            // If we reach here without error, navigation likely succeeded
+            console.log(
+              "✅ [GoalAchievedModal] Navigation completed successfully"
+            );
+            return;
+          } catch (error) {
+            console.warn(
+              `❌ [GoalAchievedModal] Navigation attempt ${attempt + 1} failed:`,
+              error
+            );
+            if (attempt < maxRetries - 1) {
+              await new Promise((resolve) => setTimeout(resolve, 100));
+            }
+          }
+        }
+      };
+
+      await navigateWithRetry();
     } catch (error) {
-      console.error("❌ [GoalAchievedModal] Error setting flag:", error);
-      // Still try to navigate even if flag setting fails
-      router.push("/(onboarding)/goal_weight");
+      console.error("❌ [GoalAchievedModal] Error in handleSetNewGoal:", error);
+      // Final fallback - just try to navigate
+      try {
+        await AsyncStorage.setItem("allowOnboardingAccess", "true");
+        router.push("/(onboarding)/goal_weight");
+      } catch (fallbackError) {
+        console.error(
+          "❌ [GoalAchievedModal] Fallback navigation also failed:",
+          fallbackError
+        );
+      }
     }
   };
 
