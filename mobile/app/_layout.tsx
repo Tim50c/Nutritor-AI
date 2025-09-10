@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/config/firebase";
@@ -62,12 +68,12 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-function AppContentWithSplashHandling({ 
-  isWarmingUp, 
-  isAppReady 
-}: { 
-  isWarmingUp: boolean; 
-  isAppReady: boolean; 
+function AppContentWithSplashHandling({
+  isWarmingUp,
+  isAppReady,
+}: {
+  isWarmingUp: boolean;
+  isAppReady: boolean;
 }) {
   // Show loading screen if server is still warming up after splash
   if (isWarmingUp && isAppReady) {
@@ -85,20 +91,52 @@ function RootLayoutNav() {
   const segments = useSegments();
   const [allowOnboardingAccess, setAllowOnboardingAccess] = useState(false);
 
-  // Check for onboarding access flag
+  // Check for onboarding access flag with immediate update capability
   useEffect(() => {
     const checkOnboardingFlag = async () => {
       try {
         const flag = await AsyncStorage.getItem("allowOnboardingAccess");
         const shouldAllow = flag === "true";
         setAllowOnboardingAccess(shouldAllow);
-        console.log("🔍 [Layout] Initial flag check:", { flag, shouldAllow, currentSegments: segments });
+        console.log("🔍 [Layout] Initial flag check:", {
+          flag,
+          shouldAllow,
+          currentSegments: segments,
+        });
       } catch (error) {
         console.warn("Error checking onboarding flag:", error);
         setAllowOnboardingAccess(false);
       }
     };
     checkOnboardingFlag();
+
+    // More aggressive monitoring for flag changes
+    const checkOnInterval = setInterval(async () => {
+      try {
+        const flag = await AsyncStorage.getItem("allowOnboardingAccess");
+        const shouldAllow = flag === "true";
+        setAllowOnboardingAccess((prev) => {
+          if (prev !== shouldAllow) {
+            console.log("🔄 [Layout] Flag changed:", { prev, shouldAllow });
+            return shouldAllow;
+          }
+          return prev;
+        });
+      } catch (error) {
+        // Silent fail for interval checks
+      }
+    }, 50); // Check every 50ms for faster response
+
+    // Clear interval after 10 seconds instead of 5 for longer monitoring
+    const clearTimer = setTimeout(() => {
+      clearInterval(checkOnInterval);
+      console.log("🔄 [Layout] Stopping aggressive flag monitoring");
+    }, 10000);
+
+    return () => {
+      clearInterval(checkOnInterval);
+      clearTimeout(clearTimer);
+    };
   }, []); // Initial check only
 
   // Check flag immediately when segments change (especially when entering onboarding)
@@ -108,18 +146,48 @@ function RootLayoutNav() {
       const isNavigatingToOnboarding = segments.includes("(onboarding)");
       if (isNavigatingToOnboarding) {
         try {
-          const flag = await AsyncStorage.getItem("allowOnboardingAccess");
-          const shouldAllow = flag === "true";
-          console.log("🚀 [Layout] Quick flag check for onboarding navigation:", { flag, shouldAllow, segments });
-          setAllowOnboardingAccess(shouldAllow);
+          // Multiple quick checks to ensure we catch the flag
+          for (let i = 0; i < 3; i++) {
+            const flag = await AsyncStorage.getItem("allowOnboardingAccess");
+            const shouldAllow = flag === "true";
+            console.log(
+              `🚀 [Layout] Quick flag check ${i + 1} for onboarding navigation:`,
+              { flag, shouldAllow, segments }
+            );
+
+            if (shouldAllow) {
+              setAllowOnboardingAccess(true);
+              console.log("✅ [Layout] Onboarding access granted");
+              break;
+            }
+
+            // Wait a bit before next check
+            if (i < 2) await new Promise((resolve) => setTimeout(resolve, 50));
+          }
         } catch (error) {
           console.warn("Error checking onboarding flag on navigation:", error);
         }
+      } else {
+        // If we're leaving onboarding and flag is still set, clean it up after a delay
+        if (allowOnboardingAccess) {
+          console.log(
+            "🧹 [Layout] Scheduling cleanup of onboarding access flag"
+          );
+          setTimeout(async () => {
+            try {
+              await AsyncStorage.removeItem("allowOnboardingAccess");
+              setAllowOnboardingAccess(false);
+              console.log("✅ [Layout] Cleaned up onboarding access flag");
+            } catch (error) {
+              console.warn("Error cleaning up onboarding flag:", error);
+            }
+          }, 2000); // Wait 2 seconds before cleanup
+        }
       }
     };
-    
+
     checkFlagOnNavigation();
-  }, [segments]); // Only when segments change
+  }, [segments, allowOnboardingAccess]); // Watch both segments and flag state
 
   // Effect 1: Fetches the user's Firestore profile when they log in
   useEffect(() => {
@@ -200,11 +268,39 @@ function RootLayoutNav() {
         // Check if we have permission to access onboarding (for goal updates)
         if (allowOnboardingAccess && inOnboardingGroup) {
           // Allow access to onboarding for goal updates
+          console.log("✅ [Layout] Allowing onboarding access for goal update");
           return; // Don't redirect, stay in onboarding
         }
 
+        // If trying to access onboarding but no permission, check the flag one more time
+        if (inOnboardingGroup && !allowOnboardingAccess) {
+          // Quick check of the flag before redirecting
+          AsyncStorage.getItem("allowOnboardingAccess")
+            .then((flag) => {
+              if (flag === "true") {
+                console.log(
+                  "🔄 [Layout] Found onboarding flag on last check, allowing access"
+                );
+                setAllowOnboardingAccess(true);
+                return;
+              } else {
+                console.log(
+                  "❌ [Layout] No onboarding access, redirecting to tabs"
+                );
+                router.replace("/(tabs)");
+              }
+            })
+            .catch(() => {
+              console.log(
+                "❌ [Layout] Error checking flag, redirecting to tabs"
+              );
+              router.replace("/(tabs)");
+            });
+          return;
+        }
+
         // ONBOARDING COMPLETE: User belongs in the main app.
-        if (inAuthGroup || inOnboardingGroup) {
+        if (inAuthGroup || (inOnboardingGroup && !allowOnboardingAccess)) {
           router.replace("/(tabs)");
         }
       } else {
@@ -354,7 +450,7 @@ export default function RootLayout() {
     showCustomSplash,
     isAppReady,
     isWarmingUp,
-    error: !!error
+    error: !!error,
   });
 
   if (error) {
@@ -376,7 +472,9 @@ export default function RootLayout() {
 
   // Don't show the main app until fonts are loaded after splash is complete
   if (!fontsLoaded) {
-    console.log("🎯 [Layout] Splash complete but fonts not loaded, showing loading");
+    console.log(
+      "🎯 [Layout] Splash complete but fonts not loaded, showing loading"
+    );
     return <LoadingScreen showLoadingText={true} />;
   }
 
@@ -391,7 +489,7 @@ export default function RootLayout() {
               <AnalyticsProvider>
                 <NotificationProvider>
                   <StatusBar style="dark" backgroundColor="white" />
-                  <AppContentWithSplashHandling 
+                  <AppContentWithSplashHandling
                     isWarmingUp={isWarmingUp}
                     isAppReady={isAppReady}
                   />

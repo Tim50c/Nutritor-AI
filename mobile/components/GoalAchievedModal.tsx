@@ -12,7 +12,7 @@ import { LinearGradient } from "expo-linear-gradient"; // You'll need: expo inst
 import { icons } from "@/constants/icons";
 import { useOnboarding } from "@/context/OnboardingContext";
 import { useUser } from "@/context/UserContext";
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const { width } = Dimensions.get("window");
 
@@ -106,28 +106,117 @@ const GoalAchievedModal: React.FC<GoalAchievedModalProps> = ({
   const handleSetNewGoal = async () => {
     onClose();
     onSetNewGoal();
-    
+
     try {
-      // Set a flag to allow onboarding navigation
-      await AsyncStorage.setItem('allowOnboardingAccess', 'true');
-      console.log("✅ [GoalAchievedModal] Flag set successfully");
-      
+      // Set a flag to allow onboarding navigation with multiple attempts and longer persistence
+      const setFlagWithRetry = async (retries = 5) => {
+        for (let i = 0; i < retries; i++) {
+          try {
+            await AsyncStorage.setItem("allowOnboardingAccess", "true");
+            const verification = await AsyncStorage.getItem(
+              "allowOnboardingAccess"
+            );
+            if (verification === "true") {
+              console.log(
+                `✅ [GoalAchievedModal] Flag set successfully on attempt ${i + 1}`
+              );
+              return true;
+            }
+          } catch (error) {
+            console.warn(
+              `❌ [GoalAchievedModal] Attempt ${i + 1} failed:`,
+              error
+            );
+          }
+          if (i < retries - 1)
+            await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+        return false;
+      };
+
+      // Always ensure flag is set before proceeding
+      let flagSet = await setFlagWithRetry();
+
+      // If flag setting failed, try alternative approach - force set it multiple times
+      if (!flagSet) {
+        console.warn(
+          "🔄 [GoalAchievedModal] Initial flag setting failed, trying alternative approach"
+        );
+        for (let i = 0; i < 3; i++) {
+          try {
+            await AsyncStorage.setItem("allowOnboardingAccess", "true");
+            await new Promise((resolve) => setTimeout(resolve, 50));
+          } catch (error) {
+            console.warn(
+              `❌ [GoalAchievedModal] Alternative attempt ${i + 1} failed:`,
+              error
+            );
+          }
+        }
+        flagSet = true; // Assume it worked
+      }
+
       // Initialize onboarding context with current user profile
       if (userProfile) {
-        console.log("🔄 [GoalAchievedModal] Initializing with profile:", userProfile);
+        console.log(
+          "🔄 [GoalAchievedModal] Initializing with profile:",
+          userProfile
+        );
         initializeFromProfile(userProfile);
       } else {
-        console.warn("❌ [GoalAchievedModal] No user profile available for initialization");
+        console.warn(
+          "❌ [GoalAchievedModal] No user profile available for initialization"
+        );
       }
-      
-      // Navigate immediately - the layout should detect the flag
-      console.log("🧭 [GoalAchievedModal] Navigating to goal_weight");
-      router.push("/(onboarding)/goal_weight");
-      
+
+      // Add a longer delay to ensure flag is properly detected by layout
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // Navigate with retry mechanism
+      const navigateWithRetry = async (maxRetries = 3) => {
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+          try {
+            console.log(
+              `🧭 [GoalAchievedModal] Navigation attempt ${attempt + 1}`,
+              {
+                flagSet,
+              }
+            );
+            router.push("/(onboarding)/goal_weight");
+
+            // Wait a bit to see if navigation was successful
+            await new Promise((resolve) => setTimeout(resolve, 200));
+
+            // If we reach here without error, navigation likely succeeded
+            console.log(
+              "✅ [GoalAchievedModal] Navigation completed successfully"
+            );
+            return;
+          } catch (error) {
+            console.warn(
+              `❌ [GoalAchievedModal] Navigation attempt ${attempt + 1} failed:`,
+              error
+            );
+            if (attempt < maxRetries - 1) {
+              await new Promise((resolve) => setTimeout(resolve, 100));
+            }
+          }
+        }
+      };
+
+      await navigateWithRetry();
     } catch (error) {
-      console.error("❌ [GoalAchievedModal] Error setting flag:", error);
-      // Still try to navigate even if flag setting fails
-      router.push("/(onboarding)/goal_weight");
+      console.error("❌ [GoalAchievedModal] Error in handleSetNewGoal:", error);
+      // Final fallback - just try to navigate
+      try {
+        await AsyncStorage.setItem("allowOnboardingAccess", "true");
+        router.push("/(onboarding)/goal_weight");
+      } catch (fallbackError) {
+        console.error(
+          "❌ [GoalAchievedModal] Fallback navigation also failed:",
+          fallbackError
+        );
+      }
     }
   };
 

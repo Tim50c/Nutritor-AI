@@ -1,20 +1,22 @@
 // mobile/app/notifications.tsx
-import React from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Image,
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
+  RefreshControl,
+  ActivityIndicator,
 } from "react-native";
 import { Text } from "@/components/CustomText";
-import { useRouter } from "expo-router";
 import {
   useNotificationContext,
   type Notification,
 } from "@/context/NotificationContext";
 import { images } from "@/constants/images";
 import { icons } from "@/constants/icons";
+import CustomHeaderWithBack from "@/components/CustomHeaderWithBack";
 
 function NotificationCard({
   notification,
@@ -95,80 +97,117 @@ function NotificationCard({
 }
 
 const NotificationsScreen = () => {
-  const router = useRouter();
-  const { notifications, markAsRead } = useNotificationContext();
+  const { notifications, markAsRead, loading, error, refreshNotifications } =
+    useNotificationContext();
+  const [refreshing, setRefreshing] = useState(false);
   const hasNotifications = notifications.length > 0;
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refreshNotifications();
+    } catch (error) {
+      console.error("Error refreshing notifications:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refreshNotifications]);
 
   // Separate read and unread notifications
   const unreadNotifications = notifications.filter((n) => !n.read);
   const readNotifications = notifications.filter((n) => n.read);
 
+  console.log(
+    `📱 Notifications Screen - Total: ${notifications.length}, Unread: ${unreadNotifications.length}, Read: ${readNotifications.length}`
+  );
+
   return (
     <SafeAreaView className="flex-1 bg-white">
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-3">
-        <TouchableOpacity
-          className="bg-black w-10 h-10 rounded-full justify-center items-center"
-          onPress={() => router.back()}
-        >
-          <View style={{ transform: [{ rotate: "0deg" }] }}>
-            <icons.arrow width={20} height={20} color="#FFFFFF" />
-          </View>
-        </TouchableOpacity>
-        <Text className="text-xl font-bold text-black">Notifications</Text>
-        <View className="w-10 h-10" />
-      </View>
+      <CustomHeaderWithBack title="Notifications" />
 
-      {hasNotifications ? (
-        <ScrollView className="px-6 pt-4" showsVerticalScrollIndicator={false}>
-          {/* Unread notifications section */}
-          {unreadNotifications.length > 0 && (
-            <View className="mb-6">
-              <Text className="text-lg font-semibold text-gray-900 mb-3">
-                New ({unreadNotifications.length})
-              </Text>
-              {unreadNotifications.map((notification) => (
-                <NotificationCard
-                  key={notification.id}
-                  notification={notification}
-                  onPress={() => markAsRead(notification.id)}
-                />
-              ))}
-            </View>
-          )}
-
-          {/* Read notifications section */}
-          {readNotifications.length > 0 && (
-            <View>
-              <Text className="text-lg font-semibold text-gray-600 mb-3">
-                Earlier
-              </Text>
-              {readNotifications.map((notification) => (
-                <NotificationCard
-                  key={notification.id}
-                  notification={notification}
-                  onPress={() => {
-                    /* Already read, no action needed */
-                  }}
-                />
-              ))}
-            </View>
-          )}
-        </ScrollView>
-      ) : (
-        <View className="flex-1 items-center justify-center px-6">
-          <Image
-            source={images.emptyScreen}
-            className="w-52 h-52 mb-6"
-            resizeMode="contain"
-          />
-          <Text className="text-xl font-semibold mb-2 text-center text-black">
-            No notifications yet.
-          </Text>
-          <Text className="text-base text-gray-500 text-center">
-            Your healthy habits are on track—keep it up!
-          </Text>
+      {/* Loading State */}
+      {loading && !refreshing && (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="#FF6F2D" />
+          <Text className="text-gray-500 mt-4">Loading notifications...</Text>
         </View>
+      )}
+
+      {/* Error State */}
+      {error && !loading && (
+        <View className="flex-1 items-center justify-center px-6">
+          <Text className="text-red-500 text-center mb-4">{error}</Text>
+          <TouchableOpacity
+            className="bg-orange-500 px-6 py-3 rounded-lg"
+            onPress={onRefresh}
+          >
+            <Text className="text-white font-semibold">Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Content */}
+      {!loading && !error && (
+        <>
+          {hasNotifications ? (
+            <ScrollView
+              className="px-6 pt-4"
+              showsVerticalScrollIndicator={false}
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+              }
+            >
+              {/* Unread notifications section */}
+              {unreadNotifications.length > 0 && (
+                <View className="mb-6">
+                  <Text className="text-lg font-semibold text-gray-900 mb-3">
+                    New ({unreadNotifications.length})
+                  </Text>
+                  {unreadNotifications.map((notification) => (
+                    <NotificationCard
+                      key={notification.id}
+                      notification={notification}
+                      onPress={() => markAsRead(notification.id)}
+                    />
+                  ))}
+                </View>
+              )}
+
+              {/* Read notifications section */}
+              {readNotifications.length > 0 && (
+                <View>
+                  <Text className="text-lg font-semibold text-gray-600 mb-3">
+                    Earlier
+                  </Text>
+                  {readNotifications.map((notification) => (
+                    <NotificationCard
+                      key={notification.id}
+                      notification={notification}
+                      onPress={() => {
+                        /* Already read, no action needed */
+                      }}
+                    />
+                  ))}
+                </View>
+              )}
+            </ScrollView>
+          ) : (
+            <View className="flex-1 items-center justify-center px-6">
+              <Image
+                source={images.emptyScreen}
+                className="w-52 h-52 mb-6"
+                resizeMode="contain"
+              />
+              <Text className="text-xl font-semibold mb-2 text-center text-black">
+                No notifications yet.
+              </Text>
+              <Text className="text-base text-gray-500 text-center">
+                Your healthy habits are on track—keep it up!
+              </Text>
+            </View>
+          )}
+        </>
       )}
     </SafeAreaView>
   );

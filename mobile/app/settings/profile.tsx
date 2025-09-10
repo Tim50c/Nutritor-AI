@@ -68,9 +68,13 @@ const Profile = () => {
   // Camera-related states
   const [showCameraModal, setShowCameraModal] = useState(false);
   const [cameraRef, setCameraRef] = useState<CameraView | null>(null);
-  const [cameraPermission, setCameraPermission] = useState<boolean | null>(null);
+  const [cameraPermission, setCameraPermission] = useState<boolean | null>(
+    null
+  );
   const [showGenderPicker, setShowGenderPicker] = useState(false);
-  const [pickerAction, setPickerAction] = useState<"gallery" | "camera" | null>(null);
+  const [pickerAction, setPickerAction] = useState<"gallery" | "camera" | null>(
+    null
+  );
   const router = useRouter();
 
   // Form states
@@ -90,28 +94,52 @@ const Profile = () => {
   const [heightInches, setHeightInches] = useState("");
 
   // Goal achievement modal state
-  const [goalAchievedModalVisible, setGoalAchievedModalVisible] = useState(false);
-
-
+  const [goalAchievedModalVisible, setGoalAchievedModalVisible] =
+    useState(false);
 
   const handleSetNewGoal = async () => {
     try {
-      // Set a flag to allow onboarding navigation
-      await AsyncStorage.setItem('allowOnboardingAccess', 'true');
-      console.log("✅ [Profile] Flag set successfully");
-      
+      // Set a flag to allow onboarding navigation with multiple attempts for reliability
+      const setFlagWithRetry = async (retries = 3) => {
+        for (let i = 0; i < retries; i++) {
+          try {
+            await AsyncStorage.setItem("allowOnboardingAccess", "true");
+            const verification = await AsyncStorage.getItem(
+              "allowOnboardingAccess"
+            );
+            if (verification === "true") {
+              console.log(
+                `✅ [Profile] Flag set successfully on attempt ${i + 1}`
+              );
+              return true;
+            }
+          } catch (error) {
+            console.warn(`❌ [Profile] Attempt ${i + 1} failed:`, error);
+          }
+          if (i < retries - 1)
+            await new Promise((resolve) => setTimeout(resolve, 50));
+        }
+        return false;
+      };
+
+      const flagSet = await setFlagWithRetry();
+
       // Initialize onboarding context with current user profile
       if (userProfile) {
         console.log("🔄 [Profile] Initializing with profile:", userProfile);
         initializeFromProfile(userProfile);
       } else {
-        console.warn("❌ [Profile] No user profile available for initialization");
+        console.warn(
+          "❌ [Profile] No user profile available for initialization"
+        );
       }
-      
+
+      // Add a small delay to ensure flag is properly set before navigation
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
       // Navigate to goal weight
-      console.log("🧭 [Profile] Navigating to goal_weight");
+      console.log("🧭 [Profile] Navigating to goal_weight", { flagSet });
       router.push("/(onboarding)/goal_weight");
-      
     } catch (error) {
       console.error("❌ [Profile] Error setting flag:", error);
       // Still try to navigate even if flag setting fails
@@ -126,7 +154,7 @@ const Profile = () => {
       [
         {
           text: "Cancel",
-          style: "cancel"
+          style: "cancel",
         },
         {
           text: "Reset",
@@ -134,7 +162,7 @@ const Profile = () => {
           onPress: async () => {
             try {
               setLoading(true);
-              
+
               // Reset profile to default values on the backend
               const user = auth.currentUser;
               if (user) {
@@ -168,13 +196,13 @@ const Profile = () => {
                 targetNutrition: undefined,
                 onboardingComplete: false,
                 unitPreferences: {
-                  weight: 'kg',
-                  height: 'cm',
+                  weight: "kg",
+                  height: "cm",
                 },
               };
-              
+
               setUserProfile(resetProfile);
-              
+
               // Set flag to allow onboarding access
               await AsyncStorage.setItem('allowOnboardingAccess', 'true');
               
@@ -188,12 +216,15 @@ const Profile = () => {
               router.push("/(onboarding)/age");
             } catch (error) {
               console.error("Error resetting profile:", error);
-              Alert.alert("Error", "Failed to reset profile. Please try again.");
+              Alert.alert(
+                "Error",
+                "Failed to reset profile. Please try again."
+              );
             } finally {
               setLoading(false);
             }
-          }
-        }
+          },
+        },
       ]
     );
   };
@@ -215,7 +246,11 @@ const Profile = () => {
     if (typeof dobValue === "object" && "_seconds" in dobValue) {
       const date = new Date(dobValue._seconds * 1000);
       return date
-        .toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" })
+        .toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        })
         .replace(/\//g, "-");
     }
     if (typeof dobValue === "string") return dobValue;
@@ -224,7 +259,9 @@ const Profile = () => {
 
   useEffect(() => {
     if (userProfile) {
-      setName(`${userProfile.firstname || ""} ${userProfile.lastname || ""}`.trim());
+      setName(
+        `${userProfile.firstname || ""} ${userProfile.lastname || ""}`.trim()
+      );
       setEmail(userProfile.email || "");
       setAvatarPreview(userProfile.avatar || null);
       setDob(getDobString(userProfile.dob));
@@ -245,7 +282,9 @@ const Profile = () => {
         if (userProfile.unitPreferences?.weight === "lbs") {
           setWeightValue(kgToLbs(userProfile.weightCurrent));
         } else {
-          setWeightValue(parseFloat(userProfile.weightCurrent.toString()).toFixed(1));
+          setWeightValue(
+            parseFloat(userProfile.weightCurrent.toString()).toFixed(1)
+          );
         }
       }
     }
@@ -266,7 +305,6 @@ const Profile = () => {
 
     // The timeout ensures the modal is fully dismissed before launching the gallery
     setTimeout(executeAction, 750);
-
   }, [pickerAction]);
 
   const handleAvatarPress = () => {
@@ -287,9 +325,13 @@ const Profile = () => {
 
   const launchGallery = async () => {
     try {
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const permissionResult =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permissionResult.granted) {
-        Alert.alert("Permission Required", "Permission to access the photo library is required!");
+        Alert.alert(
+          "Permission Required",
+          "Permission to access the photo library is required!"
+        );
         return;
       }
 
@@ -318,7 +360,10 @@ const Profile = () => {
   const launchCamera = async () => {
     const permission = await Camera.requestCameraPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert("Permission Required", "Permission to access the camera is required!");
+      Alert.alert(
+        "Permission Required",
+        "Permission to access the camera is required!"
+      );
       return;
     }
     setCameraPermission(true);
@@ -347,7 +392,11 @@ const Profile = () => {
     if (selectedDateValue) {
       setSelectedDate(selectedDateValue);
       const formattedDate = selectedDateValue
-        .toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" })
+        .toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        })
         .replace(/\//g, "-");
       setDob(formattedDate);
     }
@@ -389,7 +438,11 @@ const Profile = () => {
           const token = await auth.currentUser?.getIdToken();
           if (!token) throw new Error("No authentication token");
           const formData = new FormData();
-          formData.append("avatar", { uri: newAvatarUri, type: "image/jpeg", name: "avatar.jpg" } as any);
+          formData.append("avatar", {
+            uri: newAvatarUri,
+            type: "image/jpeg",
+            name: "avatar.jpg",
+          } as any);
           const API_URL = process.env.EXPO_PUBLIC_API_URL;
           const response = await fetch(`${API_URL}/api/v1/profile/avatar`, {
             method: "PATCH",
@@ -496,7 +549,11 @@ const Profile = () => {
             <View className="items-center mb-6 pt-4">
               <View className="w-24 h-24 rounded-full bg-white items-center justify-center relative">
                 <Image
-                  source={avatarPreview ? { uri: avatarPreview } : images.default_avatar}
+                  source={
+                    avatarPreview
+                      ? { uri: avatarPreview }
+                      : images.default_avatar
+                  }
                   className="w-20 h-20 rounded-full"
                 />
                 <TouchableOpacity
@@ -520,15 +577,32 @@ const Profile = () => {
                 onPress={() => setShowAvatarOptions(false)}
               >
                 <View className="bg-white rounded-2xl mx-8 p-6 w-80">
-                  <Text className="text-lg font-semibold text-center mb-4">Select Avatar</Text>
-                  <TouchableOpacity className="py-4 border-b border-gray-200" onPress={handleGalleryPress}>
-                    <Text className="text-center text-blue-600 text-lg">Choose from Gallery</Text>
+                  <Text className="text-lg font-semibold text-center mb-4">
+                    Select Avatar
+                  </Text>
+                  <TouchableOpacity
+                    className="py-4 border-b border-gray-200"
+                    onPress={handleGalleryPress}
+                  >
+                    <Text className="text-center text-blue-600 text-lg">
+                      Choose from Gallery
+                    </Text>
                   </TouchableOpacity>
-                  <TouchableOpacity className="py-4 border-b border-gray-200" onPress={takePhoto}>
-                    <Text className="text-center text-blue-600 text-lg">Take Photo</Text>
+                  <TouchableOpacity
+                    className="py-4 border-b border-gray-200"
+                    onPress={takePhoto}
+                  >
+                    <Text className="text-center text-blue-600 text-lg">
+                      Take Photo
+                    </Text>
                   </TouchableOpacity>
-                  <TouchableOpacity className="py-4" onPress={() => setShowAvatarOptions(false)}>
-                    <Text className="text-center text-red-600 text-lg">Cancel</Text>
+                  <TouchableOpacity
+                    className="py-4"
+                    onPress={() => setShowAvatarOptions(false)}
+                  >
+                    <Text className="text-center text-red-600 text-lg">
+                      Cancel
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </TouchableOpacity>
@@ -543,10 +617,17 @@ const Profile = () => {
               <SafeAreaView className="flex-1 bg-black">
                 {cameraPermission ? (
                   <>
-                    <CameraView ref={(ref) => setCameraRef(ref)} style={{ flex: 1 }} facing="back" />
+                    <CameraView
+                      ref={(ref) => setCameraRef(ref)}
+                      style={{ flex: 1 }}
+                      facing="back"
+                    />
                     <View className="absolute bottom-0 left-0 right-0 pb-8 pt-4">
                       <View className="flex-row justify-center items-center px-8">
-                        <TouchableOpacity onPress={closeCameraModal} className="absolute left-8">
+                        <TouchableOpacity
+                          onPress={closeCameraModal}
+                          className="absolute left-8"
+                        >
                           <Ionicons name="close" size={32} color="white" />
                         </TouchableOpacity>
                         <TouchableOpacity
@@ -560,7 +641,9 @@ const Profile = () => {
                   </>
                 ) : (
                   <View className="flex-1 justify-center items-center">
-                    <Text className="text-white text-lg">Loading camera...</Text>
+                    <Text className="text-white text-lg">
+                      Loading camera...
+                    </Text>
                   </View>
                 )}
               </SafeAreaView>
@@ -578,20 +661,32 @@ const Profile = () => {
                 onPress={() => setShowGenderPicker(false)}
               >
                 <View className="bg-white rounded-2xl mx-8 p-6 w-80">
-                  <Text className="text-lg font-semibold text-center mb-4">Select Gender</Text>
+                  <Text className="text-lg font-semibold text-center mb-4">
+                    Select Gender
+                  </Text>
                   {genders.map((g) => (
                     <TouchableOpacity
                       key={g}
                       className={`py-4 border-b border-gray-200 ${gender === g ? "bg-blue-50" : ""}`}
-                      onPress={() => { setGender(g); setShowGenderPicker(false); }}
+                      onPress={() => {
+                        setGender(g);
+                        setShowGenderPicker(false);
+                      }}
                     >
-                      <Text className={`text-center text-lg ${gender === g ? "text-blue-600 font-semibold" : "text-gray-900"}`}>
+                      <Text
+                        className={`text-center text-lg ${gender === g ? "text-blue-600 font-semibold" : "text-gray-900"}`}
+                      >
                         {g}
                       </Text>
                     </TouchableOpacity>
                   ))}
-                  <TouchableOpacity className="py-4" onPress={() => setShowGenderPicker(false)}>
-                    <Text className="text-center text-red-600 text-lg">Cancel</Text>
+                  <TouchableOpacity
+                    className="py-4"
+                    onPress={() => setShowGenderPicker(false)}
+                  >
+                    <Text className="text-center text-red-600 text-lg">
+                      Cancel
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </TouchableOpacity>
@@ -627,15 +722,23 @@ const Profile = () => {
 
               <View className="flex-row gap-4 mb-4">
                 <View className="flex-1">
-                  <Text className="text-gray-700 text-sm mb-1">Date of Birth</Text>
+                  <Text className="text-gray-700 text-sm mb-1">
+                    Date of Birth
+                  </Text>
                   <TouchableOpacity
                     onPress={showMode}
                     className="border border-gray-300 rounded-xl px-4 py-3 bg-white flex-row items-center justify-between min-h-[48px]"
                   >
-                    <Text className={`text-base flex-1 ${dob ? "text-gray-900" : "text-gray-400"}`}>
+                    <Text
+                      className={`text-base flex-1 ${dob ? "text-gray-900" : "text-gray-400"}`}
+                    >
                       {dob || "DD-MM-YYYY"}
                     </Text>
-                    <Ionicons name="calendar-outline" size={18} color="#9CA3AF" />
+                    <Ionicons
+                      name="calendar-outline"
+                      size={18}
+                      color="#9CA3AF"
+                    />
                   </TouchableOpacity>
                   <ModalDateTimePicker
                     isVisible={showDatePicker}
@@ -652,11 +755,19 @@ const Profile = () => {
                 <View className="flex-1">
                   <Text className="text-gray-700 text-sm mb-1">Gender</Text>
                   <TouchableOpacity
-                    onPress={() => { setShowGenderPicker(true); }}
+                    onPress={() => {
+                      setShowGenderPicker(true);
+                    }}
                     className="border border-gray-300 rounded-xl px-4 py-3 bg-white flex-row items-center justify-between min-h-[48px]"
                   >
-                    <Text className="text-base flex-1 text-gray-900">{gender}</Text>
-                    <Ionicons name="chevron-down-outline" size={18} color="#9CA3AF" />
+                    <Text className="text-base flex-1 text-gray-900">
+                      {gender}
+                    </Text>
+                    <Ionicons
+                      name="chevron-down-outline"
+                      size={18}
+                      color="#9CA3AF"
+                    />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -667,16 +778,22 @@ const Profile = () => {
                     <Text className="text-gray-700 text-sm">Height</Text>
                     <TouchableOpacity
                       className="bg-gray-100 rounded-lg px-2 py-1"
-                      onPress={() => setHeightUnit(heightUnit === "cm" ? "ft" : "cm")}
+                      onPress={() =>
+                        setHeightUnit(heightUnit === "cm" ? "ft" : "cm")
+                      }
                     >
-                      <Text className="text-xs text-gray-600">{heightUnit}</Text>
+                      <Text className="text-xs text-gray-600">
+                        {heightUnit}
+                      </Text>
                     </TouchableOpacity>
                   </View>
                   {heightUnit === "cm" ? (
                     <TextInput
                       className="border border-gray-300 rounded-xl px-4 py-3 text-base bg-white"
                       value={heightValue}
-                      onChangeText={(value) => setHeightValue(handleDecimalInput(value))}
+                      onChangeText={(value) =>
+                        setHeightValue(handleDecimalInput(value))
+                      }
                       placeholder="170"
                       keyboardType="decimal-pad"
                       placeholderTextColor="#9CA3AF"
@@ -712,9 +829,13 @@ const Profile = () => {
                     <Text className="text-gray-700 text-sm">Weight</Text>
                     <TouchableOpacity
                       className="bg-gray-100 rounded-lg px-2 py-1"
-                      onPress={() => setWeightUnit(weightUnit === "kg" ? "lbs" : "kg")}
+                      onPress={() =>
+                        setWeightUnit(weightUnit === "kg" ? "lbs" : "kg")
+                      }
                     >
-                      <Text className="text-xs text-gray-600">{weightUnit}</Text>
+                      <Text className="text-xs text-gray-600">
+                        {weightUnit}
+                      </Text>
                     </TouchableOpacity>
                   </View>
                   <TextInput
@@ -748,13 +869,17 @@ const Profile = () => {
             </View>
 
             <View className="px-4 mb-6 mt-auto">
-              {error && <Text className="text-red-500 text-center mb-2">{error}</Text>}
+              {error && (
+                <Text className="text-red-500 text-center mb-2">{error}</Text>
+              )}
               <TouchableOpacity
                 className={`bg-orange-500 rounded-2xl py-4 items-center ${loading ? "opacity-50" : ""}`}
                 onPress={handleSave}
                 disabled={loading}
               >
-                <Text className="text-white text-lg font-bold">{loading ? "Saving..." : "Save"}</Text>
+                <Text className="text-white text-lg font-bold">
+                  {loading ? "Saving..." : "Save"}
+                </Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
