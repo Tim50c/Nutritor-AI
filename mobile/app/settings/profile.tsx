@@ -5,6 +5,8 @@ import { useOnboarding } from "@/context/OnboardingContext";
 import AnalysisService from "@/services/analysis-service";
 import ProfileService from "@/services/profile-service";
 import GoalAchievedModal from "@/components/GoalAchievedModal";
+import apiClient from "@/utils/apiClients";
+import { auth } from "@/config/firebase";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from "@expo/vector-icons";
 import { Camera, CameraView } from "expo-camera";
@@ -50,8 +52,11 @@ const genders = ["Male", "Female", "Other"];
 // Helper function to handle comma/dot conversion for decimal input
 const handleDecimalInput = (value: string) => {
   return value.replace(',', '.');
-};const Profile = () => {
+};
+
+const Profile = () => {
   const { userProfile, setUserProfile } = useUser();
+  const { initializeFromProfile, resetToDefaults } = useOnboarding();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(
@@ -86,7 +91,6 @@ const handleDecimalInput = (value: string) => {
 
   // Goal achievement modal state
   const [goalAchievedModalVisible, setGoalAchievedModalVisible] = useState(false);
-  const { initializeFromProfile } = useOnboarding();
 
 
 
@@ -132,15 +136,22 @@ const handleDecimalInput = (value: string) => {
               setLoading(true);
               
               // Reset profile to default values on the backend
-              await ProfileService.updateProfile({
-                name: userProfile?.firstname || "User",
-                email: userProfile?.email || "",
-                dob: "",
-                gender: "Male",
-                height: undefined,
-                weight: undefined,
-                image: undefined,
-              });
+              const user = auth.currentUser;
+              if (user) {
+                const idToken = await user.getIdToken();
+                await apiClient.patch("/api/v1/profile", {
+                  onboardingComplete: false,
+                  // Reset key profile fields to null/default
+                  dob: null,
+                  gender: null,
+                  height: null,
+                  weightCurrent: null,
+                  weightGoal: null,
+                  targetNutrition: null,
+                }, {
+                  headers: { Authorization: `Bearer ${idToken}` },
+                });
+              }
 
               // Reset local user profile to default state but keep essential info
               const resetProfile: import("@/context/UserContext").User = {
@@ -166,6 +177,12 @@ const handleDecimalInput = (value: string) => {
               
               // Set flag to allow onboarding access
               await AsyncStorage.setItem('allowOnboardingAccess', 'true');
+              
+              // Clear any existing onboarding flags to prevent auto-initialization as goal update
+              await AsyncStorage.removeItem('isGoalUpdate');
+              
+              // Reset onboarding context to defaults (no isGoalUpdate flag)
+              resetToDefaults();
               
               // Navigate to first onboarding screen
               router.push("/(onboarding)/age");

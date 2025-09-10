@@ -6,6 +6,7 @@ interface IProfileUpdateInput {
   gender?: string;
   height?: number;
   weight?: number;
+  onboardingComplete?: boolean;
 }
 
 export default IProfileUpdateInput;
