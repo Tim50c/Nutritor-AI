@@ -167,6 +167,8 @@ interface NotificationContextType {
   notifications: Notification[];
   hasUnread: boolean;
   preferences: NotificationPreferences;
+  loading: boolean;
+  error: string | null;
   markAsRead: (id: string) => void;
   updatePreferences: (newPreferences: Partial<NotificationPreferences>) => void;
   startListening: () => void;
@@ -192,6 +194,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [preferences, setPreferences] =
     useState<NotificationPreferences>(defaultPreferences);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const unsubscribeRef = useRef<(() => void) | null>(null);
   const isFirstLoadRef = useRef(true);
@@ -404,6 +407,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     const uid = currentUser.uid;
     console.log(`🔥 Starting optimized Firestore listener for:`, uid);
+    setError(null); // Clear any previous errors
+    setLoading(true);
 
     // Stop existing listener
     if (unsubscribeRef.current) {
@@ -419,84 +424,144 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       const pendingChanges: any[] = [];
       const triggeredNotifications = new Set<string>(); // Track already triggered notifications
 
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        // Collect all changes
-        snapshot.docChanges().forEach((change) => {
-          const data = change.doc.data();
-          const notification = {
-            id: change.doc.id,
-            title: data.title,
-            body: data.body,
-            message: data.message || `${data.title}: ${data.body}`,
-            read: data.read || false,
-            type: data.type,
-            createdAt: data.createdAt,
-          };
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          console.log(
+            `📋 Firestore snapshot received - ${snapshot.docs.length} documents`
+          );
 
-          if (change.type === "added") {
-            pendingChanges.push({ type: "add", notification });
-          } else if (change.type === "modified") {
-            pendingChanges.push({ type: "modify", notification });
+          // Collect all changes
+          snapshot.docChanges().forEach((change) => {
+            const data = change.doc.data();
+            console.log(
+              `📝 Document change - Type: ${change.type}, ID: ${change.doc.id}`
+            );
+            const notification = {
+              id: change.doc.id,
+              title: data.title,
+              body: data.body,
+              message: data.message || `${data.title}: ${data.body}`,
+              read: data.read || false,
+              type: data.type,
+              createdAt: data.createdAt,
+            };
+
+            if (change.type === "added") {
+              pendingChanges.push({ type: "add", notification });
+            } else if (change.type === "modified") {
+              pendingChanges.push({ type: "modify", notification });
+            }
+          });
+
+          // If this is the first load, also process existing documents
+          if (isFirstLoadRef.current && snapshot.docs.length > 0) {
+            console.log(
+              `🔄 First load - processing ${snapshot.docs.length} existing notifications`
+            );
+            snapshot.docs.forEach((doc) => {
+              const data = doc.data();
+              const notification = {
+                id: doc.id,
+                title: data.title,
+                body: data.body,
+                message: data.message || `${data.title}: ${data.body}`,
+                read: data.read || false,
+                type: data.type,
+                createdAt: data.createdAt,
+              };
+              // Add to pending changes if not already added
+              const existsInPending = pendingChanges.some(
+                (change) => change.notification.id === notification.id
+              );
+              if (!existsInPending) {
+                pendingChanges.push({ type: "add", notification });
+              }
+            });
           }
-        });
 
-        // Batch process changes every 200ms
-        if (batchTimeout) clearTimeout(batchTimeout);
+          // Batch process changes every 200ms
+          if (batchTimeout) clearTimeout(batchTimeout);
 
-        batchTimeout = setTimeout(() => {
-          if (pendingChanges.length > 0) {
-            setNotifications((prev) => {
-              let updated = [...prev];
+          batchTimeout = setTimeout(() => {
+            console.log(
+              `⚡ Processing ${pendingChanges.length} pending changes`
+            );
+            if (pendingChanges.length > 0) {
+              setNotifications((prev) => {
+                let updated = [...prev];
 
-              pendingChanges.forEach(({ type, notification }) => {
-                if (type === "add") {
-                  // Add if not exists
-                  if (!updated.find((n) => n.id === notification.id)) {
-                    updated.unshift(notification);
+                pendingChanges.forEach(({ type, notification }) => {
+                  if (type === "add") {
+                    // Add if not exists
+                    if (!updated.find((n) => n.id === notification.id)) {
+                      updated.unshift(notification);
+                      console.log(`➕ Added notification: ${notification.id}`);
 
-                    // Trigger local notification for new ones (not on first load) with deduplication
-                    console.log(
-                      "isFirstLoadRef.current:",
-                      isFirstLoadRef.current
+                      // Trigger local notification for new ones (not on first load) with deduplication
+                      console.log(
+                        "isFirstLoadRef.current:",
+                        isFirstLoadRef.current
+                      );
+                      if (
+                        !isFirstLoadRef.current &&
+                        !triggeredNotifications.has(notification.id)
+                      ) {
+                        triggeredNotifications.add(notification.id);
+                        triggerLocalNotification(notification);
+                      }
+                    }
+                  } else if (type === "modify") {
+                    // Update existing
+                    const index = updated.findIndex(
+                      (n) => n.id === notification.id
                     );
-                    if (
-                      !isFirstLoadRef.current &&
-                      !triggeredNotifications.has(notification.id)
-                    ) {
-                      triggeredNotifications.add(notification.id);
-                      triggerLocalNotification(notification);
+                    if (index >= 0) {
+                      updated[index] = notification;
+                      console.log(
+                        `✏️ Updated notification: ${notification.id}`
+                      );
                     }
                   }
-                } else if (type === "modify") {
-                  // Update existing
-                  const index = updated.findIndex(
-                    (n) => n.id === notification.id
-                  );
-                  if (index >= 0) {
-                    updated[index] = notification;
-                  }
-                }
+                });
+
+                // Sort by createdAt and limit to recent 100 for performance
+                const sortedNotifications = updated
+                  .sort(
+                    (a, b) =>
+                      (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)
+                  )
+                  .slice(0, 100);
+
+                console.log(
+                  `📊 Final notification count: ${sortedNotifications.length}`
+                );
+                return sortedNotifications;
               });
 
-              // Sort by createdAt and limit to recent 100 for performance
-              return updated
-                .sort(
-                  (a, b) =>
-                    (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)
-                )
-                .slice(0, 100);
-            });
-
-            pendingChanges.length = 0; // Clear
-            setLoading(false);
-            isFirstLoadRef.current = false;
-          }
-        }, 200);
-      });
+              pendingChanges.length = 0; // Clear
+              setLoading(false);
+              setError(null); // Clear error on successful load
+              isFirstLoadRef.current = false;
+            } else {
+              // No changes but we got a snapshot, still mark as loaded
+              setLoading(false);
+              isFirstLoadRef.current = false;
+            }
+          }, 200);
+        },
+        (error) => {
+          console.error("❌ Firestore listener error:", error);
+          setError(`Failed to load notifications: ${error.message}`);
+          setLoading(false);
+        }
+      );
 
       unsubscribeRef.current = unsubscribe;
-    } catch (error) {
+    } catch (error: any) {
       console.error("❌ Error setting up optimized Firestore listener:", error);
+      setError(`Failed to setup notifications: ${error.message}`);
+      setLoading(false);
     }
   }, []);
 
@@ -579,12 +644,17 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           console.error("❌ Error updating push token:", error);
         }
 
+        // Reset state and start listening
         isFirstLoadRef.current = true;
+        setError(null);
+        setLoading(true);
         startListening();
       } else {
         console.log(`🚫 User not authenticated, stopping listener`);
         stopListening();
         setNotifications([]);
+        setLoading(false);
+        setError(null);
         setPreferences({
           mealReminders: {
             enabled: true,
@@ -718,12 +788,16 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const refreshNotifications = useCallback(async () => {
     try {
       console.log(`🔄 Refreshing notifications...`);
+      setLoading(true);
+      setError(null);
       stopListening();
       setTimeout(() => {
         startListening();
       }, 1000);
-    } catch (error) {
+    } catch (error: any) {
       console.error("❌ Error refreshing notifications:", error);
+      setError(`Failed to refresh notifications: ${error.message}`);
+      setLoading(false);
     }
   }, [startListening, stopListening]);
 
@@ -731,12 +805,13 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     notifications,
     hasUnread: notifications.some((n) => !n.read),
     preferences,
+    loading,
+    error,
     markAsRead,
     updatePreferences,
     startListening,
     stopListening,
     refreshNotifications,
-    loading,
   };
 
   return (

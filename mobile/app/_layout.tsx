@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/config/firebase";
@@ -62,12 +68,12 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-function AppContentWithSplashHandling({ 
-  isWarmingUp, 
-  isAppReady 
-}: { 
-  isWarmingUp: boolean; 
-  isAppReady: boolean; 
+function AppContentWithSplashHandling({
+  isWarmingUp,
+  isAppReady,
+}: {
+  isWarmingUp: boolean;
+  isAppReady: boolean;
 }) {
   // Show loading screen if server is still warming up after splash
   if (isWarmingUp && isAppReady) {
@@ -85,20 +91,51 @@ function RootLayoutNav() {
   const segments = useSegments();
   const [allowOnboardingAccess, setAllowOnboardingAccess] = useState(false);
 
-  // Check for onboarding access flag
+  // Check for onboarding access flag with immediate update capability
   useEffect(() => {
     const checkOnboardingFlag = async () => {
       try {
         const flag = await AsyncStorage.getItem("allowOnboardingAccess");
         const shouldAllow = flag === "true";
         setAllowOnboardingAccess(shouldAllow);
-        console.log("🔍 [Layout] Initial flag check:", { flag, shouldAllow, currentSegments: segments });
+        console.log("🔍 [Layout] Initial flag check:", {
+          flag,
+          shouldAllow,
+          currentSegments: segments,
+        });
       } catch (error) {
         console.warn("Error checking onboarding flag:", error);
         setAllowOnboardingAccess(false);
       }
     };
     checkOnboardingFlag();
+
+    // Also listen for storage changes if available
+    const checkOnInterval = setInterval(async () => {
+      try {
+        const flag = await AsyncStorage.getItem("allowOnboardingAccess");
+        const shouldAllow = flag === "true";
+        setAllowOnboardingAccess((prev) => {
+          if (prev !== shouldAllow) {
+            console.log("🔄 [Layout] Flag changed:", { prev, shouldAllow });
+            return shouldAllow;
+          }
+          return prev;
+        });
+      } catch (error) {
+        // Silent fail for interval checks
+      }
+    }, 100); // Check every 100ms for quick response
+
+    // Clear interval after 5 seconds to avoid unnecessary checks
+    const clearTimer = setTimeout(() => {
+      clearInterval(checkOnInterval);
+    }, 5000);
+
+    return () => {
+      clearInterval(checkOnInterval);
+      clearTimeout(clearTimer);
+    };
   }, []); // Initial check only
 
   // Check flag immediately when segments change (especially when entering onboarding)
@@ -110,14 +147,22 @@ function RootLayoutNav() {
         try {
           const flag = await AsyncStorage.getItem("allowOnboardingAccess");
           const shouldAllow = flag === "true";
-          console.log("🚀 [Layout] Quick flag check for onboarding navigation:", { flag, shouldAllow, segments });
+          console.log(
+            "🚀 [Layout] Quick flag check for onboarding navigation:",
+            { flag, shouldAllow, segments }
+          );
           setAllowOnboardingAccess(shouldAllow);
+
+          // If flag is set, ensure it persists for the duration of onboarding
+          if (shouldAllow) {
+            console.log("✅ [Layout] Onboarding access granted");
+          }
         } catch (error) {
           console.warn("Error checking onboarding flag on navigation:", error);
         }
       }
     };
-    
+
     checkFlagOnNavigation();
   }, [segments]); // Only when segments change
 
@@ -354,7 +399,7 @@ export default function RootLayout() {
     showCustomSplash,
     isAppReady,
     isWarmingUp,
-    error: !!error
+    error: !!error,
   });
 
   if (error) {
@@ -376,7 +421,9 @@ export default function RootLayout() {
 
   // Don't show the main app until fonts are loaded after splash is complete
   if (!fontsLoaded) {
-    console.log("🎯 [Layout] Splash complete but fonts not loaded, showing loading");
+    console.log(
+      "🎯 [Layout] Splash complete but fonts not loaded, showing loading"
+    );
     return <LoadingScreen showLoadingText={true} />;
   }
 
@@ -391,7 +438,7 @@ export default function RootLayout() {
               <AnalyticsProvider>
                 <NotificationProvider>
                   <StatusBar style="dark" backgroundColor="white" />
-                  <AppContentWithSplashHandling 
+                  <AppContentWithSplashHandling
                     isWarmingUp={isWarmingUp}
                     isAppReady={isAppReady}
                   />

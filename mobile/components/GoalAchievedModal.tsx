@@ -12,7 +12,7 @@ import { LinearGradient } from "expo-linear-gradient"; // You'll need: expo inst
 import { icons } from "@/constants/icons";
 import { useOnboarding } from "@/context/OnboardingContext";
 import { useUser } from "@/context/UserContext";
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const { width } = Dimensions.get("window");
 
@@ -106,24 +106,57 @@ const GoalAchievedModal: React.FC<GoalAchievedModalProps> = ({
   const handleSetNewGoal = async () => {
     onClose();
     onSetNewGoal();
-    
+
     try {
-      // Set a flag to allow onboarding navigation
-      await AsyncStorage.setItem('allowOnboardingAccess', 'true');
-      console.log("✅ [GoalAchievedModal] Flag set successfully");
-      
+      // Set a flag to allow onboarding navigation with multiple attempts for reliability
+      const setFlagWithRetry = async (retries = 3) => {
+        for (let i = 0; i < retries; i++) {
+          try {
+            await AsyncStorage.setItem("allowOnboardingAccess", "true");
+            const verification = await AsyncStorage.getItem(
+              "allowOnboardingAccess"
+            );
+            if (verification === "true") {
+              console.log(
+                `✅ [GoalAchievedModal] Flag set successfully on attempt ${i + 1}`
+              );
+              return true;
+            }
+          } catch (error) {
+            console.warn(
+              `❌ [GoalAchievedModal] Attempt ${i + 1} failed:`,
+              error
+            );
+          }
+          if (i < retries - 1)
+            await new Promise((resolve) => setTimeout(resolve, 50));
+        }
+        return false;
+      };
+
+      const flagSet = await setFlagWithRetry();
+
       // Initialize onboarding context with current user profile
       if (userProfile) {
-        console.log("🔄 [GoalAchievedModal] Initializing with profile:", userProfile);
+        console.log(
+          "🔄 [GoalAchievedModal] Initializing with profile:",
+          userProfile
+        );
         initializeFromProfile(userProfile);
       } else {
-        console.warn("❌ [GoalAchievedModal] No user profile available for initialization");
+        console.warn(
+          "❌ [GoalAchievedModal] No user profile available for initialization"
+        );
       }
-      
-      // Navigate immediately - the layout should detect the flag
-      console.log("🧭 [GoalAchievedModal] Navigating to goal_weight");
+
+      // Add a small delay to ensure flag is properly set before navigation
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      // Navigate - the layout should detect the flag
+      console.log("🧭 [GoalAchievedModal] Navigating to goal_weight", {
+        flagSet,
+      });
       router.push("/(onboarding)/goal_weight");
-      
     } catch (error) {
       console.error("❌ [GoalAchievedModal] Error setting flag:", error);
       // Still try to navigate even if flag setting fails
