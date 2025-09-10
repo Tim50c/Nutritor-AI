@@ -1,24 +1,22 @@
-import React, { useState, useRef, useEffect } from "react";
+import ImageUtils from "@/utils/ImageUtils";
+import * as DocumentPicker from "expo-document-picker";
+import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  View,
-  TextInput,
-  TouchableOpacity,
+  ActivityIndicator,
   FlatList,
-  StyleSheet,
   Image,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
-  Linking,
-  ActivityIndicator, // <-- Import ActivityIndicator for loading state
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { Text } from './CustomText';
-import * as ImagePicker from "expo-image-picker";
-import * as DocumentPicker from "expo-document-picker";
-import { Ionicons } from "@expo/vector-icons"; // <-- Import DocumentPicker
-import { useRouter } from "expo-router";
-import ImageUtils from "@/utils/ImageUtils";
 import CustomHeaderWithBack from "./CustomHeaderWithBack";
+import { Text } from "./CustomText";
 
 // icon defined here
 import { icons } from "@/constants/icons";
@@ -375,17 +373,19 @@ const ChatScreen = () => {
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={
-          Platform.OS === "ios" ? 0 : 30
-        }
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 30}
       >
         {!isChatStarted ? (
           <View style={styles.startContainer}>
             <View style={styles.startBox}>
               <icons.chatIcon width={60} height={60} className="mb-5" />
-              <Text style={styles.startTitle} className="mt-3">Hello! Nice to see you here!</Text>
+              <Text style={styles.startTitle} className="mt-3">
+                Hello! Nice to see you here!
+              </Text>
               <Text style={styles.startSubtitle}>
-                Start chatting with Nutritor AI, your personal nutrition assistant and get instant answers to your diet and health questions.
+                Start chatting with Nutritor AI, your personal nutrition
+                assistant and get instant answers to your diet and health
+                questions.
               </Text>
               <TouchableOpacity
                 style={styles.startButton}
@@ -417,25 +417,30 @@ const ChatScreen = () => {
                 <View style={styles.attachmentMenuContainer}>
                   <View style={styles.attachmentMenu}>
                     {/* Upper half with orange background */}
-                    <View style={{
-                      backgroundColor: '#ff5a16',
-                      flex: 1,
-                      borderTopLeftRadius: 18,
-                      borderTopRightRadius: 18,
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      marginLeft: -8,
-                      marginRight: -8,
-                      marginTop: -8,
-                      paddingLeft: 8,
-                    }}>
+                    <View
+                      style={{
+                        backgroundColor: "#ff5a16",
+                        flex: 1,
+                        borderTopLeftRadius: 18,
+                        borderTopRightRadius: 18,
+                        justifyContent: "center",
+                        alignItems: "center",
+                        marginLeft: -8,
+                        marginRight: -8,
+                        marginTop: -8,
+                        paddingLeft: 8,
+                      }}
+                    >
                       <TouchableOpacity
-                        style={[styles.menuOption, { 
-                          backgroundColor: 'transparent',
-                          flex: 1,
-                          width: '100%',
-                          margin: 0
-                        }]}
+                        style={[
+                          styles.menuOption,
+                          {
+                            backgroundColor: "transparent",
+                            flex: 1,
+                            width: "100%",
+                            margin: 0,
+                          },
+                        ]}
                         onPress={handleAttachFile}
                       >
                         <icons.fileIcon
@@ -445,39 +450,53 @@ const ChatScreen = () => {
                           color="#ffffff"
                           stroke="#ffffff"
                         />
-                        <Text style={[styles.menuOptionText, { paddingLeft: 8, color: '#ffffff' }]}>Send File</Text>
+                        <Text
+                          style={[
+                            styles.menuOptionText,
+                            { paddingLeft: 8, color: "#ffffff" },
+                          ]}
+                        >
+                          Send File
+                        </Text>
                       </TouchableOpacity>
                     </View>
                     {/* Lower half with white background */}
-                    <View style={{
-                      backgroundColor: '#ffffff',
-                      flex: 1,
-                      borderBottomLeftRadius: 18,
-                      borderBottomRightRadius: 18,
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      marginLeft: -8,
-                      marginRight: -8,
-                      marginBottom: -8,
-                      paddingLeft: 8,
-                    }}>
+                    <View
+                      style={{
+                        backgroundColor: "#ffffff",
+                        flex: 1,
+                        borderBottomLeftRadius: 18,
+                        borderBottomRightRadius: 18,
+                        justifyContent: "center",
+                        alignItems: "center",
+                        marginLeft: -8,
+                        marginRight: -8,
+                        marginBottom: -8,
+                        paddingLeft: 8,
+                      }}
+                    >
                       <TouchableOpacity
-                        style={[styles.menuOption, { 
-                          flex: 1, 
-                          width: '100%',
-                          margin: 0
-                        }]}
+                        style={[
+                          styles.menuOption,
+                          {
+                            flex: 1,
+                            width: "100%",
+                            margin: 0,
+                          },
+                        ]}
                         onPress={handleAttachImage}
                       >
-                      <icons.screenShotIcon
-                        width={22}
-                        height={22}
-                        className="mr-2.5"
-                        stroke="#555"
-                      />
-                      <Text style={[styles.menuOptionText, { paddingLeft: 8 }]}>
-                        Attach a screenshot
-                      </Text>
+                        <icons.screenShotIcon
+                          width={22}
+                          height={22}
+                          className="mr-2.5"
+                          stroke="#555"
+                        />
+                        <Text
+                          style={[styles.menuOptionText, { paddingLeft: 8 }]}
+                        >
+                          Attach a screenshot
+                        </Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -505,10 +524,10 @@ const ChatScreen = () => {
                   />
                 </TouchableOpacity>
                 {/* Send button now calls the unified `sendData` function */}
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={() => sendData(input)}
                   style={{ marginRight: 16 }}
-                  >
+                >
                   <icons.sendIcon
                     width={24}
                     height={24}
@@ -527,7 +546,10 @@ const ChatScreen = () => {
 
 // --- (CHANGE 6) - ADDED STYLE FOR CHAT IMAGE ---
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F9F9F9" },
+  container: {
+    flex: 1,
+    backgroundColor: "bg-bg-default dark:bg-bg-default-dark",
+  },
   startContainer: {
     flex: 1,
     justifyContent: "center",
@@ -536,35 +558,39 @@ const styles = StyleSheet.create({
   },
   startBox: {
     width: "100%",
-    backgroundColor: "#fff",
+    backgroundColor: "bg-surface dark:bg-surface-dark",
     borderRadius: 16,
     padding: 25,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#EFEFEF",
+    borderColor: "border-default dark:border-default-dark",
   },
   startTitle: {
     fontSize: 18,
     fontWeight: "600",
     textAlign: "center",
     marginBottom: 10,
+    color: "text-default dark:text-default-dark",
   },
   startSubtitle: {
     fontSize: 14,
-    color: "#666",
+    color: "text-secondary dark:text-secondary-dark",
     textAlign: "center",
     marginBottom: 25,
     lineHeight: 20,
   },
-  privacyLink: { color: "#FF5A16", textDecorationLine: "underline" },
+  privacyLink: {
+    color: "accent dark:accent-dark",
+    textDecorationLine: "underline",
+  },
   startButton: {
-    backgroundColor: "#FF5A16",
+    backgroundColor: "bg-accent dark:bg-accent-dark",
     paddingVertical: 15,
     borderRadius: 12,
     width: "100%",
     alignItems: "center",
   },
-  startButtonText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
+  startButtonText: { color: "text-white", fontSize: 16, fontWeight: "bold" },
   messageList: { flex: 1, paddingHorizontal: 15 },
   messageRow: { marginBottom: 10 },
   metadataContainer: {
@@ -589,34 +615,40 @@ const styles = StyleSheet.create({
     maxWidth: "80%",
   },
   botBubble: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "bg-surface dark:bg-surface-dark",
     borderWidth: 1,
-    borderColor: "#EFEFEF",
+    borderColor: "border-default dark:border-default-dark",
     alignSelf: "flex-start",
     borderTopLeftRadius: 4,
   },
   userBubble: {
-    backgroundColor: "#FF5A16",
+    backgroundColor: "bg-accent dark:bg-accent-dark",
     alignSelf: "flex-end",
     borderTopRightRadius: 4,
   },
-  botMessageText: { fontSize: 15, color: "#000" },
-  userMessageText: { fontSize: 15, color: "#fff" },
+  botMessageText: {
+    fontSize: 15,
+    color: "text-default dark:text-default-dark",
+  },
+  userMessageText: { fontSize: 15, color: "text-white" },
   chatImage: {
     width: "70%",
     aspectRatio: 1,
     borderRadius: 18,
     alignSelf: "flex-end",
     borderWidth: 1,
-    borderColor: "#EFEFEF",
+    borderColor: "border-default dark:border-default-dark",
   },
   readStatus: {
     fontSize: 12,
-    color: "#888",
+    color: "text-secondary dark:text-secondary-dark",
     alignSelf: "flex-end",
     marginTop: 4,
   },
-  inputArea: { position: "relative", backgroundColor: "#fff" },
+  inputArea: {
+    position: "relative",
+    backgroundColor: "bg-surface dark:bg-surface-dark",
+  },
   attachmentMenuContainer: {
     position: "absolute",
     bottom: 60,
@@ -626,10 +658,10 @@ const styles = StyleSheet.create({
     zIndex: 999,
   },
   attachmentMenu: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "bg-surface dark:bg-surface-dark",
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: "#EFEFEF",
+    borderColor: "border-default dark:border-default-dark",
     width: "60%",
     padding: 8,
     shadowColor: "#000",
@@ -654,21 +686,35 @@ const styles = StyleSheet.create({
     borderTopWidth: 10,
     borderLeftColor: "transparent",
     borderRightColor: "transparent",
-    borderTopColor: "#FFFFFF",
+    borderTopColor: "bg-surface dark:bg-surface-dark",
   },
   menuOption: { flexDirection: "row", alignItems: "center", padding: 10 },
   menuIcon: { width: 22, height: 22, marginRight: 10, tintColor: "#555" },
-  menuOptionText: { fontSize: 16, color: "#333" },
+  menuOptionText: {
+    fontSize: 16,
+    color: "text-default dark:text-default-dark",
+  },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderTopWidth: 1,
-    borderTopColor: "#f0f0f0",
+    borderTopColor: "border-default dark:border-default-dark",
   },
-  input: { flex: 1, height: 40, fontSize: 16, paddingHorizontal: 10 },
-  icon: { width: 24, height: 24, marginHorizontal: 8, tintColor: "#888" },
+  input: {
+    flex: 1,
+    height: 40,
+    fontSize: 16,
+    paddingHorizontal: 10,
+    color: "text-default dark:text-default-dark",
+  },
+  icon: {
+    width: 24,
+    height: 24,
+    marginHorizontal: 8,
+    tintColor: "text-secondary dark:text-secondary-dark",
+  },
 });
 
 export default ChatScreen;

@@ -1,8 +1,8 @@
+import { icons } from "@/constants/icons";
 import React from "react";
-import { View, Animated } from "react-native";
+import { Animated, View } from "react-native";
 import { Text } from "../CustomText";
 import Toggle from "../Toggle";
-import { icons } from "@/constants/icons";
 
 interface SectionHeaderProps {
   title: string;
@@ -41,18 +41,13 @@ const SectionHeader = ({
             marginRight: 14,
           }}
         >
-          <icons.forwardArrow
-            width={16}
-            height={16}
-          />
+          <icons.forwardArrow width={16} height={16} />
         </Animated.View>
         <View style={{ flex: 0.9 }}>
-          <Text style={{ fontSize: 18, fontWeight: "600", color: "#333" }}>
+          <Text style={{ fontSize: 18, fontWeight: "600", color: "#111214" }}>
             {title}
           </Text>
-          <Text style={{ fontSize: 14, color: "#666" }}>
-            {description}
-          </Text>
+          <Text style={{ fontSize: 14, color: "#6B7280" }}>{description}</Text>
         </View>
       </View>
       <Toggle value={enabled} onValueChange={onToggle} />

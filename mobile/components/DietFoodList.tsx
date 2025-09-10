@@ -17,7 +17,9 @@ export default function DietFoodList() {
     if (dietFoods.length === 0) {
       return (
         <View className="items-center justify-center my-10">
-          <Text className="text-gray-500">No food logged for this day.</Text>
+          <Text className="text-secondary dark:text-secondary-dark">
+            No food logged for this day.
+          </Text>
         </View>
       );
     }

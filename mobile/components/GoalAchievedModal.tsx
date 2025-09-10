@@ -296,7 +296,7 @@ const GoalAchievedModal: React.FC<GoalAchievedModalProps> = ({
               className="text-base text-center leading-6 mb-2"
               style={{ color: "#4b5563" }}
             >
-              You've successfully reached your weight goal! This incredible
+              You&apos;ve successfully reached your weight goal! This incredible
               achievement shows your dedication and commitment to your health
               journey.
             </Text>

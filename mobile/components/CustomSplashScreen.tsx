@@ -1,17 +1,23 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Image, Text, Animated, Dimensions, StyleSheet } from 'react-native';
-import * as SplashScreen from 'expo-splash-screen';
+import React, { useEffect, useRef } from "react";
+import {
+  Animated,
+  Dimensions,
+  Image,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 interface CustomSplashScreenProps {
   onAnimationComplete: () => void;
   showLoadingText?: boolean;
 }
 
-const CustomSplashScreen: React.FC<CustomSplashScreenProps> = ({ 
-  onAnimationComplete, 
-  showLoadingText = true 
+const CustomSplashScreen: React.FC<CustomSplashScreenProps> = ({
+  onAnimationComplete,
+  showLoadingText = true,
 }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const textOpacity = useRef(new Animated.Value(0)).current;
@@ -34,7 +40,9 @@ const CustomSplashScreen: React.FC<CustomSplashScreenProps> = ({
     ]).start(() => {
       // Wait a bit more then call completion
       setTimeout(() => {
-        console.log("🎯 [CustomSplashScreen] Animation complete, calling onAnimationComplete");
+        console.log(
+          "🎯 [CustomSplashScreen] Animation complete, calling onAnimationComplete"
+        );
         onAnimationComplete();
       }, 1500);
     });
@@ -43,14 +51,16 @@ const CustomSplashScreen: React.FC<CustomSplashScreenProps> = ({
   return (
     <View style={styles.container}>
       {/* Full Screen Background Image */}
-      <Animated.View style={[styles.backgroundContainer, { opacity: fadeAnim }]}>
-        <Image 
-          source={require('../assets/images/splash-screen.png')} 
+      <Animated.View
+        style={[styles.backgroundContainer, { opacity: fadeAnim }]}
+      >
+        <Image
+          source={require("../assets/images/splash-screen.png")}
           style={styles.backgroundImage}
           resizeMode="cover"
         />
       </Animated.View>
-      
+
       {/* Text Overlay in Center */}
       <Animated.View style={[styles.textContainer, { opacity: textOpacity }]}>
         <Text style={styles.brandText}>NutritorAI</Text>
@@ -62,7 +72,6 @@ const CustomSplashScreen: React.FC<CustomSplashScreenProps> = ({
         </View>
         <Text style={styles.subText}>made easy!</Text>
       </Animated.View>
-    
     </View>
   );
 };
@@ -70,10 +79,10 @@ const CustomSplashScreen: React.FC<CustomSplashScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: "bg-bg-default dark:bg-bg-default-dark", // Use semantic background
   },
   backgroundContainer: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
@@ -84,59 +93,59 @@ const styles = StyleSheet.create({
     height: screenHeight,
   },
   textContainer: {
-    position: 'absolute',
-    top: '50%',
+    position: "absolute",
+    top: "50%",
     left: 0,
     right: 0,
-    alignItems: 'center',
+    alignItems: "center",
     transform: [{ translateY: -50 }],
   },
   brandText: {
     fontSize: 42,
-    fontWeight: 'bold',
-    color: '#000000',
+    fontWeight: "bold",
+    color: "text-default dark:text-default-dark", // semantic text
     marginBottom: 8,
-    textAlign: 'center',
+    textAlign: "center",
   },
   taglineContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 4,
   },
   taglineText: {
     fontSize: 18,
-    color: '#000000',
-    fontWeight: '500',
+    color: "text-default dark:text-default-dark", // semantic text
+    fontWeight: "500",
   },
   healthyBadge: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: "bg-accent dark:bg-accent-dark", // semantic accent
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 16,
     marginLeft: 4,
   },
   healthyText: {
-    color: '#FFFFFF',
+    color: "text-white", // semantic text
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   subText: {
     fontSize: 18,
-    color: '#000000',
-    fontWeight: '500',
-    textAlign: 'center',
+    color: "text-default dark:text-default-dark", // semantic text
+    fontWeight: "500",
+    textAlign: "center",
   },
   loadingContainer: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 80,
     left: 0,
     right: 0,
-    alignItems: 'center',
+    alignItems: "center",
   },
   loadingText: {
     fontSize: 16,
-    color: '#000000',
-    fontWeight: '500',
+    color: "text-default dark:text-default-dark", // semantic text
+    fontWeight: "500",
   },
 });
 

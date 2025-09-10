@@ -1,9 +1,9 @@
 // /app/components/CalorieChart.tsx
-import React, { useMemo } from "react";
-import { View, useWindowDimensions, StyleSheet } from "react-native";
-import { Text } from "./CustomText";
-import { BarChart } from "react-native-gifted-charts";
 import { format } from "date-fns";
+import React, { useMemo } from "react";
+import { StyleSheet, View, useWindowDimensions } from "react-native";
+import { BarChart } from "react-native-gifted-charts";
+import { Text } from "./CustomText";
 import type { TabOption } from "./ToggleTabs";
 
 // Helper function for timezone-safe date formatting
@@ -380,10 +380,10 @@ const CalorieChart: React.FC<CalorieChartProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "bg-surface dark:bg-surface-dark", // semantic bg
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: "border-default dark:border-default-dark", // semantic border
     padding: 16,
     margin: 8,
     shadowColor: "#000",
@@ -399,12 +399,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     textAlign: "center",
-    color: "#111827",
+    color: "text-default dark:text-default-dark", // semantic text
   },
   subtitle: {
     fontSize: 12,
     textAlign: "center",
-    color: "#9CA3AF",
+    color: "text-secondary dark:text-secondary-dark", // semantic text
   },
   chartContainer: {
     marginTop: 2,
@@ -415,7 +415,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   noDataText: {
-    color: "#9CA3AF",
+    color: "text-secondary dark:text-secondary-dark", // semantic text
     fontSize: 14,
   },
   tooltipContainer: {
@@ -423,8 +423,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   tooltipText: {
-    backgroundColor: "#fcd8cfff", // Light orange background to match the bars
-    color: "#ff5a16", // Dark orange text
+    backgroundColor: "bg-warning dark:bg-warning-dark", // semantic warning
+    color: "accent dark:accent-dark", // semantic accent
     paddingHorizontal: 6,
     paddingVertical: 3,
     borderRadius: 4,
@@ -437,10 +437,10 @@ const styles = StyleSheet.create({
     height: 0,
     borderLeftWidth: 8,
     borderRightWidth: 8,
-    borderTopWidth: 8, // Changed from borderBottomWidth
+    borderTopWidth: 8,
     borderLeftColor: "transparent",
     borderRightColor: "transparent",
-    borderTopColor: "#fcd8cfff", // Match the tooltip background color
+    borderTopColor: "bg-warning dark:bg-warning-dark", // semantic warning
     marginTop: -1,
   },
 });

@@ -1,6 +1,13 @@
-import React from 'react';
-import { View, TextInput, TextInputProps, Platform, StyleProp, TextStyle, ViewStyle } from 'react-native';
-import { Text } from './CustomText';
+import React from "react";
+import {
+  Platform,
+  StyleProp,
+  TextInput,
+  TextInputProps,
+  TextStyle,
+  View,
+} from "react-native";
+import { Text } from "./CustomText";
 
 interface FormFieldProps extends TextInputProps {
   label: string;
@@ -8,15 +15,20 @@ interface FormFieldProps extends TextInputProps {
   isActive?: boolean;
 }
 
-const FormField: React.FC<FormFieldProps> = ({ label, error, isActive, ...props }) => {
+const FormField: React.FC<FormFieldProps> = ({
+  label,
+  error,
+  isActive,
+  ...props
+}) => {
   const getBorderColor = () => {
     if (error) {
-      return '#DC2626';
+      return "#DC2626";
     }
     if (isActive) {
-      return '#F97316';
+      return "#F97316";
     }
-    return '#E5E7EB';
+    return "#E5E7EB";
   };
 
   // --- FIX IS HERE: We define the base and platform styles separately ---
@@ -24,8 +36,8 @@ const FormField: React.FC<FormFieldProps> = ({ label, error, isActive, ...props 
   // 1. Define the base styles that are common to both platforms.
   // We explicitly type this to ensure correctness.
   const baseStyles: StyleProp<TextStyle> = {
-    backgroundColor: '#F9FAFB',
-    color: '#1F2937',
+    backgroundColor: "#F9FAFB",
+    color: "#1F2937",
     borderWidth: 1,
     borderColor: getBorderColor(),
     height: 56,
@@ -40,22 +52,23 @@ const FormField: React.FC<FormFieldProps> = ({ label, error, isActive, ...props 
     },
     android: {
       // On Android, textAlignVertical works perfectly.
-      textAlignVertical: 'center',
+      textAlignVertical: "center",
       paddingVertical: 0, // Explicitly set to 0 to avoid default padding issues.
     },
   });
 
   return (
     <View className="w-full mb-4">
-      <Text className="text-gray-700 text-sm font-semibold mb-2">{label}</Text>
+      <Text className="text-default dark:text-default-dark text-sm font-semibold mb-2">
+        {label}
+      </Text>
       <TextInput
-        className="text-base font-regular px-4 rounded-xl"
-        // 3. Pass an array to the style prop. This is the key to the fix.
+        className="text-base font-regular px-4 rounded-xl text-default dark:text-default-dark"
         style={[baseStyles, platformStyles]}
-        placeholderTextColor="#9CA3AF"
+        placeholderTextColor="#A7A9AC"
         {...props}
       />
-      {error && <Text className="text-red-600 text-sm mt-1">{error}</Text>}
+      {error && <Text className="text-danger text-sm mt-1">{error}</Text>}
     </View>
   );
 };

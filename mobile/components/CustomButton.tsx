@@ -17,9 +17,10 @@ const CustomButton: React.FC<CustomButtonProps> = ({
   style = "",
   textStyle = "text-white",
 }) => {
-  // Extract background color from style if present, otherwise use default
+  // Extract background color from style if present, otherwise use default semantic token
   const hasCustomBg = style.includes("bg-");
-  const defaultBg = hasCustomBg ? "" : "bg-primary-200";
+  // Use semantic token for accent color, with dark mode support
+  const defaultBg = hasCustomBg ? "" : "bg-accent dark:bg-accent-dark";
 
   return (
     <TouchableOpacity

@@ -1,16 +1,19 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  // NOTE: Update this to include the paths to all files that contain Nativewind classes.
+  darkMode: 'class', // enable `dark:` variant (class-based)
+  // NOTE: Update this to include the paths to all files that contain NativeWind classes.
   content: ["./app/**/*.{js,jsx,ts,tsx}", "./components/**/*.{js,jsx,ts,tsx}"],
   presets: [require("nativewind/preset")],
   theme: {
     extend: {
-      colors:{
+      colors: {
+        // ---- your existing palette (kept as-is) ----
         primary: {
           40: '#FFBDA2',
           50: '#FF9C73',
           100: '#F47551',
-          200: '#FF5A16'
+          200: '#FF5A16',
+          300: '#E04E00',
         },
         protein: {
           100: '#67BD6E',
@@ -37,7 +40,35 @@ module.exports = {
           healthy: "#23D154",
           over: "#DCF805",
           obese: "#FF0000"
-        }
+        },
+
+        // ---- semantic tokens for theming (use these in components) ----
+        // Backgrounds / surfaces
+        'bg-default': '#FFFFFF',        // light surface
+        'bg-default-dark': '#0B0B0C',   // dark surface
+
+        'bg-surface': '#F8F8F9',        // card / pane in light
+        'bg-surface-dark': '#0F1112',   // card / pane in dark
+
+        // Text
+        'text-default': '#111214',      // primary text in light
+        'text-default-dark': '#F5F6F7', // primary text in dark
+
+        'text-secondary': '#6B6F76',
+        'text-secondary-dark': '#A7A9AC',
+
+        // Borders / dividers
+        'border-default': '#E6E7EA',
+        'border-default-dark': '#222527',
+
+        // Interactive / accents (map to your palette)
+        'accent': '#F47551',            // primary 100
+        'accent-dark': '#FF5A16',       // primary 200
+
+        // Success / warning / danger (optional)
+        'success': '#23D154',
+        'warning': '#F8D558',
+        'danger': '#FF4D67',
       }
     },
   },

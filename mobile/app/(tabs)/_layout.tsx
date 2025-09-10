@@ -1,18 +1,29 @@
-import { Tabs } from "expo-router";
 import { icons } from "@/constants/icons";
-import { Image, View } from "react-native";
+import { useIsDark } from "@/theme/useIsDark";
+import { Tabs } from "expo-router";
 import React from "react";
-import {SvgProps} from "react-native-svg";
+import { View } from "react-native";
+import { SvgProps } from "react-native-svg";
 
-function TabIcon({ Icon, focused }: { Icon: React.FC<SvgProps>; focused: boolean }) {
+function TabIcon({
+  Icon,
+  focused,
+}: {
+  Icon: React.FC<SvgProps>;
+  focused: boolean;
+}) {
   return (
-    <View className={`p-2 ${focused ? "bg-gray-200 rounded-xl" : ""}`}>
+    <View
+      className={`p-2 ${focused ? "bg-gray-200 dark:bg-gray-700 rounded-xl" : ""}`}
+    >
       <Icon width={32} height={32} />
     </View>
   );
 }
 
 function CameraTabIcon() {
+  const isDark = useIsDark();
+
   return (
     <View
       style={{
@@ -22,22 +33,28 @@ function CameraTabIcon() {
         shadowRadius: 10,
         elevation: 10, // For Android
       }}
-      className="absolute -top-10 bg-primary-200 rounded-2xl border-2 border-white"
+      className="absolute -top-10 bg-primary-200 dark:bg-primary-300 rounded-2xl border-2 border-white dark:border-black"
     >
-      <icons.camera width={64} height={64} />
+      {isDark ? (
+        <icons.cameraDark width={64} height={64} />
+      ) : (
+        <icons.camera width={64} height={64} />
+      )}
     </View>
   );
 }
 
 export default function TabsLayout() {
+  const isDark = useIsDark();
+
   return (
     <Tabs
       screenOptions={{
         tabBarShowLabel: false,
         tabBarStyle: {
-          backgroundColor: "#FFFFFF",
+          backgroundColor: isDark ? "#1C1C1E" : "#FFFFFF",
           borderTopWidth: 1,
-          borderTopColor: "#E5E7EB",
+          borderTopColor: isDark ? "#3A3A3C" : "#E5E7EB",
           height: 65,
           paddingBottom: 5,
           paddingTop: 10,
@@ -60,7 +77,13 @@ export default function TabsLayout() {
           headerShown: false,
           tabBarIcon: ({ focused }) => (
             <TabIcon
-              Icon={focused ? icons.homeActive : icons.home}
+              Icon={
+                focused
+                  ? icons.homeActive
+                  : isDark
+                    ? icons.homeDark
+                    : icons.home
+              }
               focused={focused}
             />
           ),
@@ -72,8 +95,17 @@ export default function TabsLayout() {
           title: "Nutritor AI",
           headerShown: false,
           tabBarStyle: { display: "none" },
-          tabBarIcon: ({focused}) => (
-            <TabIcon Icon={focused ? icons.chatbotActive : icons.chatbot} focused={focused}/>
+          tabBarIcon: ({ focused }) => (
+            <TabIcon
+              Icon={
+                focused
+                  ? icons.chatbotActive
+                  : isDark
+                    ? icons.chatbotDark
+                    : icons.chatbot
+              }
+              focused={focused}
+            />
           ),
         }}
       />
@@ -93,7 +125,13 @@ export default function TabsLayout() {
           headerShown: false,
           tabBarIcon: ({ focused }) => (
             <TabIcon
-              Icon={focused ? icons.dietActive : icons.diet}
+              Icon={
+                focused
+                  ? icons.dietActive
+                  : isDark
+                    ? icons.dietDark
+                    : icons.diet
+              }
               focused={focused}
             />
           ),
@@ -106,7 +144,13 @@ export default function TabsLayout() {
           headerShown: false,
           tabBarIcon: ({ focused }) => (
             <TabIcon
-              Icon={focused ? icons.analyticsActive : icons.analytics}
+              Icon={
+                focused
+                  ? icons.analyticsActive
+                  : isDark
+                    ? icons.analyticsDark
+                    : icons.analytics
+              }
               focused={focused}
             />
           ),
