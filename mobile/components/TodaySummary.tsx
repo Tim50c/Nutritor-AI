@@ -82,7 +82,7 @@ function CircularProgress({ current, target }: CircularProgressProps) {
         <View className="items-center -mt-6">
           <Text className="text-lg font-semibold mb-1">Calories</Text>
           <Text className="text-2xl font-bold text-gray-700">
-            {current.toFixed(1)}/{target}
+            {current}/{target}
           </Text>
         </View>
       </View>
