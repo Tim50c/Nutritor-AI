@@ -24,15 +24,31 @@ const AnalyticsHeader = ({
   const [goalAchievedModalVisible, setGoalAchievedModalVisible] =
     useState(false);
 
-  // Use userProfile weight if available, otherwise fallback to props
-  const displayCurrentWeight = userProfile?.weightCurrent ?? currentWeight;
-  const displayWeightGoal = userProfile?.weightGoal ?? weightGoal;
+  // Weight conversion logic
+  const KG_TO_LBS = 2.20462;
+  const kgToLbs = (kg: number) => Math.round(kg * KG_TO_LBS * 10) / 10;
 
-  // Calculate BMI immediately using current data
+  // Convert weights based on unit preference
+  let displayCurrentWeight = userProfile?.weightCurrent ?? currentWeight;
+  let displayWeightGoal = userProfile?.weightGoal ?? weightGoal;
+
+  if (weightUnit === "lbs") {
+    displayCurrentWeight = displayCurrentWeight
+      ? kgToLbs(displayCurrentWeight)
+      : 0;
+    displayWeightGoal = displayWeightGoal ? kgToLbs(displayWeightGoal) : 0;
+  } else {
+    // Round kg values to 1 decimal place
+    displayCurrentWeight = Math.round(displayCurrentWeight * 10) / 10;
+    displayWeightGoal = Math.round(displayWeightGoal * 10) / 10;
+  }
+
+  // Calculate BMI immediately using current data (always use kg for BMI calculation)
   const calculateBMI = () => {
-    if (!displayCurrentWeight || !userProfile?.height) return 0;
+    const weightInKg = userProfile?.weightCurrent ?? currentWeight; // Always use original kg value for BMI
+    if (!weightInKg || !userProfile?.height) return 0;
     const heightInMeters = userProfile.height / 100; // Convert cm to meters
-    return displayCurrentWeight / (heightInMeters * heightInMeters);
+    return weightInKg / (heightInMeters * heightInMeters);
   };
 
   const currentBMI = calculateBMI();
@@ -53,26 +69,30 @@ const AnalyticsHeader = ({
   };
 
   const handleUpdateWeight = async (newValue: number) => {
-    // Update local state immediately - this is all the UI needs
+    // Convert input back to kg if needed (WeightEditModal always works in the display unit)
+    let weightInKg = newValue;
+    if (weightUnit === "lbs") {
+      weightInKg = newValue / KG_TO_LBS; // Convert lbs back to kg for storage
+    }
+
+    // Update local state immediately - store in kg
     if (userProfile) {
       setUserProfile({
         ...userProfile,
-        weightCurrent: newValue,
+        weightCurrent: weightInKg,
       });
     }
 
-    // Check goal achievement immediately
-    if (
-      displayWeightGoal > 0 &&
-      Math.abs(newValue - displayWeightGoal) <= 0.1
-    ) {
+    // Check goal achievement using kg values
+    const goalInKg = userProfile?.weightGoal ?? weightGoal;
+    if (goalInKg > 0 && Math.abs(weightInKg - goalInKg) <= 0.1) {
       setTimeout(() => setGoalAchievedModalVisible(true), 300);
     }
 
-    // Save to database in background - fire and forget
+    // Save to database in background - fire and forget (always in kg)
     AnalysisService.updateWeight({
-      currentWeight: newValue,
-      goalWeight: displayWeightGoal,
+      currentWeight: weightInKg,
+      goalWeight: goalInKg,
     }).catch((error) => console.error("Weight save failed:", error));
   };
 
@@ -114,6 +134,7 @@ const AnalyticsHeader = ({
         currentValue={displayCurrentWeight}
         type="current"
         onUpdate={handleUpdateWeight}
+        weightUnit={weightUnit}
       />
 
       <GoalAchievedModal

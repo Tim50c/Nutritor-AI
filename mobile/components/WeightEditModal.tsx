@@ -18,6 +18,7 @@ interface WeightEditModalProps {
   currentValue: number;
   type: "current" | "goal";
   onUpdate: (newValue: number) => Promise<void>;
+  weightUnit?: string;
 }
 
 const WeightEditModal: React.FC<WeightEditModalProps> = ({
@@ -26,6 +27,7 @@ const WeightEditModal: React.FC<WeightEditModalProps> = ({
   currentValue,
   type,
   onUpdate,
+  weightUnit = "kg",
 }) => {
   const [inputValue, setInputValue] = useState(currentValue.toString());
   const [isUpdating, setIsUpdating] = useState(false);
@@ -37,10 +39,14 @@ const WeightEditModal: React.FC<WeightEditModalProps> = ({
   const handleUpdate = async () => {
     const newValue = parseFloat(inputValue);
 
-    if (isNaN(newValue) || newValue <= 0 || newValue > 500) {
+    // Validation based on unit
+    const maxWeight = weightUnit === "lbs" ? 1100 : 500; // 500kg ≈ 1100lbs
+    const unitText = weightUnit === "lbs" ? "lbs" : "kg";
+
+    if (isNaN(newValue) || newValue <= 0 || newValue > maxWeight) {
       Alert.alert(
         "Invalid Weight",
-        "Please enter a valid weight between 1 and 500 kg"
+        `Please enter a valid weight between 1 and ${maxWeight} ${unitText}`
       );
       return;
     }
@@ -84,11 +90,11 @@ const WeightEditModal: React.FC<WeightEditModalProps> = ({
             </View>
 
             <View className="mb-6">
-              <Text className="text-gray-600 mb-2">Weight (kg)</Text>
+              <Text className="text-gray-600 mb-2">Weight ({weightUnit})</Text>
               <TextInput
                 value={inputValue}
                 onChangeText={setInputValue}
-                placeholder="Enter weight"
+                placeholder={`Enter weight in ${weightUnit}`}
                 keyboardType="numeric"
                 className="border border-gray-300 rounded-lg px-4 py-3 text-base"
                 editable={!isUpdating}

@@ -415,17 +415,9 @@ const Analytics = () => {
     }
   }, [refreshAnalytics, refreshNutritionTab, tab]);
 
-  // Weight goal and current weight, synchronized with unit
-  let weightGoal = analysisData?.weightGoal ?? 0;
-  let currentWeight = analysisData?.currentWeight ?? 0;
-  // Conversion logic (same as profile.tsx)
-  const KG_TO_LBS = 2.20462;
-  const kgToLbs = (kg: number) => (kg * KG_TO_LBS).toFixed(1);
-  if (weightUnit === "lbs") {
-    weightGoal = weightGoal ? parseFloat(kgToLbs(weightGoal)) : 0;
-    currentWeight = currentWeight ? parseFloat(kgToLbs(currentWeight)) : 0;
-  }
-  // ...existing code...
+  // Get raw weight values - AnalyticsHeader will handle unit conversion
+  const weightGoal = analysisData?.weightGoal ?? 0;
+  const currentWeight = analysisData?.currentWeight ?? 0;
 
   if (analyticsLoading && !analyticsData) {
     return (
