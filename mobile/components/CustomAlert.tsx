@@ -1,12 +1,5 @@
 import React from "react";
-import {
-  View,
-  Text,
-  Modal,
-  TouchableOpacity,
-  Animated,
-  Dimensions,
-} from "react-native";
+import { Animated, Modal, Text, TouchableOpacity } from "react-native";
 
 interface CustomAlertProps {
   visible: boolean;
@@ -60,22 +53,22 @@ const CustomAlert: React.FC<CustomAlertProps> = ({
   const getBorderColor = () => {
     switch (type) {
       case "success":
-        return "border-green-500";
+        return "border-success dark:border-success-dark";
       case "error":
-        return "border-red-500";
+        return "border-danger dark:border-danger-dark";
       default:
-        return "border-gray-200";
+        return "border-border-default dark:border-border-default-dark";
     }
   };
 
   const getButtonColor = () => {
     switch (type) {
       case "success":
-        return "bg-green-500";
+        return "bg-success dark:bg-success-dark";
       case "error":
-        return "bg-red-500";
+        return "bg-danger dark:bg-danger-dark";
       default:
-        return "bg-gray-800";
+        return "bg-accent dark:bg-accent-dark";
     }
   };
 
@@ -94,18 +87,18 @@ const CustomAlert: React.FC<CustomAlertProps> = ({
         }}
       >
         <Animated.View
-          className={`bg-white rounded-3xl p-6 w-full max-w-sm border-2 shadow-2xl ${getBorderColor()}`}
+          className={`bg-surface dark:bg-surface-dark rounded-3xl p-6 w-full max-w-sm border-2 shadow-2xl ${getBorderColor()}`}
           style={{
             transform: [{ scale: scaleAnim }],
           }}
         >
           {/* Title */}
-          <Text className="text-xl font-bold text-black text-center mb-3">
+          <Text className="text-xl font-bold text-default dark:text-default-dark text-center mb-3">
             {title}
           </Text>
 
           {/* Message */}
-          <Text className="text-base text-gray-700 text-center leading-6 mb-6">
+          <Text className="text-base text-secondary dark:text-secondary-dark text-center leading-6 mb-6">
             {message}
           </Text>
 

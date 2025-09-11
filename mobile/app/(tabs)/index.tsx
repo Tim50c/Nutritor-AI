@@ -1,8 +1,8 @@
-import { View, ScrollView, ActivityIndicator, Platform } from "react-native";
+import { useDietContext } from "@/context/DietContext";
+import { ActivityIndicator, Platform, ScrollView, View } from "react-native";
+import FoodSection from "../../components/FoodSection";
 import HomeTopBar from "../../components/HomeTopBar";
 import TodaySummary from "../../components/TodaySummary";
-import FoodSection from "../../components/FoodSection";
-import { useDietContext } from "@/context/DietContext";
 
 export default function HomeScreen() {
   const {
@@ -19,7 +19,7 @@ export default function HomeScreen() {
 
   return (
     <View
-      className={`flex-1 bg-gray-50 ${Platform.OS === "ios" ? "pt-10" : ""}`}
+      className={`flex-1 bg-gray-50 dark:bg-gray-900 ${Platform.OS === "ios" ? "pt-10" : ""}`}
     >
       <HomeTopBar />
       <ScrollView showsVerticalScrollIndicator={false}>

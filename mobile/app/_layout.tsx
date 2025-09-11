@@ -1,34 +1,31 @@
+import CustomHeader from "@/components/CustomHeader";
+import CustomSplashScreen from "@/components/CustomSplashScreen";
+import LoadingScreen from "@/components/LoadingScreen";
+import { auth } from "@/config/firebase";
+import { AnalyticsProvider } from "@/context/AnalyticsContext";
+import { DietProvider } from "@/context/DietContext";
+import { NotificationProvider } from "@/context/NotificationContext";
+import { OnboardingProvider } from "@/context/OnboardingContext";
+import { defaultUser, UserProvider, useUser } from "@/context/UserContext";
+import ServerWarmupService from "@/services/server-warmup-service";
+import { ThemeProvider } from "@/theme/ThemeProvider";
+import { useIsDark } from "@/theme/useIsDark";
+import apiClient from "@/utils/apiClients";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFonts } from "expo-font";
+import { Stack, useRouter, useSegments } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
+import { onAuthStateChanged, User } from "firebase/auth";
 import React, {
   createContext,
-  useContext,
-  useState,
-  useEffect,
   useCallback,
+  useContext,
+  useEffect,
+  useState,
 } from "react";
-import { Stack, useRouter, useSegments } from "expo-router";
-import { onAuthStateChanged, User } from "firebase/auth";
-import { auth } from "@/config/firebase";
-import { StatusBar } from "expo-status-bar";
-import {
-  Platform,
-  StatusBar as RNStatusBar,
-  View,
-  ActivityIndicator,
-} from "react-native";
+import { Platform, StatusBar as RNStatusBar, View } from "react-native";
 import "./global.css";
-import CustomHeader from "@/components/CustomHeader";
-import LoadingScreen from "@/components/LoadingScreen";
-import CustomSplashScreen from "@/components/CustomSplashScreen";
-import { NotificationProvider } from "@/context/NotificationContext";
-import { UserProvider, useUser, defaultUser } from "@/context/UserContext";
-import { DietProvider } from "@/context/DietContext";
-import { AnalyticsProvider } from "@/context/AnalyticsContext";
-import { OnboardingProvider, useOnboarding } from "@/context/OnboardingContext";
-import apiClient from "@/utils/apiClients";
-import { useFonts } from "expo-font";
-import * as SplashScreen from "expo-splash-screen";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import ServerWarmupService from "@/services/server-warmup-service";
 
 // Prevent native splash from auto-hiding
 SplashScreen.preventAutoHideAsync().catch(console.warn);
@@ -364,6 +361,16 @@ function RootLayoutNav() {
   );
 }
 
+function DynamicStatusBar() {
+  const isDark = useIsDark();
+  return (
+    <StatusBar
+      style={isDark ? "light" : "dark"}
+      backgroundColor={isDark ? "#111214" : "white"}
+    />
+  );
+}
+
 export default function RootLayout() {
   // Track font loading time
   const [fontLoadStartTime] = useState(() => Date.now());
@@ -488,11 +495,13 @@ export default function RootLayout() {
             <DietProvider>
               <AnalyticsProvider>
                 <NotificationProvider>
-                  <StatusBar style="dark" backgroundColor="white" />
-                  <AppContentWithSplashHandling
-                    isWarmingUp={isWarmingUp}
-                    isAppReady={isAppReady}
-                  />
+                  <ThemeProvider>
+                    <DynamicStatusBar />
+                    <AppContentWithSplashHandling
+                      isWarmingUp={isWarmingUp}
+                      isAppReady={isAppReady}
+                    />
+                  </ThemeProvider>
                 </NotificationProvider>
               </AnalyticsProvider>
             </DietProvider>

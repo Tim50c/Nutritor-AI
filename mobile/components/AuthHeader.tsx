@@ -1,24 +1,29 @@
-import React from 'react';
-import { View, TouchableOpacity } from 'react-native';
-import { useNavigation } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {Ionicons} from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "expo-router";
+import React from "react";
+import { TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function AuthHeader() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={{ paddingTop: insets.top, paddingHorizontal: 24, height: 60, justifyContent: 'center', backgroundColor: 'white' }}>
+    <View
+      style={{
+        paddingTop: insets.top,
+        paddingHorizontal: 24,
+        height: 60,
+        justifyContent: "center",
+        backgroundColor: "#FFFFFF",
+      }}
+      className="bg-bg-default dark:bg-bg-default-dark"
+    >
       <TouchableOpacity
         onPress={() => navigation.goBack()}
         className="w-12 h-12 justify-center items-start -ml-2"
       >
-        {/*<Image*/}
-        {/*  source={backIcon}*/}
-        {/*  style={{ width: 28, height: 28, tintColor: '#000000' }}*/}
-        {/*/>*/}
-        <Ionicons name="arrow-back" size={28} color="black" />
+        <Ionicons name="arrow-back" size={28} color="#111214" />
       </TouchableOpacity>
     </View>
   );

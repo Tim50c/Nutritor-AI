@@ -1,12 +1,12 @@
-import React, { useState } from "react";
-import { View, TouchableOpacity } from "react-native";
-import { Text } from "./CustomText";
-import { Ionicons } from "@expo/vector-icons";
 import { useUser } from "@/context/UserContext";
-import WeightEditModal from "./WeightEditModal";
-import GoalAchievedModal from "./GoalAchievedModal";
-import BMIBar from "./BMIBar";
 import { AnalysisService } from "@/services";
+import { Ionicons } from "@expo/vector-icons";
+import React, { useState } from "react";
+import { TouchableOpacity, View } from "react-native";
+import BMIBar from "./BMIBar";
+import { Text } from "./CustomText";
+import GoalAchievedModal from "./GoalAchievedModal";
+import WeightEditModal from "./WeightEditModal";
 
 interface AnalyticsHeaderProps {
   weightGoal: number;
@@ -101,23 +101,33 @@ const AnalyticsHeader = ({
       <View className="flex-row justify-between items-start mt-4 mx-4">
         <View className="flex-1">
           <View className="flex-row items-center gap-2">
-            <Text className="text-gray-700">Current weight</Text>
+            <Text className="text-secondary dark:text-secondary-dark">
+              Current weight
+            </Text>
             <TouchableOpacity
               onPress={handleEditWeight}
               className="p-1"
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Ionicons name="pencil" size={16} color="#6B7280" />
+              <Ionicons name="pencil" size={16} color="#6B6F76" />
             </TouchableOpacity>
           </View>
-          <Text className="text-2xl font-bold">
+          <Text className="text-2xl font-bold text-default dark:text-default-dark">
             {displayCurrentWeight} {weightUnit}
           </Text>
         </View>
 
         <View className="flex-1 items-end">
-          <Text className="text-gray-700" style={{ marginTop: 2 }}>Weight goal</Text>
-          <Text className="text-2xl font-bold" style={{ marginTop: 4 }}>
+          <Text
+            className="text-secondary dark:text-secondary-dark"
+            style={{ marginTop: 2 }}
+          >
+            Weight goal
+          </Text>
+          <Text
+            className="text-2xl font-bold text-default dark:text-default-dark"
+            style={{ marginTop: 4 }}
+          >
             {displayWeightGoal} {weightUnit}
           </Text>
         </View>

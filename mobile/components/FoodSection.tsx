@@ -1,7 +1,7 @@
+import React, { useMemo } from "react";
 import { View } from "react-native";
 import { Text } from "./CustomText";
 import FoodSuggestionCard from "./FoodSuggestionCard";
-import React, { useMemo } from "react";
 
 interface FoodItem {
   id: string;
@@ -71,7 +71,7 @@ export default function FoodSection({
   return (
     <View className="mb-6">
       {title && (
-        <Text className="text-lg font-bold text-gray-800 mb-4 px-4">
+        <Text className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4 px-4">
           {title}
         </Text>
       )}

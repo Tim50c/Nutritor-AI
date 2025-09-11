@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import React, { memo, useCallback } from "react";
 import { Image, TouchableOpacity, View } from "react-native";
 import { Text } from "./CustomText";
+import { useIsDark } from "@/theme/useIsDark";
 
 interface FoodItem {
   id: string;
@@ -30,6 +31,8 @@ const FoodSuggestionCard = memo(function FoodSuggestionCard({
   onToggleFavorite,
   source = "suggestions",
 }: FoodSuggestionCardProps) {
+  const isDark = useIsDark();
+
   // Format calories with comma and unit (memoized)
   const formattedCalories = `${food.calories.toString()} kcal`;
 
@@ -90,7 +93,7 @@ const FoodSuggestionCard = memo(function FoodSuggestionCard({
 
   return (
     <TouchableOpacity onPress={handleFoodPress}>
-      <View className="bg-white rounded-2xl p-4 mb-3 flex-row items-center border border-gray-200 shadow-sm">
+      <View className="bg-white dark:bg-gray-800 rounded-2xl p-4 mb-3 flex-row items-center border border-gray-200 dark:border-gray-700 shadow-sm">
         {/* Food Image */}
         <Image
           source={food.image ? food.image : images.fallback_food}
@@ -100,22 +103,26 @@ const FoodSuggestionCard = memo(function FoodSuggestionCard({
 
         {/* Food Info */}
         <View className="flex-1">
-          <Text className="text-base font-semibold text-gray-800 mb-1">
+          <Text className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-1">
             {food.name}
           </Text>
 
           <View className="flex-row items-center mb-2">
-            <Text className="text-sm text-gray-600 mr-4">
+            <Text className="text-sm text-gray-600 dark:text-gray-300 mr-4">
               {formattedCalories}
             </Text>
-            <Text className="text-sm text-gray-600">Carbs: {food.carbs}g</Text>
+            <Text className="text-sm text-gray-600 dark:text-gray-300">
+              Carbs: {food.carbs}g
+            </Text>
           </View>
 
           <View className="flex-row items-center">
-            <Text className="text-sm text-gray-600 mr-4">
+            <Text className="text-sm text-gray-600 dark:text-gray-300 mr-4">
               Protein: {food.protein}g
             </Text>
-            <Text className="text-sm text-gray-600">Fat: {food.fat}g</Text>
+            <Text className="text-sm text-gray-600 dark:text-gray-300">
+              Fat: {food.fat}g
+            </Text>
           </View>
         </View>
 
@@ -125,12 +132,12 @@ const FoodSuggestionCard = memo(function FoodSuggestionCard({
             e.stopPropagation();
             onToggleFavorite?.();
           }}
-          className="w-8 h-8 bg-gray-100 rounded-full items-center justify-center"
+          className="w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-full items-center justify-center"
         >
           {isFavorite ? (
             <icons.heartFill width={16} height={16} />
           ) : (
-            <icons.heart width={16} height={16} />
+            isDark ? (<icons.heartDark width={16} height={16} />) : (<icons.heart width={16} height={16} />)
           )}
         </TouchableOpacity>
       </View>
