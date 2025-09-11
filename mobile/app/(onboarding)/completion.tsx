@@ -1,13 +1,14 @@
-import React, { useState } from "react";
-import { View, SafeAreaView, StyleSheet, Image, Alert } from "react-native";
-import { Text } from "../../components/CustomText";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
+import React, { useState } from "react";
+import { Alert, Image, SafeAreaView, StyleSheet, View } from "react-native";
+import { Text } from "../../components/CustomText";
+import { auth } from "../../config/firebase";
 import { useOnboarding } from "../../context/OnboardingContext";
 import { useUser } from "../../context/UserContext";
-import { auth } from "../../config/firebase";
 import apiClient from "../../utils/apiClients";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import { useIsDark } from "@/theme/useIsDark";
 import CustomButtonAuth from "../../components/CustomButtonAuth";
 
 const celebrationImage = require("../../assets/images/celebration.png");
@@ -21,8 +22,22 @@ export default function CompletionScreen() {
   const { data, clearResetFlag } = useOnboarding();
   const { setUserProfile } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  console.log("🎯 [CompletionScreen] Rendering with isGoalUpdate:", data.isGoalUpdate);
+
+  const isDark = useIsDark();
+
+  // Theme color tokens — reuse these across other files to keep colors consistent
+  const colors = {
+    background: isDark ? "#0B1220" : "#FFFFFF", // deep navy-ish for dark, white for light
+    title: isDark ? "#E6EEF6" : "#1E1E1E", // light text on dark, near-black on light
+    subtitle: isDark ? "#A9AFBD" : "#8A8A8E", // softer gray for dark mode
+    // Keep the brand orange but a touch lighter in dark mode for contrast
+    primary: isDark ? "#ff7a3a" : "#ff5a16",
+  };
+
+  console.log(
+    "🎯 [CompletionScreen] Rendering with isGoalUpdate:",
+    data.isGoalUpdate
+  );
 
   const navigateToHome = () => {
     console.log("🏠 [CompletionScreen] Forcing navigation to home...");
@@ -38,11 +53,16 @@ export default function CompletionScreen() {
   const handleFinishOnboarding = async () => {
     setIsSubmitting(true);
     console.log("--- Starting Onboarding Completion ---");
-    console.log("🔍 [CompletionScreen] Current data:", JSON.stringify(data, null, 2));
+    console.log(
+      "🔍 [CompletionScreen] Current data:",
+      JSON.stringify(data, null, 2)
+    );
 
     // Set up a timeout to prevent infinite loading
     const timeoutId = setTimeout(() => {
-      console.log("⏰ [CompletionScreen] Operation timed out, forcing navigation...");
+      console.log(
+        "⏰ [CompletionScreen] Operation timed out, forcing navigation..."
+      );
       setIsSubmitting(false);
       navigateToHome();
     }, 15000); // 15 second timeout
@@ -63,8 +83,6 @@ export default function CompletionScreen() {
       const dob = `${dobDate.getFullYear()}-${String(dobDate.getMonth() + 1).padStart(2, "0")}-${String(dobDate.getDate()).padStart(2, "0")}`;
 
       // --- CONVERSION LOGIC ---
-      // Convert weight to KG if the user entered it in LBS.
-      // The backend MUST always receive weight in KG.
       const weightInKg =
         data.weightUnit === "lbs"
           ? lbsToKg(data.weightCurrent)
@@ -72,17 +90,14 @@ export default function CompletionScreen() {
       const goalWeightInKg =
         data.weightUnit === "lbs" ? lbsToKg(data.weightGoal) : data.weightGoal;
 
-      // Convert height to CM if the user entered it in FT.
-      // The backend MUST always receive height in CM.
       const heightInCm =
         data.heightUnit === "ft" ? data.height * 30.48 : data.height;
 
       let profilePayload;
 
       if (data.isGoalUpdate) {
-        // For goal updates, only send weight goal and nutrition targets
         profilePayload = {
-          weightGoal: goalWeightInKg, // Always send KG
+          weightGoal: goalWeightInKg,
           targetNutrition: data.targetNutrition,
         };
         console.log(
@@ -90,13 +105,12 @@ export default function CompletionScreen() {
           JSON.stringify(profilePayload, null, 2)
         );
       } else {
-        // For initial onboarding, send full profile
         profilePayload = {
           dob,
           gender: data.gender,
-          height: heightInCm, // Always send CM
-          weightCurrent: weightInKg, // Always send KG
-          weightGoal: goalWeightInKg, // Always send KG
+          height: heightInCm,
+          weightCurrent: weightInKg,
+          weightGoal: goalWeightInKg,
           targetNutrition: data.targetNutrition,
           onboardingComplete: true,
           unitPreferences: {
@@ -117,11 +131,14 @@ export default function CompletionScreen() {
         profilePayload,
         {
           headers: { Authorization: `Bearer ${idToken}` },
-          timeout: 30000, // Add 30 second timeout
+          timeout: 30000,
         }
       );
 
-      console.log("✅ [CompletionScreen] PATCH response received:", response.data);
+      console.log(
+        "✅ [CompletionScreen] PATCH response received:",
+        response.data
+      );
 
       if (!response.data.success) {
         throw new Error(
@@ -137,10 +154,13 @@ export default function CompletionScreen() {
       console.log("🚀 [CompletionScreen] Fetching updated profile...");
       const updatedProfileResponse = await apiClient.get("/api/v1/profile", {
         headers: { Authorization: `Bearer ${idToken}` },
-        timeout: 30000, // Add 30 second timeout
+        timeout: 30000,
       });
 
-      console.log("✅ [CompletionScreen] GET response received:", updatedProfileResponse.data);
+      console.log(
+        "✅ [CompletionScreen] GET response received:",
+        updatedProfileResponse.data
+      );
 
       if (updatedProfileResponse.data.success) {
         console.log(
@@ -148,33 +168,26 @@ export default function CompletionScreen() {
         );
         setUserProfile(updatedProfileResponse.data.data);
 
-        // Clear the onboarding access flag since we're done
         await AsyncStorage.removeItem("allowOnboardingAccess");
-        
-        // Clear the full reset flag since onboarding is now complete
         await AsyncStorage.removeItem("isFullReset");
-        
-        // Clear the reset flag to allow future auto-initialization
         clearResetFlag();
 
-        // Navigate to home screen
         console.log("🧭 [CompletionScreen] About to navigate to home...");
         console.log("🧭 [CompletionScreen] isGoalUpdate:", data.isGoalUpdate);
-        
+
         if (data.isGoalUpdate) {
-          console.log("🎯 [CompletionScreen] Goal update completed, navigating to home...");
+          console.log(
+            "🎯 [CompletionScreen] Goal update completed, navigating to home..."
+          );
         } else {
-          console.log("🎉 [CompletionScreen] Original onboarding completed, navigating to home...");
+          console.log(
+            "🎉 [CompletionScreen] Original onboarding completed, navigating to home..."
+          );
         }
-        
-        // Clear the timeout since we're navigating successfully
+
         clearTimeout(timeoutId);
-        
-        // Always navigate to tabs regardless of goal update status
         navigateToHome();
-        
-        // Add a small delay to ensure navigation happens
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
       } else {
         throw new Error("Failed to retrieve updated profile after setup.");
       }
@@ -203,17 +216,19 @@ export default function CompletionScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
       <View style={styles.content}>
         <Image
           source={celebrationImage}
           style={styles.image}
           resizeMode="contain"
         />
-        <Text style={styles.title}>
+        <Text style={[styles.title, { color: colors.title }]}>
           {data.isGoalUpdate ? "New Goal Set!" : "Profile Setup Complete!"}
         </Text>
-        <Text style={styles.subtitle}>
+        <Text style={[styles.subtitle, { color: colors.subtitle }]}>
           {data.isGoalUpdate
             ? "Your new weight goal and nutrition targets have been updated. Keep pushing towards your new milestone!"
             : "Great job — you are all set to start tracking your meals and reaching your goals."}
@@ -228,7 +243,7 @@ export default function CompletionScreen() {
           }
           onPress={handleFinishOnboarding}
           isLoading={isSubmitting}
-          containerStyles={{ backgroundColor: "#ff5a16" }}
+          containerStyles={{ backgroundColor: colors.primary }}
         />
       </View>
     </SafeAreaView>
@@ -238,7 +253,7 @@ export default function CompletionScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    // backgroundColor now set dynamically via inline style so we keep only layout here
     justifyContent: "center",
     paddingHorizontal: 24,
   },
@@ -255,13 +270,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#1E1E1E",
     textAlign: "center",
     marginBottom: 16,
   },
   subtitle: {
     fontSize: 16,
-    color: "#8A8A8E",
     textAlign: "center",
     lineHeight: 24,
     maxWidth: "95%",

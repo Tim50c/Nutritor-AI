@@ -1,5 +1,4 @@
 import { Stack } from "expo-router";
-import CustomHeader from "@/components/CustomHeader";
 import React from "react";
 
 export default function SettingsLayout() {

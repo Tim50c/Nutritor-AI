@@ -104,7 +104,7 @@ export default function ResetPassword() {
         visible={showSuccessModal}
         onRequestClose={handleModalClose}
       >
-        <View className="flex-1 justify-center items-center bg-black/50">
+        <View className="flex-1 justify-center items-center bg-black/50 dark:bg-white/50">
           <View className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-[85%] items-center">
             <Text className="text-lg font-bold text-gray-800 dark:text-gray-100">
               Password changed

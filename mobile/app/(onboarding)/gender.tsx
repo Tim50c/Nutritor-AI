@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, SafeAreaView, TouchableOpacity, Image, ImageSourcePropType } from 'react-native'; // Import ImageSourcePropType
+import { View, SafeAreaView, TouchableOpacity, Image, ImageSourcePropType } from 'react-native';
 import { Text } from '../../components/CustomText';
 import { useRouter } from 'expo-router';
 import { useOnboarding } from '../../context/OnboardingContext';
+import { useIsDark } from '@/theme/useIsDark';
 
 import CustomButtonAuth from '../../components/CustomButtonAuth';
 import OnboardingHeader from '../../components/OnboardingHeader';
@@ -11,7 +12,6 @@ const femaleIcon = require('../../assets/icons/female-avatar.png');
 const maleIcon = require('../../assets/icons/male-avatar.png');
 const otherIcon = require('../../assets/icons/other-gender.png');
 
-// --- DEFINE THE PROPS INTERFACE ---
 interface GenderOptionProps {
   icon: ImageSourcePropType;
   label: string;
@@ -19,8 +19,13 @@ interface GenderOptionProps {
   onPress: () => void;
 }
 
-// --- APPLY THE TYPE TO THE COMPONENT ---
-const GenderOption: React.FC<GenderOptionProps> = ({ icon, label, isSelected, onPress }) => (
+const GenderOption: React.FC<GenderOptionProps & { colors: any }> = ({
+  icon,
+  label,
+  isSelected,
+  onPress,
+  colors,
+}) => (
   <TouchableOpacity
     onPress={onPress}
     style={{
@@ -29,24 +34,28 @@ const GenderOption: React.FC<GenderOptionProps> = ({ icon, label, isSelected, on
       padding: 20,
       borderRadius: 12,
       borderWidth: 2,
-      borderColor: isSelected ? '#FF5A16' : '#E5E7EB',
-      backgroundColor: isSelected ? '#FFF7F2' : '#FFFFFF',
+      borderColor: isSelected ? colors.primary : colors.border,
+      backgroundColor: isSelected ? colors.highlight : colors.card,
       marginBottom: 16,
     }}
   >
     <Image source={icon} style={{ width: 40, height: 40, marginRight: 16 }} />
-    <Text style={{ fontFamily: 'SpaceGrotesk-Bold', fontSize: 18, color: '#1F2937' }}>{label}</Text>
-    <View style={{
-      marginLeft: 'auto',
-      width: 24,
-      height: 24,
-      borderRadius: 12,
-      borderWidth: 2,
-      borderColor: isSelected ? '#FF5A16' : '#D1D5DB',
-      justifyContent: 'center',
-      alignItems: 'center',
-    }}>
-      {isSelected && <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#FF5A16' }} />}
+    <Text style={{ fontFamily: 'SpaceGrotesk-Bold', fontSize: 18, color: colors.textPrimary }}>
+      {label}
+    </Text>
+    <View
+      style={{
+        marginLeft: 'auto',
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        borderWidth: 2,
+        borderColor: isSelected ? colors.primary : colors.border,
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}
+    >
+      {isSelected && <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: colors.primary }} />}
     </View>
   </TouchableOpacity>
 );
@@ -54,40 +63,48 @@ const GenderOption: React.FC<GenderOptionProps> = ({ icon, label, isSelected, on
 export default function GenderScreen() {
   const router = useRouter();
   const { data, updateData } = useOnboarding();
+  const isDark = useIsDark();
+
+  const colors = {
+    background: isDark ? '#0B1220' : '#FFFFFF',
+    card: isDark ? '#111827' : '#FFFFFF',
+    highlight: isDark ? '#1F2937' : '#FFF7F2',
+    border: isDark ? '#4B5563' : '#E5E7EB',
+    textPrimary: isDark ? '#F3F4F6' : '#1F2937',
+    primary: isDark ? '#ff7a3a' : '#ff5a16',
+  };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <View style={{ flex: 1, paddingHorizontal: 24 }}>
         <OnboardingHeader title="What's your gender?" progress={0.5} backHref="/age" />
-        
+
         <View style={{ flex: 1, justifyContent: 'center' }}>
-          <GenderOption 
-            icon={femaleIcon} 
-            label="Female" 
-            isSelected={data.gender === 'Female'} 
-            onPress={() => updateData({ gender: 'Female' })} 
+          <GenderOption
+            icon={femaleIcon}
+            label="Female"
+            isSelected={data.gender === 'Female'}
+            onPress={() => updateData({ gender: 'Female' })}
+            colors={colors}
           />
-          <GenderOption 
-            icon={maleIcon} 
-            label="Male" 
-            isSelected={data.gender === 'Male'} 
-            onPress={() => updateData({ gender: 'Male' })} 
+          <GenderOption
+            icon={maleIcon}
+            label="Male"
+            isSelected={data.gender === 'Male'}
+            onPress={() => updateData({ gender: 'Male' })}
+            colors={colors}
           />
-          <GenderOption 
-            icon={otherIcon} 
-            label="Other" 
-            isSelected={data.gender === 'Other'} 
-            onPress={() => updateData({ gender: 'Other' })} 
+          <GenderOption
+            icon={otherIcon}
+            label="Other"
+            isSelected={data.gender === 'Other'}
+            onPress={() => updateData({ gender: 'Other' })}
+            colors={colors}
           />
         </View>
 
         <View style={{ paddingBottom: 40 }}>
-          {/* This button will now work correctly without errors */}
-          <CustomButtonAuth 
-            title="Continue" 
-            onPress={() => router.push('./height')}
-            disabled={!data.gender} 
-          />
+          <CustomButtonAuth title="Continue" onPress={() => router.push('./height')} disabled={!data.gender} />
         </View>
       </View>
     </SafeAreaView>
