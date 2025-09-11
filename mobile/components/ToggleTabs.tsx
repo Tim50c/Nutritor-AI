@@ -1,23 +1,26 @@
-import React from "react";
-import { TouchableOpacity, View } from "react-native";
-import { Text } from "./CustomText";
+import React from 'react';
+import { View, TouchableOpacity } from 'react-native';
+import { Text } from './CustomText';
 
-export type TabOption = "daily" | "weekly" | "monthly";
+
+export type TabOption = 'daily' | 'weekly' | 'monthly';
 
 type Props = {
   value: TabOption;
   onChange: (t: TabOption) => void;
-};
+}
+
 
 const ToggleTabs: React.FC<Props> = ({ value, onChange }) => {
-  const tabs: { key: TabOption; label: string }[] = [
-    { key: "daily", label: "Daily" },
-    { key: "weekly", label: "Weekly" },
-    { key: "monthly", label: "Monthly" },
+  const tabs: {key: TabOption; label: string}[] = [
+    {key: 'daily', label: 'Daily'},
+    {key: 'weekly', label: 'Weekly'},
+    {key: 'monthly', label: 'Monthly'},
   ];
 
+
   return (
-    <View className="flex-row rounded-full bg-bg-surface dark:bg-bg-surface-dark p-1">
+    <View className="flex-row rounded-full bg-primary-40 dark:bg-orange-600 p-1">
       {tabs.map((tab) => {
         const active = tab.key === value;
         return (
@@ -25,14 +28,12 @@ const ToggleTabs: React.FC<Props> = ({ value, onChange }) => {
             key={tab.key}
             onPress={() => onChange(tab.key)}
             className={`flex-1 rounded-full items-center justify-center px-4 py-2 ${
-              active ? "bg-accent dark:bg-accent-dark" : "bg-transparent"
+              active ? "bg-primary-200 dark:bg-orange-800" : "bg-transparent"
             }`}
           >
             <Text
               className={`text-base ${
-                active
-                  ? "text-white font-semibold"
-                  : "text-default dark:text-default-dark"
+                active ? "text-white font-semibold" : "text-gray-200"
               }`}
             >
               {tab.label}
@@ -42,6 +43,6 @@ const ToggleTabs: React.FC<Props> = ({ value, onChange }) => {
       })}
     </View>
   );
-};
+}
 
 export default ToggleTabs;

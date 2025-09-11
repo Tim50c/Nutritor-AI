@@ -1,34 +1,27 @@
-import React, { useState, useEffect } from "react";
-import {
-  View,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-  Platform,
-  Image,
-} from "react-native";
-import { Text } from '../../components/CustomText';
-import { SafeAreaView } from "react-native-safe-area-context";
+import axios from "axios";
 import { Link, useRouter } from "expo-router";
 import {
-  signInWithEmailAndPassword,
-  sendEmailVerification,
+  getAdditionalUserInfo,
   GoogleAuthProvider,
   OAuthProvider,
+  sendEmailVerification,
   signInWithCredential,
-  getAdditionalUserInfo,
+  signInWithEmailAndPassword,
   UserCredential, // --- Step 1: Import the UserCredential type ---
 } from "firebase/auth";
+import React, { useEffect, useState } from "react";
+import { Alert, ScrollView, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Text } from "../../components/CustomText";
 import { auth } from "../../config/firebase";
-import axios from "axios";
 
 // --- Social Auth Imports ---
-import * as WebBrowser from "expo-web-browser";
-import * as Google from "expo-auth-session/providers/google";
 import * as AppleAuthentication from "expo-apple-authentication";
+import * as Google from "expo-auth-session/providers/google";
+import * as WebBrowser from "expo-web-browser";
 
-import FormField from "../../components/FormField";
 import CustomButtonAuth from "../../components/CustomButtonAuth";
+import FormField from "../../components/FormField";
 
 const googleIcon = require("../../assets/icons/google-icon.png");
 const appleIcon = require("../../assets/icons/apple-icon.png");

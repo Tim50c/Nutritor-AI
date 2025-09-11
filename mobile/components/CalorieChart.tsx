@@ -1,4 +1,5 @@
 // /app/components/CalorieChart.tsx
+import { useIsDark } from "@/theme/useIsDark";
 import { format } from "date-fns";
 import React, { useMemo } from "react";
 import { StyleSheet, View, useWindowDimensions } from "react-native";
@@ -98,6 +99,7 @@ const CalorieChart: React.FC<CalorieChartProps> = ({
   mode,
   onBarSelect,
 }) => {
+  const isDark = useIsDark();
   const { width: windowWidth } = useWindowDimensions();
   const contentPaddingHorizontal = 24;
   const containerWidth = Math.max(windowWidth - contentPaddingHorizontal, 300);
@@ -313,43 +315,49 @@ const CalorieChart: React.FC<CalorieChartProps> = ({
   }, [chartData.length, containerWidth]);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Calorie Trends</Text>
-      <Text style={styles.subtitle}>{rangeLabel || ""}</Text>
+    <View className="bg-white dark:bg-black rounded-xl border border-gray-200 dark:border-gray-700 p-4 m-2 shadow-sm">
+      <Text className="text-lg font-semibold text-center text-gray-900 dark:text-gray-100">
+        Calorie Trends
+      </Text>
+      <Text className="text-xs text-center text-gray-400 dark:text-gray-500">
+        {rangeLabel || ""}
+      </Text>
 
-      <View style={styles.chartContainer}>
+      <View className="mt-1">
         {labels.length === 0 ? (
-          <View style={styles.noDataContainer}>
-            <Text style={styles.noDataText}>No data</Text>
+          <View className="h-56 items-center justify-center">
+            <Text className="text-sm text-gray-400 dark:text-gray-500">
+              No data
+            </Text>
           </View>
         ) : (
           <View
             style={{
               width: "100%",
               alignItems: "center",
-              overflow: "visible", // Changed from "hidden" to "visible"
+              overflow: "visible",
               paddingHorizontal: 2,
-              paddingTop: 15, // Reduced padding for smaller tooltip
+              paddingTop: 15,
             }}
           >
             <BarChart
               data={chartData}
               width={chartWidth}
-              height={210} // Slightly reduced to accommodate small tooltip
+              height={210}
               barWidth={barWidth}
               spacing={spacing}
               roundedTop
               roundedBottom
-              hideRules={true} // Remove background grid lines
-              xAxisColor="transparent" // Remove x-axis line
-              yAxisColor="transparent" // Remove y-axis line
-              hideYAxisText={false} // Keep y-axis labels
+              hideRules={true}
+              xAxisColor="transparent"
+              yAxisColor="transparent"
+              hideYAxisText={false}
               yAxisTextStyle={{
-                color: "#9CA3AF",
+                color: isDark ? "#9CA3AF" : "#9CA3AF", // same gray works both modes
                 fontSize: 11,
               }}
               xAxisLabelTextStyle={{
-                color: "#6B7280",
+                color: isDark ? "#D1D5DB" : "#6B7280",
                 fontSize: 11,
                 fontWeight: "500",
               }}
@@ -358,7 +366,7 @@ const CalorieChart: React.FC<CalorieChartProps> = ({
               isAnimated
               animationDuration={800}
               disableScroll={true}
-              backgroundColor="#FFFFFF"
+              backgroundColor={isDark ? "#000000" : "#FFFFFF"}
               initialSpacing={0}
               endSpacing={0}
               showGradient={false}
@@ -380,10 +388,10 @@ const CalorieChart: React.FC<CalorieChartProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "bg-surface dark:bg-surface-dark", // semantic bg
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "border-default dark:border-default-dark", // semantic border
+    borderColor: "#E5E7EB",
     padding: 16,
     margin: 8,
     shadowColor: "#000",
@@ -399,12 +407,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     textAlign: "center",
-    color: "text-default dark:text-default-dark", // semantic text
+    color: "#111827",
   },
   subtitle: {
     fontSize: 12,
     textAlign: "center",
-    color: "text-secondary dark:text-secondary-dark", // semantic text
+    color: "#9CA3AF",
   },
   chartContainer: {
     marginTop: 2,
@@ -415,7 +423,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   noDataText: {
-    color: "text-secondary dark:text-secondary-dark", // semantic text
+    color: "#9CA3AF",
     fontSize: 14,
   },
   tooltipContainer: {
@@ -423,8 +431,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   tooltipText: {
-    backgroundColor: "bg-warning dark:bg-warning-dark", // semantic warning
-    color: "accent dark:accent-dark", // semantic accent
+    backgroundColor: "#fcd8cfff", // Light orange background to match the bars
+    color: "#ff5a16", // Dark orange text
     paddingHorizontal: 6,
     paddingVertical: 3,
     borderRadius: 4,
@@ -437,10 +445,10 @@ const styles = StyleSheet.create({
     height: 0,
     borderLeftWidth: 8,
     borderRightWidth: 8,
-    borderTopWidth: 8,
+    borderTopWidth: 8, // Changed from borderBottomWidth
     borderLeftColor: "transparent",
     borderRightColor: "transparent",
-    borderTopColor: "bg-warning dark:bg-warning-dark", // semantic warning
+    borderTopColor: "#fcd8cfff", // Match the tooltip background color
     marginTop: -1,
   },
 });

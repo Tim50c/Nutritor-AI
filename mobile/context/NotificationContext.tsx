@@ -409,8 +409,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     return () => {
       isMounted = false;
       appStateSubscription?.remove();
-      Notifications.removeNotificationSubscription(notificationListener);
-      Notifications.removeNotificationSubscription(responseListener);
+      notificationListener.remove();
+      responseListener.remove();
     };
   }, [appState]);
 

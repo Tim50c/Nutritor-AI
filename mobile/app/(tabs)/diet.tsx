@@ -6,7 +6,7 @@ import CustomHeaderWithBack from "@/components/CustomHeaderWithBack";
 import { useDietContext } from "@/context/DietContext";
 import { useFocusEffect } from "@react-navigation/native";
 import React, { useCallback, useEffect, useState } from "react";
-import { ScrollView, SafeAreaView } from "react-native";
+import { ScrollView, SafeAreaView, View } from "react-native";
 
 const DietScreen = () => {
   const { dietDate, refreshDietData, dietSummary, loading } = useDietContext();
@@ -36,18 +36,18 @@ const DietScreen = () => {
       dietSummary.fat > 0);
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-white dark:bg-black">
       <CustomHeaderWithBack title="Diet" />
-      <ScrollView className="flex-1 bg-white">
-        <DietCalendar />
-        {hasAnyFood ? (
-          <>
-            <DietSummary isTabFocused={isTabFocused} />
-            <DietFoodList />
-          </>
-        ) : (
-          <EmptyDietState />
-        )}
+      <ScrollView className="flex-1 bg-white dark:bg-black">
+          <DietCalendar />
+          {hasAnyFood ? (
+            <>
+              <DietSummary isTabFocused={isTabFocused} />
+              <DietFoodList />
+            </>
+          ) : (
+            <EmptyDietState />
+          )}
       </ScrollView>
     </SafeAreaView>
   );
