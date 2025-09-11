@@ -61,7 +61,6 @@ const ChatScreen = () => {
   const [input, setInput] = useState("");
   const [isAttachmentMenuVisible, setAttachmentMenuVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false); // <-- Add loading state
-  const [currentChatId, setCurrentChatId] = useState(1); // Track current chat session
   const [isRefreshingData, setIsRefreshingData] = useState(false); // Loading state for data refresh
 
   // Handle new chat creation
@@ -97,8 +96,7 @@ const ChatScreen = () => {
     setMessages([]);
     setIsChatStarted(false);
     setInput("");
-    setCurrentChatId(prev => prev + 1);
-    console.log(`🆕 Started new chat session #${currentChatId + 1}`);
+    console.log("🆕 Started new chat session");
   };
 
   // Function to refresh diet data when agent performs diet operations
@@ -559,11 +557,10 @@ const ChatScreen = () => {
             <View style={styles.startBox}>
               <icons.chatIcon width={60} height={60} className="mb-5" />
               <Text style={styles.startTitle} className="mt-3">
-                Meet Your NutritionAI Agent! {currentChatId > 1 && `(Chat #${currentChatId})`}
+                Meet Your NutritionAI Agent!
               </Text>
               <Text style={styles.startSubtitle}>
                 Your intelligent nutrition assistant that can analyze food images, manage your diet, track weight progress, and provide personalized nutrition guidance.
-                {currentChatId > 1 && " Ready for a fresh conversation!"}
               </Text>
               <TouchableOpacity
                 style={styles.startButton}
