@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
   KeyboardAvoidingView,
@@ -18,6 +19,7 @@ import {
 import CustomHeaderWithBack from "./CustomHeaderWithBack";
 import { Text } from "./CustomText";
 import { authInstance } from "@/config/api/axios"; // Import auth instance for API calls
+import { apiDomain } from "@/constants";
 
 // icon defined here
 import { icons } from "@/constants/icons";
@@ -43,11 +45,73 @@ const API_URL = `chat`; // Correct path for authInstance (baseURL already includ
 
 const ChatScreen = () => {
   const router = useRouter();
+  
+  // Debug logging for API configuration
+  console.log("🔧 API Configuration:");
+  console.log("📍 Base URL from constants:", apiDomain);
+  console.log("🎯 Chat endpoint:", API_URL);
+  console.log("🔗 Full chat URL will be:", `${apiDomain}${API_URL}`);
+  
   const [isChatStarted, setIsChatStarted] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isAttachmentMenuVisible, setAttachmentMenuVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false); // <-- Add loading state
+  const [currentChatId, setCurrentChatId] = useState(1); // Track current chat session
+
+  // Handle new chat creation
+  const handleNewChat = () => {
+    // If chat is already started and has messages, show confirmation
+    if (isChatStarted && messages.length > 0) {
+      Alert.alert(
+        "Start New Chat",
+        "Are you sure you want to start a new chat? Your current conversation will be cleared.",
+        [
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+          {
+            text: "New Chat",
+            style: "destructive",
+            onPress: () => {
+              startNewChatSession();
+            },
+          },
+        ],
+        { cancelable: true }
+      );
+    } else {
+      // If no messages yet, start new chat directly
+      startNewChatSession();
+    }
+  };
+
+  // Helper function to actually start new chat
+  const startNewChatSession = () => {
+    setMessages([]);
+    setIsChatStarted(false);
+    setInput("");
+    setCurrentChatId(prev => prev + 1);
+    console.log(`🆕 Started new chat session #${currentChatId + 1}`);
+  };
+
+  // Create + button component for new chat
+  const NewChatButton = () => (
+    <TouchableOpacity
+      onPress={handleNewChat}
+      style={{
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: "#FF5A16",
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+    >
+      <Text style={{ color: "#FFFFFF", fontSize: 18, fontWeight: "bold" }}>+</Text>
+    </TouchableOpacity>
+  );
   const flatListRef = useRef<FlatList<Message>>(null);
   const [clientId, setClientId] = useState<string>("");
 
@@ -160,12 +224,15 @@ const ChatScreen = () => {
 
     try {
       console.log("🚀 Sending chat message to API...");
+      console.log("📡 Chat backend URL:", `${authInstance.defaults.baseURL}${API_URL}`);
+      console.log("📝 API endpoint path:", API_URL);
       
-      // Use authInstance for authenticated requests to the agent
+      // Use authInstance for authenticated requests to the agent with longer timeout
       const response = await authInstance.post(API_URL, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
+        timeout: 30000, // 60 seconds timeout for AI responses
       });
 
       console.log(`📡 Chat API response status: ${response.status}`);
@@ -218,10 +285,12 @@ const ChatScreen = () => {
             }
           }
 
+          console.log("🔄 Attempting fallback request to:", `${authInstance.defaults.baseURL}${API_URL}`);
           const fallbackResponse = await authInstance.post(API_URL, fallbackFormData, {
             headers: {
               'Content-Type': 'multipart/form-data',
             },
+            timeout: 30000, // 60 seconds timeout for AI responses
           });
 
           const fallbackData = fallbackResponse.data;
@@ -241,12 +310,29 @@ const ChatScreen = () => {
         }
       }
 
-      // ✅ Standard error handling
+      // ✅ Standard error handling with detailed server error info
+      console.error("❌ Chat request failed:", error);
+      console.error("❌ Error status:", error?.response?.status);
+      console.error("❌ Error message:", error?.message);
+      console.error("❌ Server response:", error?.response?.data);
+      
+      let errorText = "Sorry, I couldn't connect to the server. Please try again.";
+      
+      if (error?.response?.status === 500) {
+        errorText = "Server error detected. The AI service might be temporarily unavailable. Please check if all required API keys are configured on the server.";
+      } else if (error?.response?.status === 404) {
+        errorText = "Chat endpoint not found. Please check the server configuration.";
+      } else if (error?.response?.status === 401 || error?.response?.status === 403) {
+        errorText = "Authentication error. Please try logging in again.";
+      } else if (error?.message?.includes("Network request failed")) {
+        errorText = "Connection error. Please check your internet and try again.";
+      } else if (error?.message?.includes("timeout")) {
+        errorText = "Request timed out. The AI is taking longer than expected. Please try again.";
+      }
+
       const errorMessage: Message = {
         id: Date.now().toString() + "e",
-        text: error?.message?.includes("Network request failed")
-          ? "Connection error. Please check your internet and try again."
-          : "Sorry, I couldn't connect to the server. Please try again.",
+        text: errorText,
         sender: "bot",
         author: "NutritionAI",
         timestamp: getCurrentTimestamp(),
@@ -368,7 +454,10 @@ const ChatScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <CustomHeaderWithBack title="Nutritor AI" />
+      <CustomHeaderWithBack 
+        title="NutritionAI Agent" 
+        rightComponent={<NewChatButton />}
+      />
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -380,10 +469,11 @@ const ChatScreen = () => {
             <View style={styles.startBox}>
               <icons.chatIcon width={60} height={60} className="mb-5" />
               <Text style={styles.startTitle} className="mt-3">
-                Meet Your NutritionAI Agent!
+                Meet Your NutritionAI Agent! {currentChatId > 1 && `(Chat #${currentChatId})`}
               </Text>
               <Text style={styles.startSubtitle}>
                 Your intelligent nutrition assistant that can analyze food images, manage your diet, track weight progress, and provide personalized nutrition guidance.
+                {currentChatId > 1 && " Ready for a fresh conversation!"}
               </Text>
               <TouchableOpacity
                 style={styles.startButton}
@@ -546,7 +636,7 @@ const ChatScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "bg-bg-default dark:bg-bg-default-dark",
+    backgroundColor: "#FFFFFF", // White background instead of string
   },
   startContainer: {
     flex: 1,
@@ -556,23 +646,23 @@ const styles = StyleSheet.create({
   },
   startBox: {
     width: "100%",
-    backgroundColor: "bg-surface dark:bg-surface-dark",
+    backgroundColor: "#F8F9FA", // Light gray background instead of string
     borderRadius: 16,
     padding: 25,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "border-default dark:border-default-dark",
+    borderColor: "#E5E7EB", // Light gray border instead of string
   },
   startTitle: {
     fontSize: 18,
     fontWeight: "600",
     textAlign: "center",
     marginBottom: 10,
-    color: "text-default dark:text-default-dark",
+    color: "#1F2937", // Dark gray color instead of string
   },
   startSubtitle: {
     fontSize: 14,
-    color: "text-secondary dark:text-secondary-dark",
+    color: "#6B7280", // Medium gray color instead of string
     textAlign: "center",
     marginBottom: 25,
     lineHeight: 20,
@@ -582,13 +672,13 @@ const styles = StyleSheet.create({
     textDecorationLine: "underline",
   },
   startButton: {
-    backgroundColor: "bg-accent dark:bg-accent-dark",
+    backgroundColor: "#FF5A16", // Orange color instead of string
     paddingVertical: 15,
     borderRadius: 12,
     width: "100%",
     alignItems: "center",
   },
-  startButtonText: { color: "text-white", fontSize: 16, fontWeight: "bold" },
+  startButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "bold" },
   messageList: { flex: 1, paddingHorizontal: 15 },
   messageRow: { marginBottom: 10 },
   metadataContainer: {
@@ -613,22 +703,22 @@ const styles = StyleSheet.create({
     maxWidth: "80%",
   },
   botBubble: {
-    backgroundColor: "bg-surface dark:bg-surface-dark",
+    backgroundColor: "#F3F4F6", // Light gray background instead of string
     borderWidth: 1,
-    borderColor: "border-default dark:border-default-dark",
+    borderColor: "#E5E7EB", // Light gray border instead of string
     alignSelf: "flex-start",
     borderTopLeftRadius: 4,
   },
   userBubble: {
-    backgroundColor: "bg-accent dark:bg-accent-dark",
+    backgroundColor: "#FF5A16", // Orange color instead of string
     alignSelf: "flex-end",
     borderTopRightRadius: 4,
   },
   botMessageText: {
     fontSize: 15,
-    color: "text-default dark:text-default-dark",
+    color: "#000000", // Black color for bot messages
   },
-  userMessageText: { fontSize: 15, color: "text-white" },
+  userMessageText: { fontSize: 15, color: "#FFFFFF" }, // White color for user messages
   chatImage: {
     width: "70%",
     aspectRatio: 1,

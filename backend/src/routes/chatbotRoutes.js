@@ -123,9 +123,12 @@ const tools = [
 ];
 
 const model = genAI.getGenerativeModel({ 
-  model: "gemini-2.5-flash",
+  model: "gemini-1.5-flash", // Fixed model name - gemini-2.5-flash doesn't exist
   tools: tools
 });
+
+// Validate model initialization
+console.log("✅ Gemini model initialized successfully");
 
 const chatHistories = {};
 const systemPrompt = `'''
@@ -317,7 +320,26 @@ router.post("/", authMiddleware, upload.single("image"), async (req, res) => {
 
   } catch (err) {
     console.error("!!! FATAL ERROR IN /chat ENDPOINT !!!", err);
-    res.status(500).json({ error: "An error occurred on the server." });
+    console.error("Error name:", err.name);
+    console.error("Error message:", err.message);
+    console.error("Error stack:", err.stack);
+    
+    // More specific error responses
+    let errorMessage = "An error occurred on the server.";
+    if (err.message?.includes("API key")) {
+      errorMessage = "AI service authentication failed. Please check server configuration.";
+    } else if (err.message?.includes("model")) {
+      errorMessage = "AI model initialization failed. Please check the model name.";
+    } else if (err.message?.includes("function")) {
+      errorMessage = "AI function calling failed. Please check the tools configuration.";
+    } else if (err.message?.includes("auth")) {
+      errorMessage = "User authentication failed.";
+    }
+    
+    res.status(500).json({ 
+      error: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
   }
 });
 
@@ -336,7 +358,7 @@ router.post("/basic", upload.single("image"), async (req, res) => {
     }
 
     // Use basic model without function calling for unauthenticated users
-    const basicModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const basicModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // Fixed model name
     const basicChatKey = `basic_${clientId}`;
 
     if (!chatHistories[basicChatKey]) {
