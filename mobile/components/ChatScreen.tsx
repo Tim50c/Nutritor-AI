@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import CustomHeaderWithBack from "./CustomHeaderWithBack";
 import { Text } from "./CustomText";
+import { authInstance } from "@/config/api/axios"; // Import auth instance for API calls
 
 // icon defined here
 import { icons } from "@/constants/icons";
@@ -38,7 +39,7 @@ interface PickerAsset {
   mimeType: string;
 }
 
-const API_URL = `https://nutritor-ai.onrender.com/api/v1/chat`;
+const API_URL = `/chatbot`; // Use relative URL for authInstance
 
 const ChatScreen = () => {
   const router = useRouter();
@@ -64,14 +65,14 @@ const ChatScreen = () => {
     setMessages([
       {
         id: "1",
-        author: "Nutritor AI",
+        author: "NutritionAI",
         timestamp: getCurrentTimestamp(),
-        text: "Hello! Nice to meet you!",
+        text: "Hello! I'm your personal NutritionAI Agent!",
         sender: "bot",
       },
       {
         id: "2",
-        text: "Welcome to Nutritor AI.\nPlease type down a question, and I will answer right away!",
+        text: "I can help you with:\n• Search our food database\n• Analyze food images\n• Manage your daily diet\n• Track your weight progress\n• Check goal achievements\n\nWhat would you like to know?",
         sender: "bot",
       },
     ]);
@@ -159,23 +160,23 @@ const ChatScreen = () => {
 
     try {
       console.log("🚀 Sending chat message to API...");
-      // The fetch call is now much simpler. NO manual headers.
-      const response = await fetch(API_URL, {
-        method: "POST",
-        body: formData,
+      
+      // Use authInstance for authenticated requests to the agent
+      const response = await authInstance.post(API_URL, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
 
       console.log(`📡 Chat API response status: ${response.status}`);
-      if (!response.ok) throw new Error(`Server error: ${response.status}`);
-
-      const data = await response.json();
+      const data = response.data;
       console.log("✅ Chat API response received successfully");
 
       const botMessage: Message = {
         id: Date.now().toString() + "b",
         text: data.text,
         sender: "bot",
-        author: "Nutritor AI",
+        author: "NutritionAI",
         timestamp: getCurrentTimestamp(),
       };
       setMessages((prev) => [...prev, botMessage]);
@@ -217,25 +218,24 @@ const ChatScreen = () => {
             }
           }
 
-          const fallbackResponse = await fetch(API_URL, {
-            method: "POST",
-            body: fallbackFormData,
+          const fallbackResponse = await authInstance.post(API_URL, fallbackFormData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
           });
 
-          if (fallbackResponse.ok) {
-            const fallbackData = await fallbackResponse.json();
-            console.log("✅ Chat fallback request successful");
+          const fallbackData = fallbackResponse.data;
+          console.log("✅ Chat fallback request successful");
 
-            const botMessage: Message = {
-              id: Date.now().toString() + "b",
-              text: fallbackData.text,
-              sender: "bot",
-              author: "Nutritor AI",
-              timestamp: getCurrentTimestamp(),
-            };
-            setMessages((prev) => [...prev, botMessage]);
-            return; // Exit early on success
-          }
+          const botMessage: Message = {
+            id: Date.now().toString() + "b",
+            text: fallbackData.text,
+            sender: "bot",
+            author: "NutritionAI",
+            timestamp: getCurrentTimestamp(),
+          };
+          setMessages((prev) => [...prev, botMessage]);
+          return; // Exit early on success
         } catch (fallbackError) {
           console.error("❌ Chat fallback also failed:", fallbackError);
         }
@@ -248,7 +248,7 @@ const ChatScreen = () => {
           ? "Connection error. Please check your internet and try again."
           : "Sorry, I couldn't connect to the server. Please try again.",
         sender: "bot",
-        author: "Nutritor AI",
+        author: "NutritionAI",
         timestamp: getCurrentTimestamp(),
       };
       setMessages((prev) => [...prev, errorMessage]);
@@ -380,18 +380,16 @@ const ChatScreen = () => {
             <View style={styles.startBox}>
               <icons.chatIcon width={60} height={60} className="mb-5" />
               <Text style={styles.startTitle} className="mt-3">
-                Hello! Nice to see you here!
+                Meet Your NutritionAI Agent!
               </Text>
               <Text style={styles.startSubtitle}>
-                Start chatting with Nutritor AI, your personal nutrition
-                assistant and get instant answers to your diet and health
-                questions.
+                Your intelligent nutrition assistant that can analyze food images, manage your diet, track weight progress, and provide personalized nutrition guidance.
               </Text>
               <TouchableOpacity
                 style={styles.startButton}
                 onPress={handleStartChat}
               >
-                <Text style={styles.startButtonText}>Start chat</Text>
+                <Text style={styles.startButtonText}>Start Agent Chat</Text>
               </TouchableOpacity>
             </View>
           </View>
