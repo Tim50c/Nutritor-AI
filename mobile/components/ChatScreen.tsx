@@ -20,6 +20,8 @@ import CustomHeaderWithBack from "./CustomHeaderWithBack";
 import { Text } from "./CustomText";
 import { authInstance } from "@/config/api/axios"; // Import auth instance for API calls
 import { apiDomain } from "@/constants";
+import { useDietContext } from "@/context/DietContext"; // Import diet context for refreshing data
+import { useAnalytics } from "@/context/AnalyticsContext"; // Import analytics context for weight updates
 
 // icon defined here
 import { icons } from "@/constants/icons";
@@ -45,6 +47,8 @@ const API_URL = `chat`; // Correct path for authInstance (baseURL already includ
 
 const ChatScreen = () => {
   const router = useRouter();
+  const { refreshDietData } = useDietContext(); // Get diet refresh function
+  const { refreshAnalytics, invalidateAnalytics } = useAnalytics(); // Get analytics refresh functions
   
   // Debug logging for API configuration
   console.log("🔧 API Configuration:");
@@ -58,6 +62,7 @@ const ChatScreen = () => {
   const [isAttachmentMenuVisible, setAttachmentMenuVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false); // <-- Add loading state
   const [currentChatId, setCurrentChatId] = useState(1); // Track current chat session
+  const [isRefreshingData, setIsRefreshingData] = useState(false); // Loading state for data refresh
 
   // Handle new chat creation
   const handleNewChat = () => {
@@ -94,6 +99,84 @@ const ChatScreen = () => {
     setInput("");
     setCurrentChatId(prev => prev + 1);
     console.log(`🆕 Started new chat session #${currentChatId + 1}`);
+  };
+
+  // Function to refresh diet data when agent performs diet operations
+  const handleDietDataRefresh = async (botResponse: string) => {
+    try {
+      // Check if the bot response indicates diet modifications
+      const dietKeywords = [
+        "added to your diet for today",
+        "removed from your diet",
+        "added to your diet",
+        "removed from your diet", 
+        "deleted from your diet",
+        "added to diet",
+        "removed from diet",
+        "food has been added",
+        "food has been removed",
+        "successfully added",
+        "successfully removed",
+        "diet updated",
+        "diet modified"
+      ];
+
+      // Check if the bot response indicates weight updates
+      const weightKeywords = [
+        "weight updated",
+        "weight has been updated",
+        "current weight is now",
+        "weight set to",
+        "congratulations",
+        "goal achieved",
+        "reached your goal"
+      ];
+
+      const shouldRefreshDiet = dietKeywords.some(keyword => 
+        botResponse.toLowerCase().includes(keyword.toLowerCase())
+      );
+
+      const shouldRefreshWeight = weightKeywords.some(keyword => 
+        botResponse.toLowerCase().includes(keyword.toLowerCase())
+      );
+
+      if (shouldRefreshDiet || shouldRefreshWeight) {
+        setIsRefreshingData(true); // Show refresh indicator
+      }
+
+      if (shouldRefreshDiet) {
+        console.log("🔄 Diet modification detected, refreshing diet data...");
+        // Refresh current day's diet data
+        await refreshDietData(new Date(), true); // force refresh
+        // Also invalidate analytics to refresh nutrition data
+        invalidateAnalytics();
+        console.log("✅ Diet data refreshed successfully");
+      }
+
+      if (shouldRefreshWeight) {
+        console.log("🔄 Weight update detected, refreshing analytics...");
+        // Refresh analytics data which includes weight information
+        await refreshAnalytics();
+        console.log("✅ Analytics data refreshed successfully");
+      }
+
+      // If either diet or weight was updated, also refresh analytics after a short delay
+      if (shouldRefreshDiet || shouldRefreshWeight) {
+        setTimeout(async () => {
+          try {
+            await refreshAnalytics();
+            console.log("✅ Analytics data refreshed after diet/weight change");
+          } catch (error) {
+            console.error("❌ Error in delayed analytics refresh:", error);
+          } finally {
+            setIsRefreshingData(false); // Hide refresh indicator
+          }
+        }, 1000); // 1 second delay to allow backend to process
+      }
+    } catch (error) {
+      console.error("❌ Error refreshing diet data:", error);
+      setIsRefreshingData(false); // Hide refresh indicator on error
+    }
   };
 
   // Create + button component for new chat
@@ -247,6 +330,9 @@ const ChatScreen = () => {
         timestamp: getCurrentTimestamp(),
       };
       setMessages((prev) => [...prev, botMessage]);
+      
+      // 🔄 Refresh diet data if the response indicates diet changes
+      await handleDietDataRefresh(data.text);
     } catch (error: any) {
       console.error("💥 Error in chat sendData:", error);
 
@@ -304,6 +390,10 @@ const ChatScreen = () => {
             timestamp: getCurrentTimestamp(),
           };
           setMessages((prev) => [...prev, botMessage]);
+          
+          // 🔄 Refresh diet data if the fallback response indicates diet changes
+          await handleDietDataRefresh(fallbackData.text);
+          
           return; // Exit early on success
         } catch (fallbackError) {
           console.error("❌ Chat fallback also failed:", fallbackError);
@@ -499,6 +589,14 @@ const ChatScreen = () => {
                 size="large"
                 color="#FF5A16"
               />
+            )}
+            {isRefreshingData && (
+              <View style={{ alignItems: "center", paddingVertical: 8 }}>
+                <ActivityIndicator size="small" color="#FF5A16" />
+                <Text style={{ color: "#FF5A16", fontSize: 12, marginTop: 4 }}>
+                  Refreshing your data...
+                </Text>
+              </View>
             )}
             <View style={styles.inputArea}>
               {isAttachmentMenuVisible && (
