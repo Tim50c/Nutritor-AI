@@ -39,7 +39,7 @@ interface PickerAsset {
   mimeType: string;
 }
 
-const API_URL = `/chatbot`; // Use relative URL for authInstance
+const API_URL = `chat`; // Correct path for authInstance (baseURL already includes /api/v1/)
 
 const ChatScreen = () => {
   const router = useRouter();
