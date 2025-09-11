@@ -223,7 +223,7 @@ router.post("/", authMiddleware, upload.single("image"), async (req, res) => {
     if (!chatHistories[chatKey]) {
       console.log(`[LOG] New chat history created for chatKey: ${chatKey}`);
       chatHistories[chatKey] = [
-        { role: "system", parts: [{ text: systemPrompt }] },
+        { role: "user", parts: [{ text: systemPrompt }] },
         { role: "model", parts: [{ text: "Understood. I am NutritionAI. I can help with your nutrition questions, manage your diet, track your weight, and analyze food images. What would you like to know?" }] },
       ];
     }
