@@ -49,12 +49,7 @@ const ChatScreen = () => {
   const router = useRouter();
   const { refreshDietData } = useDietContext(); // Get diet refresh function
   const { refreshAnalytics, invalidateAnalytics } = useAnalytics(); // Get analytics refresh functions
-  
-  // Debug logging for API configuration
-  console.log("🔧 API Configuration:");
-  console.log("📍 Base URL from constants:", apiDomain);
-  console.log("🎯 Chat endpoint:", API_URL);
-  console.log("🔗 Full chat URL will be:", `${apiDomain}${API_URL}`);
+
   
   const [isChatStarted, setIsChatStarted] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -210,9 +205,9 @@ const ChatScreen = () => {
     setMessages([
       {
         id: "1",
-        author: "NutritionAI",
+        author: "NutritorAI",
         timestamp: getCurrentTimestamp(),
-        text: "Hello! I'm your personal NutritionAI Agent!",
+        text: "Hello! I'm your personal NutritorAI Agent!",
         sender: "bot",
       },
       {
@@ -324,7 +319,7 @@ const ChatScreen = () => {
         id: Date.now().toString() + "b",
         text: data.text,
         sender: "bot",
-        author: "NutritionAI",
+        author: "NutritorAI",
         timestamp: getCurrentTimestamp(),
       };
       setMessages((prev) => [...prev, botMessage]);
@@ -384,7 +379,7 @@ const ChatScreen = () => {
             id: Date.now().toString() + "b",
             text: fallbackData.text,
             sender: "bot",
-            author: "NutritionAI",
+            author: "NutritorAI",
             timestamp: getCurrentTimestamp(),
           };
           setMessages((prev) => [...prev, botMessage]);
@@ -422,7 +417,7 @@ const ChatScreen = () => {
         id: Date.now().toString() + "e",
         text: errorText,
         sender: "bot",
-        author: "NutritionAI",
+        author: "NutritorAI",
         timestamp: getCurrentTimestamp(),
       };
       setMessages((prev) => [...prev, errorMessage]);
@@ -543,7 +538,7 @@ const ChatScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <CustomHeaderWithBack 
-        title="NutritionAI Agent" 
+        title="NutritorAI Agent" 
         rightComponent={<NewChatButton />}
       />
 
@@ -557,7 +552,7 @@ const ChatScreen = () => {
             <View style={styles.startBox}>
               <icons.chatIcon width={60} height={60} className="mb-5" />
               <Text style={styles.startTitle} className="mt-3">
-                Meet Your NutritionAI Agent!
+                Meet Your NutritorAI Agent!
               </Text>
               <Text style={styles.startSubtitle}>
                 Your intelligent nutrition assistant that can analyze food images, manage your diet, track weight progress, and provide personalized nutrition guidance.

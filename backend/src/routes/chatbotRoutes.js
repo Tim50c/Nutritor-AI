@@ -285,22 +285,22 @@ router.post("/", authMiddleware, upload.single("image"), async (req, res) => {
       // Execute function calls
       const functionResponses = [];
       for (const functionCall of functionCalls) {
+        console.log(`[LOG] Executing function: ${functionCall.name}`);
         const functionResponse = await handleFunctionCall(functionCall, uid);
+        console.log(`[LOG] Function ${functionCall.name} response:`, functionResponse);
+        
+        // Format according to the latest Gemini API spec
         functionResponses.push({
-          name: functionCall.name,
-          response: functionResponse
+          functionResponse: {
+            name: functionCall.name,
+            response: functionResponse
+          }
         });
       }
       
+      console.log("[LOG] Sending function responses back to Gemini...");
       // Send function results back to Gemini for final response
-      const functionResultMessage = functionResponses.map(fr => ({
-        functionResponse: {
-          name: fr.name,
-          response: fr.response
-        }
-      }));
-      
-      const functionResult = await chat.sendMessage(functionResultMessage);
+      const functionResult = await chat.sendMessage(functionResponses);
       fullResponseText = functionResult.response.text();
       console.log("[LOG] Function calls executed and response generated");
     } else {
