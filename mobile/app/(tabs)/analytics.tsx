@@ -409,12 +409,15 @@ const Analytics = () => {
     setRefreshTrigger((prev) => prev + 1);
     try {
       console.log("🔄 [Analytics] Manual refresh triggered");
-      // Refresh both analytics and user profile data in parallel
-      await Promise.all([
-        refreshAnalytics(),
-        refetchUserProfile(), // This will also clear analytics cache as we implemented earlier
-        ...(tab !== "daily" ? [refreshNutritionTab(tab)] : []),
-      ]);
+      // Refresh user profile first (this will also clear analytics cache)
+      await refetchUserProfile();
+      // Small delay to prevent race conditions and reduce load
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      // Then refresh analytics data
+      await refreshAnalytics();
+      if (tab !== "daily") {
+        await refreshNutritionTab(tab);
+      }
     } catch (error) {
       console.error("❌ [Analytics] Manual refresh failed:", error);
     }

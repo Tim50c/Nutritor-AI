@@ -92,7 +92,10 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     return () => unsubscribe();
   }, []);
 
-  const fetchUserProfile = async (user: FirebaseAuthUser) => {
+  const fetchUserProfile = async (
+    user: FirebaseAuthUser,
+    skipCache: boolean = false
+  ) => {
     setIsLoadingProfile(true);
     try {
       const token = await user.getIdToken();
@@ -121,18 +124,23 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       if (result.success && result.data) {
         setUserProfile(result.data);
 
-        // Load foods cache after successful profile fetch
-        try {
-          console.log("🔄 Loading foods cache...");
-          const cacheResult = await SearchService.loadFoodsCache();
-          if (cacheResult.success) {
-            console.log(`✅ Foods cache loaded: ${cacheResult.count} foods`);
-          } else {
-            console.log("⚠️ Failed to load foods cache:", cacheResult.message);
+        // Only load foods cache on initial load, not on refresh
+        if (!skipCache) {
+          try {
+            console.log("🔄 Loading foods cache...");
+            const cacheResult = await SearchService.loadFoodsCache();
+            if (cacheResult.success) {
+              console.log(`✅ Foods cache loaded: ${cacheResult.count} foods`);
+            } else {
+              console.log(
+                "⚠️ Failed to load foods cache:",
+                cacheResult.message
+              );
+            }
+          } catch (cacheError) {
+            console.error("❌ Error loading foods cache:", cacheError);
+            // Don't throw here - profile loading should still succeed even if cache fails
           }
-        } catch (cacheError) {
-          console.error("❌ Error loading foods cache:", cacheError);
-          // Don't throw here - profile loading should still succeed even if cache fails
         }
       } else {
         throw new Error(result.error || "Could not get user data");
@@ -162,7 +170,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       console.log(
         "🗑️ [UserContext] Analytics cache cleared before profile refetch"
       );
-      fetchUserProfile(firebaseUser);
+      // Skip foods cache reload on manual refresh to avoid heavy operations
+      fetchUserProfile(firebaseUser, true);
     }
   };
 
