@@ -1,6 +1,7 @@
 const { db, admin } = require('../config/firebase');
 const Food = require('../models/foodModel');
 const Diet = require('../models/dietModel');
+const User = require('../models/userModel');
 
 // Helper function for timezone-safe date formatting
 const getLocalDateString = (date = new Date()) => {
@@ -459,6 +460,220 @@ async function analyzeImageAndMatchFood(model, imageData) {
   }
 }
 
+// 10. Get user profile information
+async function getUserProfile(uid) {
+  try {
+    console.log(`[Agent] Getting profile for user ${uid}`);
+    
+    const userDoc = await db.collection('users').doc(uid).get();
+    
+    if (!userDoc.exists) {
+      return {
+        success: false,
+        error: 'User profile not found'
+      };
+    }
+    
+    const user = User.fromFirestore(userDoc);
+    
+    // Format date of birth for better readability
+    let formattedDob = null;
+    if (user.dob) {
+      const dobDate = user.dob.toDate ? user.dob.toDate() : new Date(user.dob);
+      formattedDob = dobDate.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    }
+    
+    // Calculate age from date of birth
+    let age = null;
+    if (user.dob) {
+      const dobDate = user.dob.toDate ? user.dob.toDate() : new Date(user.dob);
+      const today = new Date();
+      age = today.getFullYear() - dobDate.getFullYear();
+      const monthDiff = today.getMonth() - dobDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dobDate.getDate())) {
+        age--;
+      }
+    }
+    
+    // Format weight and height based on user preferences
+    const weightUnit = user.unitPreferences?.weight || 'kg';
+    const heightUnit = user.unitPreferences?.height || 'cm';
+    
+    let formattedCurrentWeight = user.weightCurrent;
+    let formattedGoalWeight = user.weightGoal;
+    let formattedHeight = user.height;
+    
+    if (weightUnit === 'lbs' && user.weightCurrent) {
+      formattedCurrentWeight = Math.round(user.weightCurrent * 2.20462 * 10) / 10;
+    }
+    if (weightUnit === 'lbs' && user.weightGoal) {
+      formattedGoalWeight = Math.round(user.weightGoal * 2.20462 * 10) / 10;
+    }
+    if (heightUnit === 'ft' && user.height) {
+      const feet = Math.floor(user.height / 30.48);
+      const inches = Math.round((user.height % 30.48) / 2.54);
+      formattedHeight = `${feet}'${inches}"`;
+    }
+    
+    return {
+      success: true,
+      profile: {
+        personal: {
+          firstName: user.firstname || 'Not set',
+          lastName: user.lastname || 'Not set',
+          fullName: `${user.firstname || ''} ${user.lastname || ''}`.trim() || 'Not set',
+          dateOfBirth: formattedDob || 'Not set',
+          age: age || 'Not set',
+          gender: user.gender || 'Not set',
+          email: user.email || 'Not available'
+        },
+        physical: {
+          height: formattedHeight || 'Not set',
+          heightUnit: heightUnit,
+          currentWeight: formattedCurrentWeight || 'Not set',
+          goalWeight: formattedGoalWeight || 'Not set',
+          weightUnit: weightUnit
+        },
+        nutrition: {
+          targetCalories: user.targetNutrition?.cal || 'Not set',
+          targetProtein: user.targetNutrition?.protein || 'Not set',
+          targetCarbs: user.targetNutrition?.carbs || 'Not set',
+          targetFat: user.targetNutrition?.fat || 'Not set'
+        },
+        preferences: {
+          weightUnit: user.unitPreferences?.weight || 'kg',
+          heightUnit: user.unitPreferences?.height || 'cm'
+        },
+        status: {
+          onboardingComplete: user.onboardingComplete || false,
+          hasAvatar: !!user.avatar
+        }
+      }
+    };
+  } catch (error) {
+    console.error('[Agent] Error getting user profile:', error);
+    throw error;
+  }
+}
+
+// 11. Update user profile information
+async function updateUserProfile(uid, updateData) {
+  try {
+    console.log(`[Agent] Updating profile for user ${uid}`, updateData);
+    
+    // Validate that user exists
+    const userDoc = await db.collection('users').doc(uid).get();
+    if (!userDoc.exists) {
+      return {
+        success: false,
+        error: 'User profile not found'
+      };
+    }
+    
+    const currentUserData = userDoc.data();
+    const userRef = db.collection('users').doc(uid);
+    const firebaseUpdateData = {};
+    
+    // Handle personal information updates
+    if (updateData.firstName !== undefined) {
+      firebaseUpdateData.firstname = updateData.firstName;
+    }
+    if (updateData.lastName !== undefined) {
+      firebaseUpdateData.lastname = updateData.lastName;
+    }
+    if (updateData.gender !== undefined) {
+      firebaseUpdateData.gender = updateData.gender;
+    }
+    if (updateData.dateOfBirth !== undefined) {
+      try {
+        firebaseUpdateData.dob = admin.firestore.Timestamp.fromDate(new Date(updateData.dateOfBirth));
+      } catch (error) {
+        return {
+          success: false,
+          error: 'Invalid date format for date of birth'
+        };
+      }
+    }
+    
+    // Handle physical measurements (convert to metric for storage)
+    const currentWeightUnit = currentUserData.unitPreferences?.weight || 'kg';
+    const currentHeightUnit = currentUserData.unitPreferences?.height || 'cm';
+    
+    if (updateData.height !== undefined) {
+      let heightInCm = updateData.height;
+      if (updateData.heightUnit === 'ft' || currentHeightUnit === 'ft') {
+        // Assume height is in format like "5.8" representing 5'8"
+        const feet = Math.floor(heightInCm);
+        const inches = (heightInCm - feet) * 12;
+        heightInCm = (feet * 12 + inches) * 2.54;
+      }
+      firebaseUpdateData.height = Math.round(heightInCm * 10) / 10;
+    }
+    
+    if (updateData.currentWeight !== undefined) {
+      let weightInKg = updateData.currentWeight;
+      if (updateData.weightUnit === 'lbs' || currentWeightUnit === 'lbs') {
+        weightInKg = weightInKg / 2.20462;
+      }
+      firebaseUpdateData.weightCurrent = Math.round(weightInKg * 10) / 10;
+    }
+    
+    if (updateData.goalWeight !== undefined) {
+      let weightInKg = updateData.goalWeight;
+      if (updateData.weightUnit === 'lbs' || currentWeightUnit === 'lbs') {
+        weightInKg = weightInKg / 2.20462;
+      }
+      firebaseUpdateData.weightGoal = Math.round(weightInKg * 10) / 10;
+    }
+    
+    // Handle nutrition targets
+    if (updateData.targetNutrition !== undefined) {
+      firebaseUpdateData.targetNutrition = {
+        cal: updateData.targetNutrition.calories || updateData.targetNutrition.cal,
+        protein: updateData.targetNutrition.protein,
+        carbs: updateData.targetNutrition.carbs,
+        fat: updateData.targetNutrition.fat
+      };
+    }
+    
+    // Handle unit preferences
+    if (updateData.weightUnit !== undefined || updateData.heightUnit !== undefined) {
+      firebaseUpdateData.unitPreferences = {
+        weight: updateData.weightUnit || currentUserData.unitPreferences?.weight || 'kg',
+        height: updateData.heightUnit || currentUserData.unitPreferences?.height || 'cm'
+      };
+    }
+    
+    // Add timestamp
+    firebaseUpdateData.updatedAt = admin.firestore.FieldValue.serverTimestamp();
+    
+    if (Object.keys(firebaseUpdateData).length === 1) { // Only timestamp
+      return {
+        success: false,
+        error: 'No valid update data provided'
+      };
+    }
+    
+    await userRef.update(firebaseUpdateData);
+    
+    // Get updated profile for response
+    const updatedProfile = await getUserProfile(uid);
+    
+    return {
+      success: true,
+      message: 'Profile updated successfully',
+      updatedProfile: updatedProfile.profile
+    };
+  } catch (error) {
+    console.error('[Agent] Error updating user profile:', error);
+    throw error;
+  }
+}
+
 module.exports = {
   getAllFoods,
   searchFoodInDatabase,
@@ -469,5 +684,7 @@ module.exports = {
   getCurrentAndGoalWeight,
   updateCurrentWeight,
   analyzeImageAndMatchFood,
+  getUserProfile,
+  updateUserProfile,
   getLocalDateString
 };
