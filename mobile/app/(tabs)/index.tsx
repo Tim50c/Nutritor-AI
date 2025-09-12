@@ -1,5 +1,12 @@
 import { useDietContext } from "@/context/DietContext";
-import { ActivityIndicator, Platform, ScrollView, View } from "react-native";
+import {
+  ActivityIndicator,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  View,
+} from "react-native";
+import { useState } from "react";
 import FoodSection from "../../components/FoodSection";
 import HomeTopBar from "../../components/HomeTopBar";
 import TodaySummary from "../../components/TodaySummary";
@@ -12,7 +19,21 @@ export default function HomeScreen() {
     suggestedFoods,
     loading,
     refreshing,
+    refreshHomeData,
   } = useDietContext();
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshHomeData(true); // Force refresh
+    } catch (error) {
+      console.error("Failed to refresh home data:", error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // History foods are the consumed foods from the backend
   const historyFoods = homeFoods;
@@ -22,7 +43,17 @@ export default function HomeScreen() {
       className={`flex-1 bg-gray-50 dark:bg-gray-900 ${Platform.OS === "ios" ? "pt-10" : ""}`}
     >
       <HomeTopBar />
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            colors={["#2563EB"]} // Android
+            tintColor="#2563EB" // iOS
+          />
+        }
+      >
         <View className="p-4">
           {loading ? (
             // Show loading spinner only on initial load (when no data exists)

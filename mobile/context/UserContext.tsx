@@ -1,8 +1,14 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useEffect,
+} from "react";
 import { auth } from "../config/firebase";
 import NutritionModel from "@/models/nutrition-model";
 import { onAuthStateChanged, User as FirebaseAuthUser } from "firebase/auth";
-import { SearchService } from "@/services";
+import { SearchService, AnalysisService } from "@/services";
 
 // 1. Define a type that accurately reflects the backend data model
 export type User = {
@@ -11,7 +17,7 @@ export type User = {
   lastname: string;
   email: string;
   avatar: string | null;
-  dob: any; 
+  dob: any;
   gender: "Male" | "Female" | "Other" | null;
   height: number | null; // Stored as cm
   weightCurrent: number | null; // Stored as kg
@@ -19,17 +25,17 @@ export type User = {
   targetNutrition?: NutritionModel;
   onboardingComplete: boolean;
   unitPreferences: {
-    weight: 'kg' | 'lbs';
-    height: 'cm' | 'ft';
+    weight: "kg" | "lbs";
+    height: "cm" | "ft";
   };
 };
 
 // Default user object for fallback scenarios
 export const defaultUser: User = {
-  id: '',
-  firstname: '',
-  lastname: '',
-  email: '',
+  id: "",
+  firstname: "",
+  lastname: "",
+  email: "",
   avatar: null,
   dob: null,
   gender: null,
@@ -38,8 +44,8 @@ export const defaultUser: User = {
   weightGoal: null,
   onboardingComplete: false,
   unitPreferences: {
-    weight: 'kg',
-    height: 'cm',
+    weight: "kg",
+    height: "cm",
   },
 };
 
@@ -64,7 +70,9 @@ export const useUser = () => useContext(UserContext);
 export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [userProfile, setUserProfile] = useState<User | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
-  const [firebaseUser, setFirebaseUser] = useState<FirebaseAuthUser | null>(null);
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseAuthUser | null>(
+    null
+  );
 
   // Effect to listen for authentication changes
   useEffect(() => {
@@ -89,25 +97,30 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     try {
       const token = await user.getIdToken();
       const API_URL = process.env.EXPO_PUBLIC_API_URL;
-      
+
       const response = await fetch(`${API_URL}/api/v1/profile`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
       if (!response.ok) {
         // If response is not ok, try to read it as text to see the HTML error
         const errorText = await response.text();
-        console.error("Failed to fetch profile. Server responded with:", errorText);
-        throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        console.error(
+          "Failed to fetch profile. Server responded with:",
+          errorText
+        );
+        throw new Error(
+          `Server error: ${response.status} ${response.statusText}`
+        );
       }
 
       const result = await response.json();
-      
+
       if (result.success && result.data) {
         setUserProfile(result.data);
-        
+
         // Load foods cache after successful profile fetch
         try {
           console.log("🔄 Loading foods cache...");
@@ -122,7 +135,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
           // Don't throw here - profile loading should still succeed even if cache fails
         }
       } else {
-        throw new Error(result.error || 'Could not get user data');
+        throw new Error(result.error || "Could not get user data");
       }
     } catch (error) {
       console.error("Error fetching user profile:", error);
@@ -144,7 +157,12 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   // Function to allow manual refetching from other components if needed
   const handleRefetch = () => {
     if (firebaseUser) {
-        fetchUserProfile(firebaseUser);
+      // Clear analytics cache before refetching profile to ensure fresh analytics data
+      AnalysisService.clearCache();
+      console.log(
+        "🗑️ [UserContext] Analytics cache cleared before profile refetch"
+      );
+      fetchUserProfile(firebaseUser);
     }
   };
 

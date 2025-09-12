@@ -101,6 +101,12 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({
 
         console.log("📊 [AnalyticsContext] Starting analytics refresh...");
 
+        // Clear cache to ensure fresh data is fetched
+        AnalysisService.clearCache();
+        console.log(
+          "🗑️ [AnalyticsContext] Cache cleared for fresh analytics data"
+        );
+
         const comprehensiveData =
           await AnalysisService.getComprehensiveAnalytics();
 
@@ -137,6 +143,12 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({
       try {
         console.log(
           `📊 [AnalyticsContext] Refreshing ${tab} nutrition data...`
+        );
+
+        // Clear cache to ensure fresh nutrition data is fetched
+        AnalysisService.clearCache();
+        console.log(
+          `🗑️ [AnalyticsContext] Cache cleared for fresh ${tab} nutrition data`
         );
 
         const newTabData = await AnalysisService.getNutritionByTab(tab);

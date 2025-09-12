@@ -7,7 +7,7 @@ import ProfileService from "@/services/profile-service";
 import GoalAchievedModal from "@/components/GoalAchievedModal";
 import apiClient from "@/utils/apiClients";
 import { auth } from "@/config/firebase";
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import { Camera, CameraView } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
@@ -20,6 +20,7 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
+  RefreshControl,
   SafeAreaView,
   ScrollView,
   TextInput,
@@ -51,13 +52,14 @@ const genders = ["Male", "Female", "Other"];
 
 // Helper function to handle comma/dot conversion for decimal input
 const handleDecimalInput = (value: string) => {
-  return value.replace(',', '.');
+  return value.replace(",", ".");
 };
 
 const Profile = () => {
-  const { userProfile, setUserProfile } = useUser();
+  const { userProfile, setUserProfile, refetchUserProfile } = useUser();
   const { initializeFromProfile, resetToDefaults } = useOnboarding();
   const [loading, setLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(
     userProfile?.avatar || null
@@ -96,6 +98,18 @@ const Profile = () => {
   // Goal achievement modal state
   const [goalAchievedModalVisible, setGoalAchievedModalVisible] =
     useState(false);
+
+  // Handle pull-to-refresh
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refetchUserProfile();
+    } catch (error) {
+      console.error("Failed to refresh user profile:", error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const handleSetNewGoal = async () => {
     try {
@@ -167,18 +181,22 @@ const Profile = () => {
               const user = auth.currentUser;
               if (user) {
                 const idToken = await user.getIdToken();
-                await apiClient.patch("/api/v1/profile", {
-                  onboardingComplete: false,
-                  // Reset key profile fields to null/default
-                  dob: null,
-                  gender: null,
-                  height: null,
-                  weightCurrent: null,
-                  weightGoal: null,
-                  targetNutrition: null,
-                }, {
-                  headers: { Authorization: `Bearer ${idToken}` },
-                });
+                await apiClient.patch(
+                  "/api/v1/profile",
+                  {
+                    onboardingComplete: false,
+                    // Reset key profile fields to null/default
+                    dob: null,
+                    gender: null,
+                    height: null,
+                    weightCurrent: null,
+                    weightGoal: null,
+                    targetNutrition: null,
+                  },
+                  {
+                    headers: { Authorization: `Bearer ${idToken}` },
+                  }
+                );
               }
 
               // Reset local user profile to default state but keep essential info
@@ -204,19 +222,23 @@ const Profile = () => {
               setUserProfile(resetProfile);
 
               // Set flag to allow onboarding access
-              await AsyncStorage.setItem('allowOnboardingAccess', 'true');
-              
+              await AsyncStorage.setItem("allowOnboardingAccess", "true");
+
               // Set a specific flag to indicate this is a full reset, not a goal update
-              await AsyncStorage.setItem('isFullReset', 'true');
-              
+              await AsyncStorage.setItem("isFullReset", "true");
+
               // Clear any existing onboarding flags to prevent auto-initialization as goal update
-              await AsyncStorage.removeItem('isGoalUpdate');
-              
+              await AsyncStorage.removeItem("isGoalUpdate");
+
               // Reset onboarding context to defaults (no isGoalUpdate flag)
-              console.log("🔄 [Profile] Calling resetToDefaults before navigation");
+              console.log(
+                "🔄 [Profile] Calling resetToDefaults before navigation"
+              );
               resetToDefaults();
-              
-              console.log("🧭 [Profile] Navigating to onboarding/age with reset profile");
+
+              console.log(
+                "🧭 [Profile] Navigating to onboarding/age with reset profile"
+              );
               // Navigate to first onboarding screen
               router.push("/(onboarding)/age");
             } catch (error) {
@@ -550,6 +572,15 @@ const Profile = () => {
             contentContainerStyle={{ flexGrow: 1 }}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={handleRefresh}
+                colors={["#FF5A16"]} // Android - matches app theme
+                tintColor="#FF5A16" // iOS - matches app theme
+                title="Refreshing profile..."
+              />
+            }
           >
             <View className="items-center mb-6 pt-4">
               <View className="w-24 h-24 rounded-full bg-white items-center justify-center relative">

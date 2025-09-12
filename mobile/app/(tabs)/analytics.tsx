@@ -25,7 +25,7 @@ const formatDateForAPI = (date: Date): string => {
 };
 
 const Analytics = () => {
-  const { userProfile } = useUser();
+  const { userProfile, refetchUserProfile } = useUser();
   // Determine weight unit from user profile
   const weightUnit = userProfile?.unitPreferences?.weight || "kg";
   const {
@@ -409,14 +409,16 @@ const Analytics = () => {
     setRefreshTrigger((prev) => prev + 1);
     try {
       console.log("🔄 [Analytics] Manual refresh triggered");
-      await refreshAnalytics();
-      if (tab !== "daily") {
-        await refreshNutritionTab(tab);
-      }
+      // Refresh both analytics and user profile data in parallel
+      await Promise.all([
+        refreshAnalytics(),
+        refetchUserProfile(), // This will also clear analytics cache as we implemented earlier
+        ...(tab !== "daily" ? [refreshNutritionTab(tab)] : []),
+      ]);
     } catch (error) {
       console.error("❌ [Analytics] Manual refresh failed:", error);
     }
-  }, [refreshAnalytics, refreshNutritionTab, tab]);
+  }, [refreshAnalytics, refetchUserProfile, refreshNutritionTab, tab]);
 
   // Get raw weight values - AnalyticsHeader will handle unit conversion
   const weightGoal = analysisData?.weightGoal ?? 0;
@@ -426,7 +428,9 @@ const Analytics = () => {
     return (
       <SafeAreaView className="flex-1 bg-white dark:bg-black justify-center items-center">
         <ActivityIndicator size="large" color="#009FFA" />
-        <Text className="mt-4 text-gray-500 dark:text-gray-200">Loading analytics...</Text>
+        <Text className="mt-4 text-gray-500 dark:text-gray-200">
+          Loading analytics...
+        </Text>
       </SafeAreaView>
     );
   }
