@@ -1,23 +1,23 @@
 // mobile/app/notifications.tsx
-import React, { useState, useCallback } from "react";
-import {
-  View,
-  Image,
-  ScrollView,
-  TouchableOpacity,
-  SafeAreaView,
-  RefreshControl,
-  ActivityIndicator,
-} from "react-native";
+import CustomHeaderWithBack from "@/components/CustomHeaderWithBack";
 import { Text } from "@/components/CustomText";
+import { icons } from "@/constants/icons";
+import { images } from "@/constants/images";
 import {
   useNotificationContext,
   type Notification,
 } from "@/context/NotificationContext";
-import { images } from "@/constants/images";
-import { icons } from "@/constants/icons";
-import CustomHeaderWithBack from "@/components/CustomHeaderWithBack";
 import { useIsDark } from "@/theme/useIsDark";
+import React, { useCallback, useState } from "react";
+import {
+  ActivityIndicator,
+  Image,
+  RefreshControl,
+  SafeAreaView,
+  ScrollView,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 function NotificationCard({
   notification,
@@ -26,6 +26,7 @@ function NotificationCard({
   notification: Notification;
   onPress: () => void;
 }) {
+  const isDark = useIsDark();
   const { read, message, createdAt } = notification;
 
   // Format the timestamp if available
@@ -64,14 +65,16 @@ function NotificationCard({
       {/* Notification Icon */}
       <View
         className={`w-12 h-12 rounded-full justify-center items-center mr-4 ${
-          read ? "bg-gray-200 dark:bg-gray-700" : "bg-orange-100 dark:bg-gray-800"
+          read
+            ? "bg-gray-200 dark:bg-gray-600"
+            : "bg-orange-100 dark:bg-gray-700"
         }`}
       >
-        <icons.notifications
-          width={24}
-          height={24}
-          color={read ? "#9CA3AF" : "#FF6F2D"}
-        />
+        {isDark ? (
+          <icons.notificationsDark width={24} height={24} />
+        ) : (
+          <icons.notifications width={24} height={24} />
+        )}
       </View>
 
       {/* Content */}
@@ -91,7 +94,9 @@ function NotificationCard({
       </View>
 
       {/* Unread indicator */}
-      {!read && <View className="w-3 h-3 bg-orange-500 dark:bg-orange-400 rounded-full ml-3" />}
+      {!read && (
+        <View className="w-3 h-3 bg-orange-500 dark:bg-orange-400 rounded-full ml-3" />
+      )}
     </TouchableOpacity>
   );
 }
@@ -130,7 +135,9 @@ const NotificationsScreen = () => {
       {loading && !refreshing && (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#FF6F2D" />
-          <Text className="text-gray-500 dark:text-gray-400 mt-4">Loading notifications...</Text>
+          <Text className="text-gray-500 dark:text-gray-400 mt-4">
+            Loading notifications...
+          </Text>
         </View>
       )}
 
