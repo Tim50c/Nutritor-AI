@@ -1,4 +1,5 @@
 import { useDietContext } from "@/context/DietContext";
+import { useUser } from "@/context/UserContext";
 import {
   ActivityIndicator,
   Platform,
@@ -22,12 +23,18 @@ export default function HomeScreen() {
     refreshHomeData,
   } = useDietContext();
 
+  const { refetchUserProfile } = useUser();
+
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      await refreshHomeData(true); // Force refresh
+      // Refresh both home data and user profile (including name in header)
+      await Promise.all([
+        refreshHomeData(true), // Force refresh home data
+        refetchUserProfile(), // Refresh user profile data for header
+      ]);
     } catch (error) {
       console.error("Failed to refresh home data:", error);
     } finally {

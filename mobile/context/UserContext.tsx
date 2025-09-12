@@ -163,15 +163,37 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Function to allow manual refetching from other components if needed
-  const handleRefetch = () => {
+  const handleRefetch = async () => {
     if (firebaseUser) {
       // Clear analytics cache before refetching profile to ensure fresh analytics data
       AnalysisService.clearCache();
       console.log(
         "🗑️ [UserContext] Analytics cache cleared before profile refetch"
       );
-      // Skip foods cache reload on manual refresh to avoid heavy operations
-      fetchUserProfile(firebaseUser, true);
+
+      // Don't set isLoadingProfile to true during refresh to avoid navigation issues
+      // Just refresh the profile data silently
+      try {
+        const token = await firebaseUser.getIdToken();
+        const API_URL = process.env.EXPO_PUBLIC_API_URL;
+
+        const response = await fetch(`${API_URL}/api/v1/profile`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data) {
+            setUserProfile(result.data);
+            console.log("✅ [UserContext] Profile refreshed successfully");
+          }
+        }
+      } catch (error) {
+        console.error("❌ [UserContext] Error refreshing profile:", error);
+        // Don't clear profile on error during refresh
+      }
     }
   };
 
