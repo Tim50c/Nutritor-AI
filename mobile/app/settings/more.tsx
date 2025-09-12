@@ -1,22 +1,22 @@
 import { icons } from "@/constants/icons";
 import { useUser } from "@/context/UserContext";
+import { useTheme } from "@/theme/ThemeProvider";
+import { useIsDark } from "@/theme/useIsDark";
 import { useRouter } from "expo-router";
+import { getAuth } from "firebase/auth";
 import { useEffect, useState } from "react";
 import {
   Alert,
+  Dimensions,
   Modal,
   SafeAreaView,
   StyleSheet,
   TouchableOpacity,
   View,
-  Dimensions,
 } from "react-native";
 import { Text } from "../../components/CustomText";
-import { useTheme } from "@/theme/ThemeProvider";
-import { getAuth } from "firebase/auth";
-import { useIsDark } from "@/theme/useIsDark";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 const More = () => {
   const router = useRouter();
@@ -25,6 +25,14 @@ const More = () => {
   // Local state to manage the UI, initialized from the user's profile
   const [weightUnit, setWeightUnit] = useState<"kg" | "lbs">("kg");
   const [heightUnit, setHeightUnit] = useState<"cm" | "ft">("cm");
+
+  // Track original values from user profile for change detection
+  const [originalWeightUnit, setOriginalWeightUnit] = useState<"kg" | "lbs">(
+    "kg"
+  );
+  const [originalHeightUnit, setOriginalHeightUnit] = useState<"cm" | "ft">(
+    "cm"
+  );
 
   // Theme picker state
   const { scheme, setScheme } = useTheme();
@@ -40,6 +48,9 @@ const More = () => {
     if (userProfile?.unitPreferences) {
       setWeightUnit(userProfile.unitPreferences.weight);
       setHeightUnit(userProfile.unitPreferences.height);
+      // Set original values for change detection
+      setOriginalWeightUnit(userProfile.unitPreferences.weight);
+      setOriginalHeightUnit(userProfile.unitPreferences.height);
     }
   }, [userProfile]);
 
@@ -48,40 +59,44 @@ const More = () => {
     setThemeMode(scheme);
   }, [scheme]);
 
+  // Check if any unit preferences have changed
+  const hasChanges =
+    weightUnit !== originalWeightUnit || heightUnit !== originalHeightUnit;
+
   const handleThemeSelect = async (mode: "system" | "light" | "dark") => {
     try {
       setThemeMode(mode);
       await setScheme(mode);
       setShowThemePicker(false);
     } catch (error) {
-      console.error('Error setting theme:', error);
+      console.error("Error setting theme:", error);
       setShowThemePicker(false);
     }
   };
 
   const getThemeIcon = (mode: string) => {
     switch (mode) {
-      case 'light':
-        return '☀️';
-      case 'dark':
-        return '🌙';
-      case 'system':
-        return '⚙️';
+      case "light":
+        return "☀️";
+      case "dark":
+        return "🌙";
+      case "system":
+        return "⚙️";
       default:
-        return '☀️';
+        return "☀️";
     }
   };
 
   const getThemeDescription = (mode: string) => {
     switch (mode) {
-      case 'light':
-        return 'Clean and bright interface';
-      case 'dark':
-        return 'Easy on your eyes';
-      case 'system':
-        return 'Matches your device setting';
+      case "light":
+        return "Clean and bright interface";
+      case "dark":
+        return "Easy on your eyes";
+      case "system":
+        return "Matches your device setting";
       default:
-        return '';
+        return "";
     }
   };
 
@@ -176,7 +191,9 @@ const More = () => {
             )}
           </View>
         </TouchableOpacity>
-        <Text className="text-xl font-bold text-black dark:text-white">More Settings</Text>
+        <Text className="text-xl font-bold text-black dark:text-white">
+          More Settings
+        </Text>
         <View className="w-10 h-10" />
       </View>
 
@@ -194,18 +211,27 @@ const More = () => {
             <View style={styles.themeSelectorContent}>
               <Text style={styles.themeIcon}>{getThemeIcon(themeMode)}</Text>
               <View style={styles.themeTextContainer}>
-                <Text style={[styles.themeTitle, isDark && styles.themeTitleDark]}>
+                <Text
+                  style={[styles.themeTitle, isDark && styles.themeTitleDark]}
+                >
                   {themeMode === "system"
                     ? "System Default"
                     : themeMode === "light"
-                    ? "Light Mode"
-                    : "Dark Mode"}
+                      ? "Light Mode"
+                      : "Dark Mode"}
                 </Text>
-                <Text style={[styles.themeDescription, isDark && styles.themeDescriptionDark]}>
+                <Text
+                  style={[
+                    styles.themeDescription,
+                    isDark && styles.themeDescriptionDark,
+                  ]}
+                >
                   {getThemeDescription(themeMode)}
                 </Text>
               </View>
-              <Text style={[styles.chevron, isDark && styles.chevronDark]}>›</Text>
+              <Text style={[styles.chevron, isDark && styles.chevronDark]}>
+                ›
+              </Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -215,7 +241,12 @@ const More = () => {
           <Text className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
             Weight Unit
           </Text>
-          <View style={[styles.toggleContainer, isDark && styles.toggleContainerDark]}>
+          <View
+            style={[
+              styles.toggleContainer,
+              isDark && styles.toggleContainerDark,
+            ]}
+          >
             <TouchableOpacity
               onPress={() => setWeightUnit("kg")}
               style={[
@@ -262,7 +293,12 @@ const More = () => {
           <Text className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
             Height Unit
           </Text>
-          <View style={[styles.toggleContainer, isDark && styles.toggleContainerDark]}>
+          <View
+            style={[
+              styles.toggleContainer,
+              isDark && styles.toggleContainerDark,
+            ]}
+          >
             <TouchableOpacity
               onPress={() => setHeightUnit("cm")}
               style={[
@@ -304,15 +340,17 @@ const More = () => {
           </View>
         </View>
 
-        {/* Save Button */}
-        <View className="mt-auto">
-          <TouchableOpacity
-            className="bg-orange-500 dark:bg-orange-600 rounded-2xl py-4 items-center"
-            onPress={handleSave}
-          >
-            <Text className="text-white text-lg font-bold">Save</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Save Button - Only show when changes are detected */}
+        {hasChanges && (
+          <View className="mt-auto">
+            <TouchableOpacity
+              className="bg-orange-500 dark:bg-orange-600 rounded-2xl py-4 items-center"
+              onPress={handleSave}
+            >
+              <Text className="text-white text-lg font-bold">Save</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
       {/* Enhanced Theme Picker Modal - Simplified */}
@@ -322,17 +360,30 @@ const More = () => {
         animationType="slide"
         onRequestClose={() => setShowThemePicker(false)}
       >
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.modalOverlay, isDark && styles.modalOverlayDark]}
           activeOpacity={1}
           onPress={() => setShowThemePicker(false)}
         >
-          <View style={[styles.modalContent, isDark && styles.modalContentDark]}>
+          <View
+            style={[styles.modalContent, isDark && styles.modalContentDark]}
+          >
             <TouchableOpacity activeOpacity={1}>
               {/* Modal Header */}
-              <View style={[styles.modalHeader, isDark && styles.modalHeaderDark]}>
-                <Text style={[styles.modalTitle, isDark && styles.modalTitleDark]}>Choose Theme</Text>
-                <Text style={[styles.modalSubtitle, isDark && styles.modalSubtitleDark]}>
+              <View
+                style={[styles.modalHeader, isDark && styles.modalHeaderDark]}
+              >
+                <Text
+                  style={[styles.modalTitle, isDark && styles.modalTitleDark]}
+                >
+                  Choose Theme
+                </Text>
+                <Text
+                  style={[
+                    styles.modalSubtitle,
+                    isDark && styles.modalSubtitleDark,
+                  ]}
+                >
                   Select your preferred appearance
                 </Text>
               </View>
@@ -340,9 +391,21 @@ const More = () => {
               {/* Theme Options */}
               <View style={styles.themeOptions}>
                 {[
-                  { key: 'system', label: 'System Default', sublabel: 'Follow device setting' },
-                  { key: 'light', label: 'Light Mode', sublabel: 'Clean and bright' },
-                  { key: 'dark', label: 'Dark Mode', sublabel: 'Easy on your eyes' }
+                  {
+                    key: "system",
+                    label: "System Default",
+                    sublabel: "Follow device setting",
+                  },
+                  {
+                    key: "light",
+                    label: "Light Mode",
+                    sublabel: "Clean and bright",
+                  },
+                  {
+                    key: "dark",
+                    label: "Dark Mode",
+                    sublabel: "Easy on your eyes",
+                  },
                 ].map((option) => (
                   <TouchableOpacity
                     key={option.key}
@@ -350,44 +413,77 @@ const More = () => {
                       styles.themeOption,
                       isDark && styles.themeOptionDark,
                       themeMode === option.key && styles.themeOptionSelected,
-                      themeMode === option.key && isDark && styles.themeOptionSelectedDark,
+                      themeMode === option.key &&
+                        isDark &&
+                        styles.themeOptionSelectedDark,
                     ]}
-                    onPress={() => handleThemeSelect(option.key as "system" | "light" | "dark")}
+                    onPress={() =>
+                      handleThemeSelect(
+                        option.key as "system" | "light" | "dark"
+                      )
+                    }
                     activeOpacity={0.7}
                   >
                     <View style={styles.themeOptionLeft}>
-                      <View style={[
-                        styles.themeIconContainer,
-                        isDark && styles.themeIconContainerDark,
-                        themeMode === option.key && styles.themeIconContainerSelected,
-                        themeMode === option.key && isDark && styles.themeIconContainerSelectedDark,
-                      ]}>
+                      <View
+                        style={[
+                          styles.themeIconContainer,
+                          isDark && styles.themeIconContainerDark,
+                          themeMode === option.key &&
+                            styles.themeIconContainerSelected,
+                          themeMode === option.key &&
+                            isDark &&
+                            styles.themeIconContainerSelectedDark,
+                        ]}
+                      >
                         <Text style={styles.themeOptionIcon}>
                           {getThemeIcon(option.key)}
                         </Text>
                       </View>
                       <View>
-                        <Text style={[
-                          styles.themeOptionLabel,
-                          isDark && styles.themeOptionLabelDark,
-                          themeMode === option.key && styles.themeOptionLabelSelected,
-                          themeMode === option.key && isDark && styles.themeOptionLabelSelectedDark,
-                        ]}>
+                        <Text
+                          style={[
+                            styles.themeOptionLabel,
+                            isDark && styles.themeOptionLabelDark,
+                            themeMode === option.key &&
+                              styles.themeOptionLabelSelected,
+                            themeMode === option.key &&
+                              isDark &&
+                              styles.themeOptionLabelSelectedDark,
+                          ]}
+                        >
                           {option.label}
                         </Text>
-                        <Text style={[
-                          styles.themeOptionSublabel,
-                          isDark && styles.themeOptionSublabelDark,
-                          themeMode === option.key && styles.themeOptionSublabelSelected,
-                          themeMode === option.key && isDark && styles.themeOptionSublabelSelectedDark,
-                        ]}>
+                        <Text
+                          style={[
+                            styles.themeOptionSublabel,
+                            isDark && styles.themeOptionSublabelDark,
+                            themeMode === option.key &&
+                              styles.themeOptionSublabelSelected,
+                            themeMode === option.key &&
+                              isDark &&
+                              styles.themeOptionSublabelSelectedDark,
+                          ]}
+                        >
                           {option.sublabel}
                         </Text>
                       </View>
                     </View>
                     {themeMode === option.key && (
-                      <View style={[styles.checkmark, isDark && styles.checkmarkDark]}>
-                        <Text style={[styles.checkmarkText, isDark && styles.checkmarkTextDark]}>✓</Text>
+                      <View
+                        style={[
+                          styles.checkmark,
+                          isDark && styles.checkmarkDark,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.checkmarkText,
+                            isDark && styles.checkmarkTextDark,
+                          ]}
+                        >
+                          ✓
+                        </Text>
                       </View>
                     )}
                   </TouchableOpacity>
@@ -395,13 +491,25 @@ const More = () => {
               </View>
 
               {/* Modal Footer */}
-              <View style={[styles.modalFooter, isDark && styles.modalFooterDark]}>
+              <View
+                style={[styles.modalFooter, isDark && styles.modalFooterDark]}
+              >
                 <TouchableOpacity
-                  style={[styles.cancelButton, isDark && styles.cancelButtonDark]}
+                  style={[
+                    styles.cancelButton,
+                    isDark && styles.cancelButtonDark,
+                  ]}
                   onPress={() => setShowThemePicker(false)}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.cancelButtonText, isDark && styles.cancelButtonTextDark]}>Cancel</Text>
+                  <Text
+                    style={[
+                      styles.cancelButtonText,
+                      isDark && styles.cancelButtonTextDark,
+                    ]}
+                  >
+                    Cancel
+                  </Text>
                 </TouchableOpacity>
               </View>
             </TouchableOpacity>
@@ -514,7 +622,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: '80%',
+    maxHeight: "80%",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -5 },
     shadowOpacity: 0.1,
@@ -525,7 +633,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#1f2937",
     shadowColor: "#fff",
     borderTopWidth: 1,
-    borderColor: "#374151"
+    borderColor: "#374151",
   },
   modalHeader: {
     paddingTop: 24,
