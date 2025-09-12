@@ -53,16 +53,16 @@ const tools = [
       },
       {
         name: "addFoodToDiet",
-        description: "Add a food to user's diet for today",
+        description: "Add a food to user's diet for today by searching for it first",
         parameters: {
           type: "object",
           properties: {
-            foodId: { 
+            foodName: { 
               type: "string", 
-              description: "ID of the food to add to diet" 
+              description: "Name of the food to search for and add to diet" 
             }
           },
-          required: ["foodId"]
+          required: ["foodName"]
         }
       },
       {
@@ -80,13 +80,13 @@ const tools = [
       },
       {
         name: "removeFoodFromDiet",
-        description: "Remove a food from user's diet",
+        description: "Remove a food from user's diet by searching for it first",
         parameters: {
           type: "object",
           properties: {
-            foodId: { 
+            foodName: { 
               type: "string", 
-              description: "ID of the food to remove" 
+              description: "Name of the food to search for and remove from diet" 
             },
             date: { 
               type: "string", 
@@ -94,10 +94,10 @@ const tools = [
             },
             index: {
               type: "number",
-              description: "Index of the food item if multiple same foods exist"
+              description: "Index of the food item if multiple same foods exist in diet"
             }
           },
-          required: ["foodId"]
+          required: ["foodName"]
         }
       },
       {
@@ -224,13 +224,17 @@ function formatFunctionResponse(functionCall, functionResponse) {
   try {
     // Convert response to a simple, serializable format
     if (Array.isArray(functionResponse)) {
-      // For search results - convert to simple string format
+      // For search results - show exact food names from database
       if (functionResponse.length === 0) {
-        formattedResponse = "No results found";
+        formattedResponse = "No food found matching your search.";
       } else {
-        formattedResponse = functionResponse.map(item => 
-          `${item.name}: ${item.nutrition?.cal || 0} cal, ${item.nutrition?.protein || 0}g protein, ${item.nutrition?.carbs || 0}g carbs, ${item.nutrition?.fat || 0}g fat`
-        ).join('; ');
+        // Return exact food names and nutrition without paraphrasing
+        const foodList = functionResponse.map((item, index) => {
+          return `${index + 1}. ${item.name}
+   ${item.nutrition?.cal || 0} calories, ${item.nutrition?.protein || 0}g protein, ${item.nutrition?.carbs || 0}g carbs, ${item.nutrition?.fat || 0}g fat`;
+        }).join('\n\n');
+        
+        formattedResponse = `Found ${functionResponse.length} food(s):\n\n${foodList}`;
       }
     } else if (typeof functionResponse === 'object' && functionResponse !== null) {
       // For object responses - convert to string format
@@ -269,15 +273,59 @@ async function handleFunctionCall(functionCall, uid) {
         return await agentFunctions.checkFoodInDatabase(args.foodName);
         
       case "addFoodToDiet":
-        return await agentFunctions.addFoodToUserDiet(uid, args.foodId);
+        // Search for the food first to get its ID
+        console.log(`[Agent] Searching for food "${args.foodName}" to add to diet`);
+        const foodSearchResults = await agentFunctions.searchFoodInDatabase(args.foodName);
+        
+        if (!foodSearchResults || foodSearchResults.length === 0) {
+          return { 
+            success: false,
+            error: `Sorry, I couldn't find "${args.foodName}" in our food database. Please try a different name or search for available foods first.` 
+          };
+        }
+        
+        // Use the first (best) match
+        const selectedFood = foodSearchResults[0];
+        console.log(`[Agent] Found food: ${selectedFood.name} (ID: ${selectedFood.id})`);
+        
+        const addResult = await agentFunctions.addFoodToUserDiet(uid, selectedFood.id);
+        
+        // Enhance the response message with the exact food name
+        if (addResult.success) {
+          addResult.message = `Added "${selectedFood.name}" to your diet for today`;
+        }
+        
+        return addResult;
         
       case "getUserDiet":
         const date = args.date || agentFunctions.getLocalDateString();
         return await agentFunctions.getUserDietForDay(uid, date);
         
       case "removeFoodFromDiet":
+        // Search for the food first to get its ID
+        console.log(`[Agent] Searching for food "${args.foodName}" to remove from diet`);
+        const removeSearchResults = await agentFunctions.searchFoodInDatabase(args.foodName);
+        
+        if (!removeSearchResults || removeSearchResults.length === 0) {
+          return { 
+            success: false,
+            error: `Sorry, I couldn't find "${args.foodName}" in our food database. Please try a different name.` 
+          };
+        }
+        
+        // Use the first (best) match
+        const foodToRemove = removeSearchResults[0];
+        console.log(`[Agent] Found food: ${foodToRemove.name} (ID: ${foodToRemove.id})`);
+        
         const removeDate = args.date || agentFunctions.getLocalDateString();
-        return await agentFunctions.removeFoodFromUserDiet(uid, args.foodId, removeDate, args.index);
+        const removeResult = await agentFunctions.removeFoodFromUserDiet(uid, foodToRemove.id, removeDate, args.index);
+        
+        // Enhance the response message with the exact food name
+        if (removeResult.success) {
+          removeResult.message = `Removed "${foodToRemove.name}" from your diet for today`;
+        }
+        
+        return removeResult;
         
       case "getCurrentWeight":
         return await agentFunctions.getCurrentAndGoalWeight(uid);
