@@ -191,7 +191,7 @@ console.log("✅ Gemini model initialized successfully");
 
 const chatHistories = {};
 const systemPrompt = `'''
-You are a helpful and friendly chatbot named 'NutritionAI'.
+You are a helpful and friendly chatbot named 'NutritorAI'.
 Your goal is to assist users with their questions in a clear and concise manner. Do not generate unsafe content.
 Keep your responses relatively short and easy to read on a mobile screen.
 
@@ -376,7 +376,7 @@ router.post("/", authMiddleware, upload.single("image"), async (req, res) => {
       console.log(`[LOG] New chat history created for chatKey: ${chatKey}`);
       chatHistories[chatKey] = [
         { role: "user", parts: [{ text: systemPrompt }] },
-        { role: "model", parts: [{ text: "Understood. I am NutritionAI. I can help with your nutrition questions, manage your diet, track your weight, and analyze food images. What would you like to know?" }] },
+        { role: "model", parts: [{ text: "Understood. I am NutritorAI. I can help with your nutrition questions, manage your diet, track your weight, and analyze food images. What would you like to know?" }] },
       ];
     }
 
@@ -543,8 +543,8 @@ router.post("/basic", upload.single("image"), async (req, res) => {
 
     if (!chatHistories[basicChatKey]) {
       chatHistories[basicChatKey] = [
-        { role: "user", parts: [{ text: "You are NutritionAI. Provide helpful nutrition advice but inform users they need to log in for personalized features like diet tracking." }] },
-        { role: "model", parts: [{ text: "Hello! I'm NutritionAI. I can answer nutrition questions and analyze food images. For personalized features like diet tracking and weight management, please log in!" }] },
+        { role: "user", parts: [{ text: "You are NutritorAI. Provide helpful nutrition advice and general information about foods and nutrition." }] },
+        { role: "model", parts: [{ text: "Hello! I'm NutritorAI. I can answer nutrition questions and analyze food images. How can I help you today?" }] },
       ];
     }
 
