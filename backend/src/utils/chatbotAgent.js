@@ -308,10 +308,29 @@ async function getCurrentAndGoalWeight(uid) {
     }
     
     const userData = userDoc.data();
+    const weightUnit = userData.unitPreferences?.weight || 'kg';
+    
+    // Weight conversion logic
+    const KG_TO_LBS = 2.20462;
+    const kgToLbs = (kg) => Math.round(kg * KG_TO_LBS * 10) / 10;
+    
+    let currentWeight = userData.weightCurrent || 0;
+    let goalWeight = userData.weightGoal || 0;
+    
+    // Convert to lbs if user preference is lbs
+    if (weightUnit === 'lbs') {
+      currentWeight = currentWeight ? kgToLbs(currentWeight) : 0;
+      goalWeight = goalWeight ? kgToLbs(goalWeight) : 0;
+    } else {
+      // Round kg values to 1 decimal place
+      currentWeight = Math.round(currentWeight * 10) / 10;
+      goalWeight = Math.round(goalWeight * 10) / 10;
+    }
+    
     return {
-      currentWeight: userData.weightCurrent || 0,
-      goalWeight: userData.weightGoal || 0,
-      unit: userData.unitPreferences?.weight || 'kg'
+      currentWeight,
+      goalWeight,
+      unit: weightUnit
     };
   } catch (error) {
     console.error('[Agent] Error getting weight data:', error);
@@ -332,34 +351,60 @@ async function updateCurrentWeight(uid, newWeight) {
     }
     
     const userData = userDoc.data();
+    const weightUnit = userData.unitPreferences?.weight || 'kg';
     const goalWeight = userData.weightGoal;
     
-    // Update weight in user profile
+    // Weight conversion logic
+    const KG_TO_LBS = 2.20462;
+    const kgToLbs = (kg) => Math.round(kg * KG_TO_LBS * 10) / 10;
+    const lbsToKg = (lbs) => lbs / KG_TO_LBS;
+    
+    // Convert input weight to kg for storage if user entered in lbs
+    let weightInKgForStorage = newWeight;
+    if (weightUnit === 'lbs') {
+      weightInKgForStorage = lbsToKg(newWeight);
+    }
+    
+    // Update weight in user profile (always store in kg)
     await userRef.update({
-      weightCurrent: newWeight,
+      weightCurrent: weightInKgForStorage,
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
     
-    // Create weight log entry
+    // Create weight log entry (always store in kg)
     await db.collection('users').doc(uid).collection('weights')
       .add({ 
         date: new Date(), 
-        weight: newWeight 
+        weight: weightInKgForStorage 
       });
     
-    // Check goal achievement
-    const goalAchieved = goalWeight > 0 && Math.abs(newWeight - goalWeight) <= 0.1;
+    // Check goal achievement (always compare in kg)
+    const goalAchieved = goalWeight > 0 && Math.abs(weightInKgForStorage - goalWeight) <= 0.1;
+    
+    // Prepare display values in user's preferred unit
+    let displayCurrentWeight = weightInKgForStorage;
+    let displayGoalWeight = goalWeight;
+    
+    if (weightUnit === 'lbs') {
+      displayCurrentWeight = kgToLbs(weightInKgForStorage);
+      displayGoalWeight = goalWeight ? kgToLbs(goalWeight) : 0;
+    } else {
+      // Round kg values to 1 decimal place
+      displayCurrentWeight = Math.round(weightInKgForStorage * 10) / 10;
+      displayGoalWeight = Math.round(goalWeight * 10) / 10;
+    }
     
     console.log(`[Agent] Weight updated successfully. Goal achieved: ${goalAchieved}`);
     
     return {
       success: true,
       goalAchieved,
-      currentWeight: newWeight,
-      goalWeight,
+      currentWeight: displayCurrentWeight,
+      goalWeight: displayGoalWeight,
+      unit: weightUnit,
       message: goalAchieved 
-        ? `🎉 Congratulations! You've reached your weight goal of ${goalWeight}kg!` 
-        : `Weight updated to ${newWeight}kg`
+        ? `🎉 Congratulations! You've reached your weight goal of ${displayGoalWeight}${weightUnit}!` 
+        : `Weight updated to ${displayCurrentWeight}${weightUnit}`
     };
   } catch (error) {
     console.error('[Agent] Error updating weight:', error);
