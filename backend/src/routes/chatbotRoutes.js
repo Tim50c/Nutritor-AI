@@ -112,7 +112,7 @@ const tools = [
           properties: {
             weight: { 
               type: "number", 
-              description: "New weight value in kg" 
+              description: "New weight value in user's preferred unit (kg or lbs)" 
             }
           },
           required: ["weight"]
@@ -316,16 +316,30 @@ router.post("/", authMiddleware, upload.single("image"), async (req, res) => {
     // Check if the response contains function calls
     const functionCalls = response.functionCalls();
     let fullResponseText = "";
+    let goalAchievementData = null; // Track goal achievement at the right scope
     
     if (functionCalls && functionCalls.length > 0) {
       console.log("[LOG] Function calls detected:", functionCalls.length);
       
       // Execute function calls
       const functionResponses = [];
+      
       for (const functionCall of functionCalls) {
         console.log(`[LOG] Executing function: ${functionCall.name}`);
         const rawFunctionResponse = await handleFunctionCall(functionCall, uid);
         console.log(`[LOG] Function ${functionCall.name} raw response:`, rawFunctionResponse);
+        
+        // Check if this was a weight update that achieved a goal
+        if (functionCall.name === 'updateWeight' && 
+            rawFunctionResponse?.goalAchieved && 
+            rawFunctionResponse?.currentWeight !== undefined) {
+          goalAchievementData = {
+            currentWeight: rawFunctionResponse.currentWeight,
+            goalWeight: rawFunctionResponse.goalWeight,
+            unit: rawFunctionResponse.unit || 'kg'
+          };
+          console.log("[LOG] Goal achievement detected:", goalAchievementData);
+        }
         
         // Format the response to ensure compatibility with Gemini API
         const formattedResponse = formatFunctionResponse(functionCall, rawFunctionResponse);
@@ -358,7 +372,16 @@ router.post("/", authMiddleware, upload.single("image"), async (req, res) => {
     history.push({ role: "user", parts: [{ text: userPrompt }] });
     history.push({ role: "model", parts: [{ text: fullResponseText }] });
 
-    res.status(200).json({ text: fullResponseText });
+    // Prepare response with metadata
+    const responseData = { text: fullResponseText };
+    
+    // Add goal achievement metadata if detected
+    if (goalAchievementData) {
+      responseData.goalAchieved = goalAchievementData;
+      console.log("[LOG] Including goal achievement data in response");
+    }
+
+    res.status(200).json(responseData);
     console.log("[LOG] Request handled successfully.");
 
   } catch (err) {
