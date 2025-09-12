@@ -1,5 +1,5 @@
 // Enhanced event emitter for analytics invalidation with nutritional data
-export type AnalyticsEventType = 'diet_change' | 'food_added' | 'food_removed';
+export type AnalyticsEventType = 'diet_change' | 'food_added' | 'food_removed' | 'weight_goal_achieved';
 
 export interface AnalyticsEvent {
   type: AnalyticsEventType;
@@ -12,6 +12,11 @@ export interface AnalyticsEvent {
     };
     foodId?: string;
     foodName?: string;
+    weightGoalAchieved?: {
+      currentWeight: number;
+      goalWeight: number;
+      unit: string;
+    };
   };
 }
 
@@ -66,6 +71,19 @@ class AnalyticsEventEmitter {
 
   emitDietChange(): void {
     this.emit({ type: 'diet_change' });
+  }
+
+  emitWeightGoalAchieved(currentWeight: number, goalWeight: number, unit: string): void {
+    this.emit({
+      type: 'weight_goal_achieved',
+      data: {
+        weightGoalAchieved: {
+          currentWeight,
+          goalWeight,
+          unit
+        }
+      }
+    });
   }
 }
 

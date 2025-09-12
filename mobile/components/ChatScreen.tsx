@@ -22,6 +22,7 @@ import { authInstance } from "@/config/api/axios"; // Import auth instance for A
 import { apiDomain } from "@/constants";
 import { useDietContext } from "@/context/DietContext"; // Import diet context for refreshing data
 import { useAnalytics } from "@/context/AnalyticsContext"; // Import analytics context for weight updates
+import { analyticsEventEmitter } from "@/utils/analyticsEvents"; // Import analytics event emitter
 
 // icon defined here
 import { icons } from "@/constants/icons";
@@ -50,7 +51,6 @@ const ChatScreen = () => {
   const { refreshDietData } = useDietContext(); // Get diet refresh function
   const { refreshAnalytics, invalidateAnalytics } = useAnalytics(); // Get analytics refresh functions
 
-  
   const [isChatStarted, setIsChatStarted] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -95,14 +95,17 @@ const ChatScreen = () => {
   };
 
   // Function to refresh diet data when agent performs diet operations
-  const handleDietDataRefresh = async (botResponse: string) => {
+  const handleDietDataRefresh = async (
+    botResponse: string,
+    goalAchievementData?: any
+  ) => {
     try {
       // Check if the bot response indicates diet modifications
       const dietKeywords = [
         "added to your diet for today",
         "removed from your diet",
         "added to your diet",
-        "removed from your diet", 
+        "removed from your diet",
         "deleted from your diet",
         "added to diet",
         "removed from diet",
@@ -111,7 +114,7 @@ const ChatScreen = () => {
         "successfully added",
         "successfully removed",
         "diet updated",
-        "diet modified"
+        "diet modified",
       ];
 
       // Check if the bot response indicates weight updates
@@ -122,16 +125,29 @@ const ChatScreen = () => {
         "weight set to",
         "congratulations",
         "goal achieved",
-        "reached your goal"
+        "reached your goal",
       ];
 
-      const shouldRefreshDiet = dietKeywords.some(keyword => 
+      const shouldRefreshDiet = dietKeywords.some((keyword) =>
         botResponse.toLowerCase().includes(keyword.toLowerCase())
       );
 
-      const shouldRefreshWeight = weightKeywords.some(keyword => 
+      const shouldRefreshWeight = weightKeywords.some((keyword) =>
         botResponse.toLowerCase().includes(keyword.toLowerCase())
       );
+
+      // Check for goal achievement from metadata
+      if (goalAchievementData) {
+        console.log(
+          "🎯 Goal achievement detected from chat response:",
+          goalAchievementData
+        );
+        analyticsEventEmitter.emitWeightGoalAchieved(
+          goalAchievementData.currentWeight,
+          goalAchievementData.goalWeight,
+          goalAchievementData.unit
+        );
+      }
 
       if (shouldRefreshDiet || shouldRefreshWeight) {
         setIsRefreshingData(true); // Show refresh indicator
@@ -185,7 +201,9 @@ const ChatScreen = () => {
         alignItems: "center",
       }}
     >
-      <Text style={{ color: "#FFFFFF", fontSize: 18, fontWeight: "bold" }}>+</Text>
+      <Text style={{ color: "#FFFFFF", fontSize: 18, fontWeight: "bold" }}>
+        +
+      </Text>
     </TouchableOpacity>
   );
   const flatListRef = useRef<FlatList<Message>>(null);
@@ -300,13 +318,16 @@ const ChatScreen = () => {
 
     try {
       console.log("🚀 Sending chat message to API...");
-      console.log("📡 Chat backend URL:", `${authInstance.defaults.baseURL}${API_URL}`);
+      console.log(
+        "📡 Chat backend URL:",
+        `${authInstance.defaults.baseURL}${API_URL}`
+      );
       console.log("📝 API endpoint path:", API_URL);
-      
+
       // Use authInstance for authenticated requests to the agent with longer timeout
       const response = await authInstance.post(API_URL, formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          "Content-Type": "multipart/form-data",
         },
         timeout: 30000, // 60 seconds timeout for AI responses
       });
@@ -323,9 +344,9 @@ const ChatScreen = () => {
         timestamp: getCurrentTimestamp(),
       };
       setMessages((prev) => [...prev, botMessage]);
-      
+
       // 🔄 Refresh diet data if the response indicates diet changes
-      await handleDietDataRefresh(data.text);
+      await handleDietDataRefresh(data.text, data.goalAchieved);
     } catch (error: any) {
       console.error("💥 Error in chat sendData:", error);
 
@@ -364,13 +385,20 @@ const ChatScreen = () => {
             }
           }
 
-          console.log("🔄 Attempting fallback request to:", `${authInstance.defaults.baseURL}${API_URL}`);
-          const fallbackResponse = await authInstance.post(API_URL, fallbackFormData, {
-            headers: {
-              'Content-Type': 'multipart/form-data',
-            },
-            timeout: 30000, // 60 seconds timeout for AI responses
-          });
+          console.log(
+            "🔄 Attempting fallback request to:",
+            `${authInstance.defaults.baseURL}${API_URL}`
+          );
+          const fallbackResponse = await authInstance.post(
+            API_URL,
+            fallbackFormData,
+            {
+              headers: {
+                "Content-Type": "multipart/form-data",
+              },
+              timeout: 30000, // 60 seconds timeout for AI responses
+            }
+          );
 
           const fallbackData = fallbackResponse.data;
           console.log("✅ Chat fallback request successful");
@@ -383,10 +411,13 @@ const ChatScreen = () => {
             timestamp: getCurrentTimestamp(),
           };
           setMessages((prev) => [...prev, botMessage]);
-          
+
           // 🔄 Refresh diet data if the fallback response indicates diet changes
-          await handleDietDataRefresh(fallbackData.text);
-          
+          await handleDietDataRefresh(
+            fallbackData.text,
+            fallbackData.goalAchieved
+          );
+
           return; // Exit early on success
         } catch (fallbackError) {
           console.error("❌ Chat fallback also failed:", fallbackError);
@@ -398,19 +429,27 @@ const ChatScreen = () => {
       console.error("❌ Error status:", error?.response?.status);
       console.error("❌ Error message:", error?.message);
       console.error("❌ Server response:", error?.response?.data);
-      
-      let errorText = "Sorry, I couldn't connect to the server. Please try again.";
-      
+
+      let errorText =
+        "Sorry, I couldn't connect to the server. Please try again.";
+
       if (error?.response?.status === 500) {
-        errorText = "Server error detected. The AI service might be temporarily unavailable. Please check if all required API keys are configured on the server.";
+        errorText =
+          "Server error detected. The AI service might be temporarily unavailable. Please check if all required API keys are configured on the server.";
       } else if (error?.response?.status === 404) {
-        errorText = "Chat endpoint not found. Please check the server configuration.";
-      } else if (error?.response?.status === 401 || error?.response?.status === 403) {
+        errorText =
+          "Chat endpoint not found. Please check the server configuration.";
+      } else if (
+        error?.response?.status === 401 ||
+        error?.response?.status === 403
+      ) {
         errorText = "Authentication error. Please try logging in again.";
       } else if (error?.message?.includes("Network request failed")) {
-        errorText = "Connection error. Please check your internet and try again.";
+        errorText =
+          "Connection error. Please check your internet and try again.";
       } else if (error?.message?.includes("timeout")) {
-        errorText = "Request timed out. The AI is taking longer than expected. Please try again.";
+        errorText =
+          "Request timed out. The AI is taking longer than expected. Please try again.";
       }
 
       const errorMessage: Message = {
@@ -537,8 +576,8 @@ const ChatScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <CustomHeaderWithBack 
-        title="NutritorAI Agent" 
+      <CustomHeaderWithBack
+        title="NutritorAI Agent"
         rightComponent={<NewChatButton />}
       />
 
@@ -555,7 +594,9 @@ const ChatScreen = () => {
                 Meet Your NutritorAI Agent!
               </Text>
               <Text style={styles.startSubtitle}>
-                Your intelligent nutrition assistant that can analyze food images, manage your diet, track weight progress, and provide personalized nutrition guidance.
+                Your intelligent nutrition assistant that can analyze food
+                images, manage your diet, track weight progress, and provide
+                personalized nutrition guidance.
               </Text>
               <TouchableOpacity
                 style={styles.startButton}

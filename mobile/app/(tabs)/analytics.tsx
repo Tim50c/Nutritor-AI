@@ -1,6 +1,7 @@
 import AnalyticsHeader from "@/components/AnalyticsHeader";
 import CalorieChart from "@/components/CalorieChart";
 import CustomHeaderWithBack from "@/components/CustomHeaderWithBack";
+import GoalAchievedModal from "@/components/GoalAchievedModal";
 import NutritionTrend from "@/components/NutritionTrend";
 import ToggleTabs, { TabOption } from "@/components/ToggleTabs";
 import { useAnalytics } from "@/context/AnalyticsContext";
@@ -35,6 +36,8 @@ const Analytics = () => {
     getNutritionData,
     refreshNutritionTab,
     refreshAnalytics,
+    showGoalAchievedModal,
+    setShowGoalAchievedModal,
   } = useAnalytics();
 
   const [tab, setTab] = useState<TabOption>("daily");
@@ -513,6 +516,13 @@ const Analytics = () => {
           </>
         )}
       </ScrollView>
+
+      {/* Goal Achievement Modal */}
+      <GoalAchievedModal
+        visible={showGoalAchievedModal}
+        onClose={() => setShowGoalAchievedModal(false)}
+        onSetNewGoal={() => setShowGoalAchievedModal(false)}
+      />
     </SafeAreaView>
   );
 };

@@ -25,6 +25,10 @@ interface AnalyticsContextType {
   error: string | null;
   lastUpdated: Date | null;
 
+  // Goal achievement state
+  showGoalAchievedModal: boolean;
+  setShowGoalAchievedModal: (show: boolean) => void;
+
   // Actions
   refreshAnalytics: () => Promise<void>;
   refreshNutritionTab: (tab: "daily" | "weekly" | "monthly") => Promise<void>;
@@ -68,6 +72,7 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [shouldInvalidate, setShouldInvalidate] = useState(true);
+  const [showGoalAchievedModal, setShowGoalAchievedModal] = useState(false);
 
   // Keep track of ongoing requests to prevent duplicates
   const refreshPromiseRef = useRef<Promise<void> | null>(null);
@@ -276,6 +281,18 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({
 
           // Clear analytics service cache for fresh data on next request
           AnalysisService.clearCache();
+        } else if (event?.type === "weight_goal_achieved") {
+          // Handle weight goal achievement
+          console.log(
+            "🎯 [AnalyticsContext] Weight goal achieved!",
+            event.data?.weightGoalAchieved
+          );
+          setShowGoalAchievedModal(true);
+
+          // Also refresh analytics to update weight data
+          setTimeout(() => {
+            refreshAnalytics();
+          }, 1000);
         } else {
           // For general diet changes, clear cache and refresh immediately
           AnalysisService.clearCache();
@@ -337,6 +354,8 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({
     loading,
     error,
     lastUpdated,
+    showGoalAchievedModal,
+    setShowGoalAchievedModal,
     refreshAnalytics,
     refreshNutritionTab,
     invalidateAnalytics,
