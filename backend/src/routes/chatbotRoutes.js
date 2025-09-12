@@ -299,6 +299,7 @@ router.post("/", authMiddleware, upload.single("image"), async (req, res) => {
       }
       
       console.log("[LOG] Sending function responses back to Gemini...");
+      console.log("[LOG] Function responses format:", JSON.stringify(functionResponses, null, 2));
       // Send function results back to Gemini for final response
       const functionResult = await chat.sendMessage(functionResponses);
       fullResponseText = functionResult.response.text();
