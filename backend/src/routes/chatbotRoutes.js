@@ -289,11 +289,13 @@ router.post("/", authMiddleware, upload.single("image"), async (req, res) => {
         const functionResponse = await handleFunctionCall(functionCall, uid);
         console.log(`[LOG] Function ${functionCall.name} response:`, functionResponse);
         
-        // Format according to the latest Gemini API spec
+        // Format according to the correct Gemini API spec
         functionResponses.push({
           functionResponse: {
             name: functionCall.name,
-            response: functionResponse
+            response: {
+              content: JSON.stringify(functionResponse)
+            }
           }
         });
       }
