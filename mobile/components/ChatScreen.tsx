@@ -209,9 +209,30 @@ const ChatScreen = () => {
   const flatListRef = useRef<FlatList<Message>>(null);
   const [clientId, setClientId] = useState<string>("");
 
+  // Auto-scroll function
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+  };
+
   useEffect(() => {
     setClientId(Date.now().toString() + Math.random().toString(36).substr(2));
   }, []);
+
+  // Auto-scroll when messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      scrollToBottom();
+    }
+  }, [messages]);
+
+  // Auto-scroll when loading state changes
+  useEffect(() => {
+    if (isLoading) {
+      scrollToBottom();
+    }
+  }, [isLoading]);
 
   const getCurrentTimestamp = () =>
     new Date().toLocaleTimeString("en-US", {
@@ -235,6 +256,8 @@ const ChatScreen = () => {
       },
     ]);
     setIsChatStarted(true);
+    // Auto-scroll after chat starts
+    setTimeout(() => scrollToBottom(), 200);
   };
 
   const sendData = async (prompt: string, asset?: PickerAsset) => {
@@ -615,6 +638,8 @@ const ChatScreen = () => {
               renderItem={renderMessageItem}
               style={styles.messageList}
               contentContainerStyle={{ paddingBottom: 10, paddingTop: 10 }}
+              onContentSizeChange={() => scrollToBottom()}
+              onLayout={() => scrollToBottom()}
             />
             {isLoading && (
               <ActivityIndicator
@@ -729,7 +754,11 @@ const ChatScreen = () => {
                   onChangeText={setInput}
                   placeholder="Write a message"
                   placeholderTextColor="#888"
-                  onFocus={() => setAttachmentMenuVisible(false)}
+                  onFocus={() => {
+                    setAttachmentMenuVisible(false);
+                    // Auto-scroll when keyboard appears
+                    setTimeout(() => scrollToBottom(), 300);
+                  }}
                 />
                 <TouchableOpacity
                   onPress={() => setAttachmentMenuVisible((prev) => !prev)}
