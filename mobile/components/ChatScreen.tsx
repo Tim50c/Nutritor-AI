@@ -272,7 +272,7 @@ const ChatScreen = () => {
       },
       {
         id: "2",
-        text: "I can help you with:\n• Search our food database\n• Analyze food images\n• Manage your daily diet\n• Track your weight progress\n• Check goal achievements\n\nWhat would you like to know?",
+        text: "I can help you with:\n• Search for foods in the current food list\n• Check nutrition information for specific foods\n• View and manage your daily diet\n• Track and update weight progress\n• Check goal achievement\n• View and update user profile information\n\nWhat would you like to know?",
         sender: "bot",
       },
     ]);
