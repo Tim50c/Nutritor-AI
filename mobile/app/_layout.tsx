@@ -470,10 +470,12 @@ export default function RootLayout() {
   if (showCustomSplash) {
     console.log("🎯 [Layout] Showing CustomSplashScreen");
     return (
-      <CustomSplashScreen
-        onAnimationComplete={handleSplashComplete}
-        showLoadingText={true}
-      />
+      <ThemeProvider>
+        <CustomSplashScreen
+          onAnimationComplete={handleSplashComplete}
+          showLoadingText={true}
+        />
+      </ThemeProvider>
     );
   }
 

@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { Text } from "./CustomText";
 import TimeSelector from "./TimeSelector";
+import { useIsDark } from "@/theme/useIsDark";
 
 interface TimePickerModalProps {
   visible: boolean;
@@ -26,6 +27,7 @@ const TimePickerModal: React.FC<TimePickerModalProps> = ({
   selectedMinute,
   onTimeChange,
 }) => {
+  const isDark = useIsDark();
   return (
     <Modal
       visible={visible}
@@ -34,10 +36,10 @@ const TimePickerModal: React.FC<TimePickerModalProps> = ({
       onRequestClose={onClose}
     >
       <View style={styles.modalOverlay}>
-        <SafeAreaView style={styles.modalContent}>
+        <SafeAreaView style={[styles.modalContent, isDark ? styles.darkModalContent : null]}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.headerText}>Change Time</Text>
+            <Text style={[styles.headerText, isDark ? styles.darkHeaderText : null]}>Change Time</Text>
             <View style={styles.headerLine} />
           </View>
 
@@ -61,9 +63,9 @@ const TimePickerModal: React.FC<TimePickerModalProps> = ({
             <TouchableOpacity
               onPress={onClose}
               activeOpacity={0.7}
-              style={[styles.button, styles.cancelButton]}
+              style={[styles.button, styles.cancelButton, isDark ? styles.darkCancelButton : null]}
             >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <Text style={[styles.cancelButtonText, isDark ? styles.darkCancelButtonText : null]}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={onSave}
@@ -98,6 +100,10 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 5,
   },
+  darkModalContent: {
+    backgroundColor: "#1f2937",
+    shadowColor: "#fff",
+  },
   header: {
     alignItems: "center",
     marginBottom: 24,
@@ -108,6 +114,9 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#000000",
     marginBottom: 12,
+  },
+  darkHeaderText: {
+    color: "#fff",
   },
   headerLine: {
     width: 50,
@@ -149,6 +158,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#f0f0f0",
     marginRight: 16,
   },
+  darkCancelButton: {
+    backgroundColor: "#374151",
+  },
   saveButton: {
     backgroundColor: "#ff5a16",
     marginLeft: 16,
@@ -156,6 +168,9 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     color: "#666",
     fontWeight: "600",
+  },
+  darkCancelButtonText: {
+    color: "#fff",
   },
   saveButtonText: {
     color: "white",

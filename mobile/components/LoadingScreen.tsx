@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Image, Text, Dimensions, StyleSheet } from 'react-native';
 import LoadingSpinner from './LoadingSpinner';
+import { useIsDark } from '@/theme/useIsDark';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -9,22 +10,34 @@ interface LoadingScreenProps {
 }
 
 const LoadingScreen: React.FC<LoadingScreenProps> = ({ showLoadingText = false }) => {
+  const isDark = useIsDark();
+
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: isDark ? '#000000' : '#FFFFFF' },
+      ]}
+    >
       {/* Full Screen Background Image */}
-      <Image 
-        source={require('../assets/images/splash-screen.png')} 
+      <Image
+        source={isDark ? require('../assets/images/splash-screen-dark.png') : require('../assets/images/splash-screen.png')}
         style={styles.backgroundImage}
         resizeMode="cover"
       />
-      
+
       {/* Loading Content in Center */}
       <View style={styles.loadingContainer}>
         <LoadingSpinner isProcessing={true} size={50} />
-        
+
         {/* Loading Text */}
         {showLoadingText && (
-          <Text style={styles.loadingText}>
+          <Text
+            style={[
+              styles.loadingText,
+              { color: isDark ? '#FFFFFF' : '#000000' },
+            ]}
+          >
             Loading...
           </Text>
         )}
@@ -36,7 +49,6 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ showLoadingText = false }
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
   },
   backgroundImage: {
     position: 'absolute',
@@ -54,7 +66,6 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 20,
     fontSize: 18,
-    color: '#000000',
     fontWeight: '600',
     textAlign: 'center',
   },

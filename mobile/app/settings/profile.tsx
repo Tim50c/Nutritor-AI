@@ -1,14 +1,15 @@
+import GoalAchievedModal from "@/components/GoalAchievedModal";
+import { auth } from "@/config/firebase";
 import { icons } from "@/constants/icons";
 import { images } from "@/constants/images";
-import { useUser } from "@/context/UserContext";
 import { useOnboarding } from "@/context/OnboardingContext";
+import { useUser } from "@/context/UserContext";
 import AnalysisService from "@/services/analysis-service";
 import ProfileService from "@/services/profile-service";
-import GoalAchievedModal from "@/components/GoalAchievedModal";
+import { useIsDark } from "@/theme/useIsDark";
 import apiClient from "@/utils/apiClients";
-import { auth } from "@/config/firebase";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Camera, CameraView } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
@@ -99,6 +100,8 @@ const Profile = () => {
   const [goalAchievedModalVisible, setGoalAchievedModalVisible] =
     useState(false);
 
+  const isDark = useIsDark();
+
   // Handle pull-to-refresh
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -181,6 +184,22 @@ const Profile = () => {
               const user = auth.currentUser;
               if (user) {
                 const idToken = await user.getIdToken();
+                await apiClient.patch(
+                  "/api/v1/profile",
+                  {
+                    onboardingComplete: false,
+                    // Reset key profile fields to null/default
+                    dob: null,
+                    gender: null,
+                    height: null,
+                    weightCurrent: null,
+                    weightGoal: null,
+                    targetNutrition: null,
+                  },
+                  {
+                    headers: { Authorization: `Bearer ${idToken}` },
+                  }
+                );
                 await apiClient.patch(
                   "/api/v1/profile",
                   {
@@ -547,18 +566,24 @@ const Profile = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-white dark:bg-black">
       <View style={{ flex: 1 }}>
         <View className="flex-row items-center justify-between px-4 py-3">
           <TouchableOpacity
-            className="bg-black w-10 h-10 rounded-full justify-center items-center"
+            className="bg-black dark:bg-white w-10 h-10 rounded-full justify-center items-center"
             onPress={() => router.back()}
           >
             <View style={{ transform: [{ rotate: "0deg" }] }}>
-              <icons.arrow width={20} height={20} color="#FFFFFF" />
+              {isDark ? (
+                <icons.arrowDark width={20} height={20} />
+              ) : (
+                <icons.arrow width={20} height={20} />
+              )}
             </View>
           </TouchableOpacity>
-          <Text className="text-xl font-bold text-black">Profile</Text>
+          <Text className="text-xl font-bold text-black dark:text-white">
+            Profile
+          </Text>
           <View className="w-10 h-10" />
         </View>
 
@@ -583,7 +608,7 @@ const Profile = () => {
             }
           >
             <View className="items-center mb-6 pt-4">
-              <View className="w-24 h-24 rounded-full bg-white items-center justify-center relative">
+              <View className="w-24 h-24 rounded-full bg-white dark:bg-black items-center justify-center relative">
                 <Image
                   source={
                     avatarPreview
@@ -593,10 +618,14 @@ const Profile = () => {
                   className="w-20 h-20 rounded-full"
                 />
                 <TouchableOpacity
-                  className="absolute right-2 bottom-2 bg-white rounded-2xl p-1 border border-gray-300"
+                  className="absolute right-2 bottom-2 bg-white dark:bg-black rounded-2xl p-1 border border-gray-300 dark:border-gray-600"
                   onPress={handleAvatarPress}
                 >
-                  <Ionicons name="pencil" size={16} color="#6B7280" />
+                  <Ionicons
+                    name="pencil"
+                    size={16}
+                    color={isDark ? "white" : "#6B7280"}
+                  />
                 </TouchableOpacity>
               </View>
             </View>
@@ -608,27 +637,27 @@ const Profile = () => {
               onRequestClose={() => setShowAvatarOptions(false)}
             >
               <TouchableOpacity
-                className="flex-1 bg-black/50 justify-center items-center"
+                className="flex-1 bg-black/50 dark:bg-white/50 justify-center items-center"
                 activeOpacity={1}
                 onPress={() => setShowAvatarOptions(false)}
               >
-                <View className="bg-white rounded-2xl mx-8 p-6 w-80">
-                  <Text className="text-lg font-semibold text-center mb-4">
+                <View className="bg-white dark:bg-black rounded-2xl mx-8 p-6 w-80">
+                  <Text className="text-lg font-semibold text-center mb-4 text-black dark:text-white">
                     Select Avatar
                   </Text>
                   <TouchableOpacity
-                    className="py-4 border-b border-gray-200"
+                    className="py-4 border-b border-gray-200 dark:border-gray-600"
                     onPress={handleGalleryPress}
                   >
-                    <Text className="text-center text-blue-600 text-lg">
+                    <Text className="text-center text-blue-600 dark:text-blue-400 text-lg">
                       Choose from Gallery
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    className="py-4 border-b border-gray-200"
+                    className="py-4 border-b border-gray-200 dark:border-gray-600"
                     onPress={takePhoto}
                   >
-                    <Text className="text-center text-blue-600 text-lg">
+                    <Text className="text-center text-blue-600 dark:text-blue-400 text-lg">
                       Take Photo
                     </Text>
                   </TouchableOpacity>
@@ -636,7 +665,7 @@ const Profile = () => {
                     className="py-4"
                     onPress={() => setShowAvatarOptions(false)}
                   >
-                    <Text className="text-center text-red-600 text-lg">
+                    <Text className="text-center text-red-600 dark:text-red-400 text-lg">
                       Cancel
                     </Text>
                   </TouchableOpacity>
@@ -650,7 +679,7 @@ const Profile = () => {
               animationType="slide"
               onRequestClose={closeCameraModal}
             >
-              <SafeAreaView className="flex-1 bg-black">
+              <SafeAreaView className="flex-1 bg-black dark:bg-white">
                 {cameraPermission ? (
                   <>
                     <CameraView
@@ -664,20 +693,20 @@ const Profile = () => {
                           onPress={closeCameraModal}
                           className="absolute left-8"
                         >
-                          <Ionicons name="close" size={32} color="white" />
+                          <Ionicons name="close" size={32} color={isDark ? "black" : "white"} />
                         </TouchableOpacity>
                         <TouchableOpacity
                           onPress={handleCameraCapture}
-                          className="w-20 h-20 bg-white rounded-full border-4 border-gray-300 items-center justify-center"
+                          className="w-20 h-20 bg-white dark:bg-black rounded-full border-4 border-gray-300 dark:border-gray-600 items-center justify-center"
                         >
-                          <View className="w-16 h-16 bg-white rounded-full" />
+                          <View className="w-16 h-16 bg-white dark:bg-black rounded-full" />
                         </TouchableOpacity>
                       </View>
                     </View>
                   </>
                 ) : (
                   <View className="flex-1 justify-center items-center">
-                    <Text className="text-white text-lg">
+                    <Text className="text-white dark:text-black text-lg">
                       Loading camera...
                     </Text>
                   </View>
@@ -692,25 +721,25 @@ const Profile = () => {
               onRequestClose={() => setShowGenderPicker(false)}
             >
               <TouchableOpacity
-                className="flex-1 bg-black/50 justify-center items-center"
+                className="flex-1 bg-black/50 dark:bg-white/50 justify-center items-center"
                 activeOpacity={1}
                 onPress={() => setShowGenderPicker(false)}
               >
-                <View className="bg-white rounded-2xl mx-8 p-6 w-80">
-                  <Text className="text-lg font-semibold text-center mb-4">
+                <View className="bg-white dark:bg-black rounded-2xl mx-8 p-6 w-80">
+                  <Text className="text-lg font-semibold text-center mb-4 text-black dark:text-white">
                     Select Gender
                   </Text>
                   {genders.map((g) => (
                     <TouchableOpacity
                       key={g}
-                      className={`py-4 border-b border-gray-200 ${gender === g ? "bg-blue-50" : ""}`}
+                      className={`py-4 border-b border-gray-200 dark:border-gray-600 ${gender === g ? "bg-blue-50 dark:bg-blue-950" : ""}`}
                       onPress={() => {
                         setGender(g);
                         setShowGenderPicker(false);
                       }}
                     >
                       <Text
-                        className={`text-center text-lg ${gender === g ? "text-blue-600 font-semibold" : "text-gray-900"}`}
+                        className={`text-center text-lg ${gender === g ? "text-blue-600 dark:text-blue-400 font-semibold" : "text-gray-900 dark:text-white"}`}
                       >
                         {g}
                       </Text>
@@ -720,7 +749,7 @@ const Profile = () => {
                     className="py-4"
                     onPress={() => setShowGenderPicker(false)}
                   >
-                    <Text className="text-center text-red-600 text-lg">
+                    <Text className="text-center text-red-600 dark:text-red-400 text-lg">
                       Cancel
                     </Text>
                   </TouchableOpacity>
@@ -730,50 +759,54 @@ const Profile = () => {
 
             <View className="px-4 flex-1">
               <View className="mb-4">
-                <Text className="text-gray-700 text-sm mb-1">Name</Text>
+                <Text className="text-gray-700 dark:text-gray-300 text-sm mb-1">
+                  Name
+                </Text>
                 <TextInput
-                  className="border border-gray-300 rounded-xl px-4 py-3 text-base bg-white"
+                  className="border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 text-base bg-white dark:bg-gray-800 text-black dark:text-white"
                   value={name}
                   onChangeText={setName}
                   placeholder="Enter your name"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
                   returnKeyType="next"
                 />
               </View>
 
               <View className="mb-4">
-                <Text className="text-gray-700 text-sm mb-1">Email</Text>
+                <Text className="text-gray-700 dark:text-gray-300 text-sm mb-1">
+                  Email
+                </Text>
                 <TextInput
-                  className="border border-gray-300 rounded-xl px-4 py-3 text-base bg-gray-100"
+                  className="border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 text-base bg-gray-100 dark:bg-gray-700"
                   value={email}
                   placeholder="Enter your email"
                   keyboardType="email-address"
                   autoCapitalize="none"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
                   editable={false}
                   selectTextOnFocus={false}
-                  style={{ color: "#6B7280" }}
+                  style={{ color: isDark ? "#A0AEC0" : "#6B7280" }}
                 />
               </View>
 
               <View className="flex-row gap-4 mb-4">
                 <View className="flex-1">
-                  <Text className="text-gray-700 text-sm mb-1">
+                  <Text className="text-gray-700 dark:text-gray-300 text-sm mb-1">
                     Date of Birth
-                  </Text>
-                  <TouchableOpacity
+                    </Text>
+                    <TouchableOpacity
                     onPress={showMode}
-                    className="border border-gray-300 rounded-xl px-4 py-3 bg-white flex-row items-center justify-between min-h-[48px]"
+                    className="border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 bg-white dark:bg-black flex-row items-center justify-between min-h-[48px]"
                   >
                     <Text
-                      className={`text-base flex-1 ${dob ? "text-gray-900" : "text-gray-400"}`}
+                      className={`text-base flex-1 ${dob ? "text-gray-900 dark:text-gray-100" : "text-gray-400 dark:text-gray-500"}`}
                     >
                       {dob || "DD-MM-YYYY"}
                     </Text>
                     <Ionicons
                       name="calendar-outline"
                       size={18}
-                      color="#9CA3AF"
+                      color={isDark ? "#9CA3AF" : "#6B7280"}
                     />
                   </TouchableOpacity>
                   <ModalDateTimePicker
@@ -789,14 +822,14 @@ const Profile = () => {
                   />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-gray-700 text-sm mb-1">Gender</Text>
+                  <Text className="text-gray-700 dark:text-gray-300 text-sm mb-1">Gender</Text>
                   <TouchableOpacity
                     onPress={() => {
                       setShowGenderPicker(true);
                     }}
-                    className="border border-gray-300 rounded-xl px-4 py-3 bg-white flex-row items-center justify-between min-h-[48px]"
+                    className="border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 bg-white dark:bg-black flex-row items-center justify-between min-h-[48px]"
                   >
-                    <Text className="text-base flex-1 text-gray-900">
+                    <Text className="text-base flex-1 text-gray-900 dark:text-gray-100">
                       {gender}
                     </Text>
                     <Ionicons
@@ -811,71 +844,77 @@ const Profile = () => {
               <View className="flex-row gap-4 mb-8">
                 <View className="flex-1">
                   <View className="flex-row items-center justify-between mb-1">
-                    <Text className="text-gray-700 text-sm">Height</Text>
+                    <Text className="text-gray-700 dark:text-gray-300 text-sm">Height</Text>
                     <TouchableOpacity
-                      className="bg-gray-100 rounded-lg px-2 py-1"
+                      className="bg-gray-100 dark:bg-gray-700 rounded-lg px-2 py-1"
                       onPress={() =>
                         setHeightUnit(heightUnit === "cm" ? "ft" : "cm")
                       }
                     >
-                      <Text className="text-xs text-gray-600">
+                      <Text className="text-xs text-gray-600 dark:text-gray-400">
                         {heightUnit}
                       </Text>
                     </TouchableOpacity>
                   </View>
                   {heightUnit === "cm" ? (
                     <TextInput
-                      className="border border-gray-300 rounded-xl px-4 py-3 text-base bg-white"
+                      className="border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 text-base bg-white dark:bg-gray-800 text-black dark:text-white"
                       value={heightValue}
                       onChangeText={(value) =>
                         setHeightValue(handleDecimalInput(value))
                       }
                       placeholder="170"
                       keyboardType="decimal-pad"
-                      placeholderTextColor="#9CA3AF"
+                      placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
                       returnKeyType="next"
                     />
                   ) : (
                     <View className="flex-row gap-2">
                       <TextInput
-                        className="flex-1 border border-gray-300 rounded-xl px-4 py-3 text-base bg-white"
+                        className="flex-1 border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 text-base bg-white dark:bg-gray-800 text-black dark:text-white"
                         value={heightFeet}
                         onChangeText={setHeightFeet}
                         placeholder="5"
                         keyboardType="numeric"
-                        placeholderTextColor="#9CA3AF"
+                        placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
                         returnKeyType="next"
                       />
-                      <Text className="self-center text-gray-500">ft</Text>
+                      <Text className="self-center text-gray-500 dark:text-gray-400">
+                        ft
+                      </Text>
                       <TextInput
-                        className="flex-1 border border-gray-300 rounded-xl px-4 py-3 text-base bg-white"
+                        className="flex-1 border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 text-base bg-white dark:bg-gray-800 text-black dark:text-white"
                         value={heightInches}
                         onChangeText={setHeightInches}
                         placeholder="10"
                         keyboardType="numeric"
-                        placeholderTextColor="#9CA3AF"
+                        placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
                         returnKeyType="next"
                       />
-                      <Text className="self-center text-gray-500">in</Text>
+                      <Text className="self-center text-gray-500 dark:text-gray-400">
+                        in
+                      </Text>
                     </View>
                   )}
                 </View>
                 <View className="flex-1">
                   <View className="flex-row items-center justify-between mb-1">
-                    <Text className="text-gray-700 text-sm">Weight</Text>
+                    <Text className="text-gray-700 dark:text-gray-300 text-sm">
+                      Weight
+                    </Text>
                     <TouchableOpacity
-                      className="bg-gray-100 rounded-lg px-2 py-1"
+                      className="bg-gray-100 dark:bg-gray-700 rounded-lg px-2 py-1"
                       onPress={() =>
                         setWeightUnit(weightUnit === "kg" ? "lbs" : "kg")
                       }
                     >
-                      <Text className="text-xs text-gray-600">
+                      <Text className="text-xs text-gray-600 dark:text-gray-400">
                         {weightUnit}
                       </Text>
                     </TouchableOpacity>
                   </View>
                   <TextInput
-                    className="border border-gray-300 rounded-xl px-4 py-3 text-base bg-white"
+                    className="border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 text-base bg-white dark:bg-gray-800 text-black dark:text-white"
                     value={weightValue}
                     onChangeText={(value) => {
                       const processedValue = handleDecimalInput(value);
@@ -883,21 +922,21 @@ const Profile = () => {
                     }}
                     placeholder={weightUnit === "kg" ? "65" : "143"}
                     keyboardType="decimal-pad"
-                    placeholderTextColor="#9CA3AF"
+                    placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
                     returnKeyType="done"
                   />
                 </View>
               </View>
 
               {/* Reset All Button */}
-              <View className="mt-4">
+              <View className="mt-3">
                 <TouchableOpacity
-                  className={`bg-red-100 border border-red-200 rounded-xl py-3 items-center ${loading ? "opacity-50" : ""}`}
+                  className={`bg-red-100 dark:bg-red-900 border border-red-200 dark:border-red-800 rounded-xl py-3 items-center ${loading ? "opacity-50" : ""}`}
                   onPress={handleResetAll}
                   activeOpacity={0.7}
                   disabled={loading}
                 >
-                  <Text className="text-red-600 text-base font-semibold">
+                  <Text className="text-red-600 dark:text-red-400 text-base font-semibold">
                     {loading ? "Resetting..." : "Reset All Settings"}
                   </Text>
                 </TouchableOpacity>

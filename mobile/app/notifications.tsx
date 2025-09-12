@@ -17,6 +17,7 @@ import {
 import { images } from "@/constants/images";
 import { icons } from "@/constants/icons";
 import CustomHeaderWithBack from "@/components/CustomHeaderWithBack";
+import { useIsDark } from "@/theme/useIsDark";
 
 function NotificationCard({
   notification,
@@ -54,8 +55,8 @@ function NotificationCard({
     <TouchableOpacity
       className={`flex-row items-center rounded-2xl p-4 mb-3 ${
         read
-          ? "bg-gray-50 border border-gray-100"
-          : "bg-orange-50 border border-orange-200"
+          ? "bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700"
+          : "bg-orange-50 dark:bg-orange-600 border border-orange-200 dark:border-orange-400"
       }`}
       activeOpacity={0.8}
       onPress={onPress}
@@ -63,7 +64,7 @@ function NotificationCard({
       {/* Notification Icon */}
       <View
         className={`w-12 h-12 rounded-full justify-center items-center mr-4 ${
-          read ? "bg-gray-200" : "bg-orange-100"
+          read ? "bg-gray-200 dark:bg-gray-700" : "bg-orange-100 dark:bg-gray-800"
         }`}
       >
         <icons.notifications
@@ -76,13 +77,13 @@ function NotificationCard({
       {/* Content */}
       <View className="flex-1">
         <Text
-          className={`text-base ${read ? "text-gray-600" : "text-gray-900 font-medium"}`}
+          className={`text-base ${read ? "text-gray-600 dark:text-gray-300" : "text-gray-900 dark:text-gray-200 font-medium"}`}
         >
           {message}
         </Text>
         {createdAt && (
           <Text
-            className={`text-xs mt-1 ${read ? "text-gray-400" : "text-orange-600"}`}
+            className={`text-xs mt-1 ${read ? "text-gray-400 dark:text-gray-600" : "text-orange-600 dark:text-orange-400"}`}
           >
             {formatTimestamp(createdAt)}
           </Text>
@@ -90,7 +91,7 @@ function NotificationCard({
       </View>
 
       {/* Unread indicator */}
-      {!read && <View className="w-3 h-3 bg-orange-500 rounded-full ml-3" />}
+      {!read && <View className="w-3 h-3 bg-orange-500 dark:bg-orange-400 rounded-full ml-3" />}
     </TouchableOpacity>
   );
 }
@@ -121,7 +122,7 @@ const NotificationsScreen = () => {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-white dark:bg-black">
       {/* Header */}
       <CustomHeaderWithBack title="Notifications" />
 
@@ -129,7 +130,7 @@ const NotificationsScreen = () => {
       {loading && !refreshing && (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#FF6F2D" />
-          <Text className="text-gray-500 mt-4">Loading notifications...</Text>
+          <Text className="text-gray-500 dark:text-gray-400 mt-4">Loading notifications...</Text>
         </View>
       )}
 
@@ -160,7 +161,7 @@ const NotificationsScreen = () => {
               {/* Unread notifications section */}
               {unreadNotifications.length > 0 && (
                 <View className="mb-6">
-                  <Text className="text-lg font-semibold text-gray-900 mb-3">
+                  <Text className="text-lg font-semibold text-gray-900 dark:text-gray-200 mb-3">
                     New ({unreadNotifications.length})
                   </Text>
                   {unreadNotifications.map((notification) => (
@@ -176,7 +177,7 @@ const NotificationsScreen = () => {
               {/* Read notifications section */}
               {readNotifications.length > 0 && (
                 <View>
-                  <Text className="text-lg font-semibold text-gray-600 mb-3">
+                  <Text className="text-lg font-semibold text-gray-600 dark:text-gray-300 mb-3">
                     Earlier
                   </Text>
                   {readNotifications.map((notification) => (
@@ -198,10 +199,10 @@ const NotificationsScreen = () => {
                 className="w-52 h-52 mb-6"
                 resizeMode="contain"
               />
-              <Text className="text-xl font-semibold mb-2 text-center text-black">
+              <Text className="text-xl font-semibold mb-2 text-center text-black dark:text-white">
                 No notifications yet.
               </Text>
-              <Text className="text-base text-gray-500 text-center">
+              <Text className="text-base text-gray-500 text-center dark:text-gray-400">
                 Your healthy habits are on track—keep it up!
               </Text>
             </View>

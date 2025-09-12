@@ -11,11 +11,19 @@ const Toggle: React.FC<ToggleProps> = ({ value, onValueChange }) => {
     <TouchableOpacity
       activeOpacity={0.8}
       onPress={() => onValueChange(!value)}
-      className={`w-12 h-7 rounded-full flex-row items-center px-1 ${value ? "bg-accent dark:bg-accent-dark" : "bg-secondary dark:bg-secondary-dark"}`}
+      className={`w-12 h-7 rounded-full flex-row items-center px-1 ${
+        value
+          ? "bg-primary-200 dark:bg-primary-300"
+          : "bg-gray-400 dark:bg-gray-600"
+      }`}
       style={{ justifyContent: value ? "flex-end" : "flex-start" }}
     >
       <View
-        className={`w-5 h-5 rounded-full bg-bg-default dark:bg-bg-default-dark border ${value ? "border-accent dark:border-accent-dark" : "border-secondary dark:border-secondary-dark"}`}
+        className={`w-5 h-5 rounded-full bg-white dark:bg-gray-200 border ${
+          value
+            ? "border-primary-200 dark:border-primary-300"
+            : "border-gray-400 dark:border-gray-600"
+        }`}
         style={{ shadowColor: "#000", shadowOpacity: 0.1, shadowRadius: 2 }}
       />
     </TouchableOpacity>

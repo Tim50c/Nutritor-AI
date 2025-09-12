@@ -1,5 +1,10 @@
 import React from "react";
-import { Animated, Modal, Text, TouchableOpacity } from "react-native";
+import {
+  Text,
+  Modal,
+  TouchableOpacity,
+  Animated,
+} from "react-native";
 
 interface CustomAlertProps {
   visible: boolean;
@@ -53,23 +58,31 @@ const CustomAlert: React.FC<CustomAlertProps> = ({
   const getBorderColor = () => {
     switch (type) {
       case "success":
-        return "border-success dark:border-success-dark";
+        return "border-green-500";
       case "error":
-        return "border-danger dark:border-danger-dark";
+        return "border-red-500";
       default:
-        return "border-border-default dark:border-border-default-dark";
+        return "border-gray-200 dark:border-gray-600";
     }
   };
 
   const getButtonColor = () => {
     switch (type) {
       case "success":
-        return "bg-success dark:bg-success-dark";
+        return "bg-green-500";
       case "error":
-        return "bg-danger dark:bg-danger-dark";
+        return "bg-red-500";
       default:
-        return "bg-accent dark:bg-accent-dark";
+        return "bg-gray-800";
     }
+  };
+
+  const getTitleColor = () => {
+    return "text-black dark:text-white";
+  };
+  
+  const getMessageColor = () => {
+    return "text-gray-700 dark:text-gray-300";
   };
 
   return (
@@ -87,18 +100,18 @@ const CustomAlert: React.FC<CustomAlertProps> = ({
         }}
       >
         <Animated.View
-          className={`bg-surface dark:bg-surface-dark rounded-3xl p-6 w-full max-w-sm border-2 shadow-2xl ${getBorderColor()}`}
+          className={`bg-white dark:bg-gray-800 rounded-3xl p-6 w-full max-w-sm border-2 shadow-2xl ${getBorderColor()}`}
           style={{
             transform: [{ scale: scaleAnim }],
           }}
         >
           {/* Title */}
-          <Text className="text-xl font-bold text-default dark:text-default-dark text-center mb-3">
+          <Text className={`text-xl font-bold text-center mb-3 ${getTitleColor()}`}>
             {title}
           </Text>
 
           {/* Message */}
-          <Text className="text-base text-secondary dark:text-secondary-dark text-center leading-6 mb-6">
+          <Text className={`text-base text-center leading-6 mb-6 ${getMessageColor()}`}>
             {message}
           </Text>
 

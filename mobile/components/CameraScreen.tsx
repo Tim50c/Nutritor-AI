@@ -1,25 +1,27 @@
-import React, { useState, useEffect, useRef } from "react";
-import {
-  View,
-  TouchableOpacity,
-  Image,
-  StyleSheet,
-  SafeAreaView,
-  Animated,
-  Alert,
-} from "react-native";
-import { Text } from "./CustomText";
-import { CameraView, Camera } from "expo-camera";
-import * as ImagePicker from "expo-image-picker";
-import { BlurView } from "expo-blur";
-import { useRouter } from "expo-router";
 import { icons } from "@/constants/icons";
-import LoadingSpinner from "./LoadingSpinner";
 import { CameraService } from "@/services";
 import NavigationUtils from "@/utils/NavigationUtils";
+import { BlurView } from "expo-blur";
+import { Camera, CameraView } from "expo-camera";
+import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  Alert,
+  Animated,
+  Image,
+  SafeAreaView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import CustomHeaderWithBack from "./CustomHeaderWithBack";
+import { Text } from "./CustomText";
+import LoadingSpinner from "./LoadingSpinner";
+import { useIsDark } from "@/theme/useIsDark";
 
 const CameraScreen = () => {
+  const isDark = useIsDark();
   const [mode, setMode] = useState("camera"); // "camera" | "barcode" | "gallery"
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [cameraRef, setCameraRef] = useState<CameraView | null>(null);
@@ -196,7 +198,9 @@ const CameraScreen = () => {
               setHasPermission(status === "granted");
             }}
           >
-            <Text className="text-white font-semibold dark:text-black">Request Permission</Text>
+            <Text className="text-white font-semibold dark:text-black">
+              Request Permission
+            </Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -250,7 +254,7 @@ const CameraScreen = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-black">
+    <SafeAreaView className="flex-1 bg-white dark:bg-black">
       <CustomHeaderWithBack
         title="AI Camera"
         onBackPress={() => NavigationUtils.goBack()}
@@ -351,7 +355,7 @@ const CameraScreen = () => {
 
             {/* Barcode scanning instructions */}
             <View className="absolute bottom-12 left-0 right-0 items-center">
-              <View className="bg-black bg-opacity-60 rounded-xl px-6 py-3">
+              <View className="bg-black/60 dark:bg-black/80 rounded-xl px-6 py-3">
                 <Text className="text-white text-center text-sm font-medium">
                   {scannedBarcode
                     ? "Looking up product..."
@@ -376,7 +380,7 @@ const CameraScreen = () => {
             {/* Mode Switch Buttons */}
             <View className="flex-row justify-around mb-8">
               <TouchableOpacity
-                className={`flex-1 items-center py-5 mx-2 rounded-xl border border-black ${
+                className={`flex-1 items-center py-5 mx-2 rounded-xl border border-black dark:border-white ${
                   mode === "camera" ? "bg-orange-500/90" : "bg-orange-500/60"
                 }`}
                 onPress={() => handleModeChange("camera")}
@@ -391,14 +395,14 @@ const CameraScreen = () => {
               </TouchableOpacity>
 
               <TouchableOpacity
-                className={`flex-1 items-center py-5 mx-2 rounded-xl border border-black ${
+                className={`flex-1 items-center py-5 mx-2 rounded-xl border border-black dark:border-white ${
                   mode === "barcode" ? "bg-orange-500/90" : "bg-orange-500/60"
                 }`}
                 onPress={() => handleModeChange("barcode")}
               >
                 <icons.BarcodeModeIcon width={24} height={24} stroke="white" />
                 <Text
-                  className="text-black text-sm font-medium"
+                  className="text-black text-sm font-medium dark:text-white"
                   style={{ marginTop: 8 }}
                 >
                   AI Barcode
@@ -406,14 +410,14 @@ const CameraScreen = () => {
               </TouchableOpacity>
 
               <TouchableOpacity
-                className={`flex-1 items-center py-5 mx-2 rounded-xl border border-black ${
+                className={`flex-1 items-center py-5 mx-2 rounded-xl border border-black dark:border-white ${
                   mode === "gallery" ? "bg-orange-500/90" : "bg-orange-500/60"
                 }`}
                 onPress={() => handleModeChange("gallery")}
               >
                 <icons.GalleryModeIcon width={24} height={24} stroke="white" />
                 <Text
-                  className="text-black text-sm font-medium"
+                  className="text-black text-sm font-medium dark:text-white"
                   style={{ marginTop: 8 }}
                 >
                   Gallery
@@ -427,16 +431,20 @@ const CameraScreen = () => {
                 <TouchableOpacity
                   onPress={handleCapture}
                   disabled={isProcessing}
-                  className={`w-24 h-24 rounded-full items-center justify-center border-4 border-white ${
-                    isProcessing ? "bg-gray-400" : "bg-orange-500"
+                  className={`w-24 h-24 rounded-full items-center justify-center border-4 border-black dark:border-white ${
+                    isProcessing
+                      ? "bg-gray-400 dark:bg-gray-600"
+                      : "bg-orange-500"
                   }`}
                 >
                   <View
                     className={`w-20 h-20 rounded-full items-center justify-center ${
-                      isProcessing ? "bg-gray-500" : "bg-orange-600"
+                      isProcessing
+                        ? "bg-gray-500 dark:bg-gray-700"
+                        : "bg-orange-600"
                     }`}
                   >
-                    <View className="w-5 h-5 bg-white rounded" />
+                    <View className="w-5 h-5 bg-black dark:bg-white rounded" />
                   </View>
                 </TouchableOpacity>
                 {isProcessing && (
@@ -445,7 +453,8 @@ const CameraScreen = () => {
                       Analyzing food...
                     </Text>
                     <Text className="text-gray-300 text-xs mt-1">
-                      Please wait while AI identifies your food
+                      Please wait while AI identifies your food and{"\n"}
+                      calculating nutrition facts...
                     </Text>
                   </View>
                 )}
@@ -459,10 +468,10 @@ const CameraScreen = () => {
       {isProcessing && (
         <BlurView
           intensity={20}
-          tint="dark"
+          tint={isDark ? "dark" : "light"}
           className="absolute inset-0 flex-1 items-center justify-center"
         >
-          <View className="bg-black bg-opacity-60 rounded-2xl p-8 items-center">
+          <View className="bg-black/60 dark:bg-gray-800 rounded-2xl p-8 items-center">
             <View className="mb-6">
               <LoadingSpinner
                 isProcessing={isProcessing}
@@ -470,10 +479,10 @@ const CameraScreen = () => {
                 color="#FF5A16"
               />
             </View>
-            <Text className="text-white text-lg font-semibold mb-2">
+            <Text className="text-white dark:text-white text-lg font-semibold mb-2">
               Analyzing Food
             </Text>
-            <Text className="text-gray-300 text-sm text-center">
+            <Text className="text-gray-300 dark:text-gray-400 text-sm text-center">
               AI is identifying your food and{"\n"}calculating nutrition
               facts...
             </Text>

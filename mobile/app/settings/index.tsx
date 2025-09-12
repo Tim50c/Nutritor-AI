@@ -16,15 +16,17 @@ import SettingsNavButton from '@/components/SettingsNavButton';
 import CustomButtonAuth from '@/components/CustomButtonAuth';
 import { icons } from '@/constants/icons';
 import { images } from '@/constants/images';
+import { useIsDark } from '@/theme/useIsDark';
 
 const Settings = () => {
   const router = useRouter();
   const { userProfile, logout } = useUser();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const isDark = useIsDark();
 
   if (!userProfile) {
     return (
-      <SafeAreaView className="flex-1 bg-white justify-center items-center">
+      <SafeAreaView className="flex-1 bg-white dark:bg-black justify-center items-center">
         <ActivityIndicator size="large" color="#FF6F2D" />
       </SafeAreaView>
     );
@@ -53,18 +55,18 @@ const Settings = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-white dark:bg-black">
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 py-3">
         <TouchableOpacity 
-          className="bg-black w-10 h-10 rounded-full justify-center items-center" 
+          className="bg-black dark:bg-white w-10 h-10 rounded-full justify-center items-center" 
           onPress={() => router.back()}
         >
           <View style={{ transform: [{ rotate: '0deg' }] }}>
-            <icons.arrow width={20} height={20} color="#FFFFFF" />
+            {isDark? <icons.arrowDark width={20} height={20} color="#FFFFFF" /> : <icons.arrow width={20} height={20} color="#FFFFFF" />}
           </View>
         </TouchableOpacity>
-        <Text className="text-xl font-bold text-black">Settings</Text>
+        <Text className="text-xl font-bold text-black dark:text-white">Settings</Text>
         <View className="w-10" />
       </View>
 
@@ -88,24 +90,24 @@ const Settings = () => {
         </TouchableOpacity>
 
         {/* Settings Group 1 */}
-        <View className="bg-gray-100 rounded-2xl mb-6">
+        <View className="bg-gray-100 dark:bg-gray-800 rounded-2xl mb-6">
           <SettingsNavButton label="Profile" route="/settings/profile" variant="light" />
-          <View className="h-px bg-gray-200 mx-5" />
+          <View className="h-px bg-gray-200 dark:bg-gray-600 mx-5" />
           <SettingsNavButton label="Change Password" route="/settings/change-password" variant="light" />
-          <View className="h-px bg-gray-200 mx-5" />
+          <View className="h-px bg-gray-200 dark:bg-gray-600 mx-5" />
           <SettingsNavButton label="Notification" route="/settings/notification-settings" variant="light" />
-          <View className="h-px bg-gray-200 mx-5" />
+          <View className="h-px bg-gray-200 dark:bg-gray-600 mx-5" />
           <SettingsNavButton label="Favorites" route="/settings/favorites" variant="light" />
         </View>
 
         {/* Settings Group 2 */}
-        <View className="bg-gray-100 rounded-2xl mb-6">
+        <View className="bg-gray-100 dark:bg-gray-800 rounded-2xl mb-6">
           <SettingsNavButton label="More" route="/settings/more" variant="light" />
         </View>
       </ScrollView>
       
       {/* Logout Button */}
-      <View className="px-6 pt-4 pb-6 bg-white">
+      <View className="px-6 pt-4 pb-6 bg-white dark:bg-black">
         <CustomButtonAuth
           title="Logout"
           onPress={handleLogout}

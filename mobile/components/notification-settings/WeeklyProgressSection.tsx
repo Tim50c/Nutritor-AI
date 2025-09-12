@@ -37,11 +37,8 @@ const WeeklyProgressSection = ({
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.7}
+      className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-4 shadow-sm dark:shadow-sm"
       style={{
-        backgroundColor: "white",
-        borderRadius: 12,
-        padding: 16,
-        marginBottom: 16,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.1,
@@ -65,26 +62,17 @@ const WeeklyProgressSection = ({
       />
 
       {expandedSection === "weekly" && weeklyProgress.enabled && (
-        <View style={{ marginTop: 20 }}>
+        <View className="mt-5">
           {/* Time Setting */}
           <TouchableOpacity
             onPress={() => openTimePicker("weekly", weeklyProgress.time)}
             activeOpacity={0.7}
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-              paddingVertical: 12,
-              paddingHorizontal: 16,
-              backgroundColor: "#f8f8f8",
-              borderRadius: 8,
-              marginBottom: 16,
-            }}
+            className="flex-row justify-between items-center py-3 px-4 bg-gray-100 dark:bg-gray-700 rounded-lg mb-4"
           >
-            <Text style={{ fontSize: 16, color: "#333" }}>
+            <Text className="text-base text-gray-700 dark:text-gray-300">
               Notification Time
             </Text>
-            <Text style={{ fontSize: 16, color: "#ff5a16", fontWeight: "500" }}>
+            <Text className="text-base text-orange-500 font-medium">
               {formatTime(weeklyProgress.time)}
             </Text>
           </TouchableOpacity>
@@ -92,51 +80,42 @@ const WeeklyProgressSection = ({
           {/* Day Selection */}
           <View>
             <Text
-              style={{
-                fontSize: 16,
-                fontWeight: "500",
-                marginBottom: 12,
-                color: "#333",
-              }}
+              className="text-base font-medium mb-3 text-gray-700 dark:text-gray-300"
             >
               Notification Day
             </Text>
             <View
-              style={{ flexDirection: "row", justifyContent: "space-between" }}
+              className="flex-row justify-between"
             >
-              {days.map((day, index) => (
-                <TouchableOpacity
-                  key={day}
-                  onPress={() =>
-                    updatePreferences({
-                      weeklyProgress: {
-                        ...weeklyProgress,
-                        day,
-                      },
-                    })
-                  }
-                  activeOpacity={0.8}
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 20,
-                    justifyContent: "center",
-                    alignItems: "center",
-                    backgroundColor:
-                      weeklyProgress.day === day ? "#ff5a16" : "#f0f0f0",
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      fontWeight: "600",
-                      color: weeklyProgress.day === day ? "white" : "#666",
-                    }}
+              {days.map((day, index) => {
+                const isSelected = weeklyProgress.day === day;
+                const buttonClasses = `w-10 h-10 rounded-full justify-center items-center ${
+                  isSelected ? "bg-orange-500" : "bg-gray-200 dark:bg-gray-700"
+                }`;
+                const textClasses = `text-xs font-semibold ${
+                  isSelected ? "text-white" : "text-gray-500 dark:text-gray-400"
+                }`;
+                
+                return (
+                  <TouchableOpacity
+                    key={day}
+                    onPress={() =>
+                      updatePreferences({
+                        weeklyProgress: {
+                          ...weeklyProgress,
+                          day,
+                        },
+                      })
+                    }
+                    activeOpacity={0.8}
+                    className={buttonClasses}
                   >
-                    {dayLabels[index]}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <Text className={textClasses}>
+                      {dayLabels[index]}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </View>
         </View>

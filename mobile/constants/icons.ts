@@ -20,6 +20,7 @@ import dietDark from "@/assets/icons/diet-dark.svg";
 import fileIconPng from "@/assets/icons/file-icon.png";
 import fileIcon from "@/assets/icons/file-icon.svg";
 import forwardArrow from "@/assets/icons/forward-arrow.svg";
+import forwardArrowDark from "@/assets/icons/forward-arrow-dark.svg";
 import GalleryModeIcon from "@/assets/icons/gallery-mode-icon.svg";
 import heartFill from "@/assets/icons/heart-fill.svg";
 import heart from "@/assets/icons/heart.svg";
@@ -72,6 +73,7 @@ export const icons = {
   GalleryModeIcon,
   close,
   forwardArrow,
+  forwardArrowDark,
   attachmentIcon,
   championCup,
 };
