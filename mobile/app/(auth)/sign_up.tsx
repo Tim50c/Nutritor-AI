@@ -1,21 +1,21 @@
 import axios from "axios";
 import Constants from "expo-constants"; // <-- Import Constants
-import { Link, useRouter } from "expo-router";
+import {Link, useRouter} from "expo-router";
 import {
   ActionCodeSettings,
   createUserWithEmailAndPassword,
   sendEmailVerification,
 } from "firebase/auth";
-import React, { useState } from "react";
-import { Alert, ScrollView, TouchableOpacity, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Text } from "../../components/CustomText";
-import { auth } from "../../config/firebase";
+import React, {useState} from "react";
+import {Alert, ScrollView, TouchableOpacity, View} from "react-native";
+import {SafeAreaView} from "react-native-safe-area-context";
+import {Text} from "../../components/CustomText";
+import {auth} from "../../config/firebase";
 
 import CustomButtonAuth from "../../components/CustomButtonAuth";
 import FormField from "../../components/FormField";
-import { icons } from "../../constants/icons";
-import { useIsDark } from "@/theme/useIsDark";
+import {icons} from "../../constants/icons";
+import {useIsDark} from "@/theme/useIsDark";
 
 const backArrowIcon = require("../../assets/images/back-arrow.png");
 
@@ -84,7 +84,7 @@ export default function SignUp() {
           lastname: form.lastName,
           dob: "1990-01-01",
         },
-        { headers: { Authorization: `Bearer ${idToken}` } }
+        {headers: {Authorization: `Bearer ${idToken}`}}
       );
 
       // 4. Sign out the user to prevent automatic sign-in before verification
@@ -93,7 +93,7 @@ export default function SignUp() {
       // 5. Navigate to a screen telling the user to check their email
       router.replace({
         pathname: "./prompt_verification",
-        params: { email: form.email },
+        params: {email: form.email},
       });
     } catch (error: any) {
       // --- MODIFICATION START ---
@@ -154,20 +154,19 @@ export default function SignUp() {
         }}
         className="bg-black dark:bg-gray-200"
       >
-        <View style={{ transform: [{ rotate: "0deg" }] }}>
+        <View style={{transform: [{rotate: "0deg"}]}}>
           {/* Dark mode: icon switches automatically (white on dark bg, black on light bg) */}
-          <icons.arrow
-            width={20}
-            height={20}
-            color={isDark ? "#000000" : "#FFFFFF"}
-          />
+          {isDark ?
+            <icons.arrowDark width={20} height={20}/> :
+            <icons.arrow width={20} height={20}
+          />}
         </View>
       </TouchableOpacity>
 
       <ScrollView
-        contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
+        contentContainerStyle={{flexGrow: 1, justifyContent: "center"}}
       >
-        <View style={{ paddingHorizontal: 24, paddingVertical: 40 }}>
+        <View style={{paddingHorizontal: 24, paddingVertical: 40}}>
           <Text className="text-2xl font-bold text-gray-800 dark:text-gray-100">
             Create Your NutritorAI Account
           </Text>
@@ -175,24 +174,24 @@ export default function SignUp() {
             Start your journey to a healthier you.
           </Text>
 
-          <View style={{ marginTop: 32 }}>
-            <View style={{ flexDirection: "row", gap: 16 }}>
-              <View style={{ flex: 1 }}>
+          <View style={{marginTop: 32}}>
+            <View style={{flexDirection: "row", gap: 16}}>
+              <View style={{flex: 1}}>
                 <FormField
                   label="First Name"
                   value={form.firstName}
-                  onChangeText={(text) => setForm({ ...form, firstName: text })}
+                  onChangeText={(text) => setForm({...form, firstName: text})}
                   placeholder="Example: John"
                   onFocus={() => setActiveField("firstName")}
                   onBlur={() => setActiveField("")}
                   isActive={activeField === "firstName"}
                 />
               </View>
-              <View style={{ flex: 1 }}>
+              <View style={{flex: 1}}>
                 <FormField
                   label="Last Name"
                   value={form.lastName}
-                  onChangeText={(text) => setForm({ ...form, lastName: text })}
+                  onChangeText={(text) => setForm({...form, lastName: text})}
                   placeholder="Example: Doe"
                   onFocus={() => setActiveField("lastName")}
                   onBlur={() => setActiveField("")}
@@ -204,7 +203,7 @@ export default function SignUp() {
             <FormField
               label="Email"
               value={form.email}
-              onChangeText={(text) => setForm({ ...form, email: text })}
+              onChangeText={(text) => setForm({...form, email: text})}
               placeholder="Enter Email"
               keyboardType="email-address"
               onFocus={() => setActiveField("email")}
@@ -215,7 +214,7 @@ export default function SignUp() {
             <FormField
               label="Password"
               value={form.password}
-              onChangeText={(text) => setForm({ ...form, password: text })}
+              onChangeText={(text) => setForm({...form, password: text})}
               placeholder="Enter Password"
               secureTextEntry
               onFocus={() => setActiveField("password")}
@@ -224,7 +223,7 @@ export default function SignUp() {
             />
           </View>
 
-          <View style={{ marginTop: 40 }}>
+          <View style={{marginTop: 40}}>
             <CustomButtonAuth
               title="Sign Up"
               onPress={handleSignUp}

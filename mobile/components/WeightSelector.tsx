@@ -3,6 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { Text } from './CustomText';
 import { RulerPicker } from 'react-native-ruler-picker';
 import ToggleSelector from './ToggleSelector';
+import { useIsDark } from '@/theme/useIsDark';
 
 interface WeightSelectorProps {
   value: number;
@@ -14,6 +15,8 @@ interface WeightSelectorProps {
 const KG_TO_LBS = 2.20462;
 
 const WeightSelector: React.FC<WeightSelectorProps> = ({ value, unit, onValueChange, onUnitChange }) => {
+  const isDark = useIsDark();
+
   const kgToLbs = (kg: number) => parseFloat((kg * KG_TO_LBS).toFixed(1));
   const lbsToKg = (lbs: number) => parseFloat((lbs / KG_TO_LBS).toFixed(1));
 
@@ -51,13 +54,20 @@ const WeightSelector: React.FC<WeightSelectorProps> = ({ value, unit, onValueCha
   const step = unit === 'kg' ? 0.5 : 1;
   const fractionDigits = unit === 'kg' ? 1 : 0;
 
+  // Dark-aware color palette (keeps same semantics across app)
+  const colors = {
+    textPrimary: isDark ? '#FFFFFF' : '#1E1E1E',       // weight big number
+    textSecondary: isDark ? '#B3B3B8' : '#8A8A8E',    // unit and secondary
+    indicator: isDark ? '#FF7A3A' : '#FF5A16',        // ruler indicator / primary accent
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.valueContainer}>
-        <Text style={styles.valueText}>
+        <Text style={[styles.valueText, { color: colors.textPrimary }]}>
           {unit === 'kg' ? value.toFixed(1) : Math.round(value)}
         </Text>
-        <Text style={styles.unitText}>{unit}</Text>
+        <Text style={[styles.unitText, { color: colors.textSecondary }]}>{unit}</Text>
       </View>
 
       <RulerPicker
@@ -69,7 +79,7 @@ const WeightSelector: React.FC<WeightSelectorProps> = ({ value, unit, onValueCha
         onValueChange={handleRulerValueChange}
         unitTextStyle={styles.rulerUnitText}
         valueTextStyle={styles.rulerValueText}
-        indicatorColor="#FF5A16"
+        indicatorColor={colors.indicator}
         height={150}
       />
 
@@ -96,12 +106,12 @@ const styles = StyleSheet.create({
   valueText: {
     fontSize: 60,
     fontWeight: 'bold',
-    color: '#1E1E1E',
+    color: '#1E1E1E', // fallback light-mode color (overridden dynamically)
   },
   unitText: {
     fontSize: 24,
     fontWeight: '600',
-    color: '#8A8A8E',
+    color: '#8A8A8E', // fallback light-mode color (overridden dynamically)
     marginLeft: 8,
   },
   rulerUnitText: {

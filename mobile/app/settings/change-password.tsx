@@ -8,6 +8,7 @@ import CustomButton from "@/components/CustomButton";
 import CustomInput from "@/components/CustomInput";
 import CustomModal from "@/components/CustomModal";
 import { PasswordService } from "@/services";
+import { useIsDark } from "@/theme/useIsDark";
 
 const passwordStrengthCheck = (password: string) => {
   // At least 8 chars, one letter, one number, one special char
@@ -24,6 +25,7 @@ const ChangePassword = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const router = useRouter();
   const { userProfile } = useUser();
+  const isDark = useIsDark();
 
   const handleSave = async () => {
     // Reset error message
@@ -72,18 +74,18 @@ const ChangePassword = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-white dark:bg-black">
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 py-3">
         <TouchableOpacity 
-          className="bg-black w-10 h-10 rounded-full justify-center items-center" 
+          className="bg-black dark:bg-white w-10 h-10 rounded-full justify-center items-center" 
           onPress={() => router.back()}
         >
           <View style={{ transform: [{ rotate: '0deg' }] }}>
-            <icons.arrow width={20} height={20} color="#FFFFFF" />
+            {isDark ? <icons.arrowDark width={20} height={20} color="#000000" /> : <icons.arrow width={20} height={20} color="#FFFFFF" />}
           </View>
         </TouchableOpacity>
-        <Text className="text-xl font-bold text-black">Change Password</Text>
+        <Text className="text-xl font-bold text-black dark:text-white">Change Password</Text>
         <View className="w-10 h-10" />
       </View>
 

@@ -1,13 +1,15 @@
-import React from "react";
+import React from 'react';
 import {
-  Platform,
-  StyleProp,
+  View,
   TextInput,
   TextInputProps,
+  Platform,
+  StyleProp,
   TextStyle,
-  View,
-} from "react-native";
-import { Text } from "./CustomText";
+  ViewStyle,
+} from 'react-native';
+import { Text } from './CustomText';
+import { useIsDark } from '@/theme/useIsDark';
 
 interface FormFieldProps extends TextInputProps {
   label: string;
@@ -15,20 +17,27 @@ interface FormFieldProps extends TextInputProps {
   isActive?: boolean;
 }
 
-const FormField: React.FC<FormFieldProps> = ({
-  label,
-  error,
-  isActive,
-  ...props
-}) => {
+const FormField: React.FC<FormFieldProps> = ({ label, error, isActive, ...props }) => {
+  const isDark = useIsDark();
+
+  const colors = {
+    error: '#DC2626', // keep same red for consistency
+    active: isDark ? '#FF7A3A' : '#F97316',
+    borderDefault: isDark ? '#374151' : '#E5E7EB',
+    background: isDark ? '#1E293B' : '#F9FAFB',
+    text: isDark ? '#FFFFFF' : '#1F2937',
+    placeholder: isDark ? '#9CA3AF' : '#9CA3AF', // same gray works on both
+    label: isDark ? '#E5E7EB' : '#374151',
+  };
+
   const getBorderColor = () => {
     if (error) {
-      return "#DC2626";
+      return colors.error;
     }
     if (isActive) {
-      return "#F97316";
+      return colors.active;
     }
-    return "#E5E7EB";
+    return colors.borderDefault;
   };
 
   // --- FIX IS HERE: We define the base and platform styles separately ---
@@ -36,8 +45,8 @@ const FormField: React.FC<FormFieldProps> = ({
   // 1. Define the base styles that are common to both platforms.
   // We explicitly type this to ensure correctness.
   const baseStyles: StyleProp<TextStyle> = {
-    backgroundColor: "#F9FAFB",
-    color: "#1F2937",
+    backgroundColor: colors.background,
+    color: colors.text,
     borderWidth: 1,
     borderColor: getBorderColor(),
     height: 56,
@@ -52,23 +61,31 @@ const FormField: React.FC<FormFieldProps> = ({
     },
     android: {
       // On Android, textAlignVertical works perfectly.
-      textAlignVertical: "center",
+      textAlignVertical: 'center',
       paddingVertical: 0, // Explicitly set to 0 to avoid default padding issues.
     },
   });
 
   return (
     <View className="w-full mb-4">
-      <Text className="text-default dark:text-default-dark text-sm font-semibold mb-2">
+      <Text
+        className="text-sm font-semibold mb-2"
+        style={{ color: colors.label }}
+      >
         {label}
       </Text>
       <TextInput
-        className="text-base font-regular px-4 rounded-xl text-default dark:text-default-dark"
+        className="text-base font-regular px-4 rounded-xl"
+        // 3. Pass an array to the style prop. This is the key to the fix.
         style={[baseStyles, platformStyles]}
-        placeholderTextColor="#A7A9AC"
+        placeholderTextColor={colors.placeholder}
         {...props}
       />
-      {error && <Text className="text-danger text-sm mt-1">{error}</Text>}
+      {error && (
+        <Text className="text-sm mt-1" style={{ color: colors.error }}>
+          {error}
+        </Text>
+      )}
     </View>
   );
 };

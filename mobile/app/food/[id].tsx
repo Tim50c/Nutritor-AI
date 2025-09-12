@@ -56,7 +56,7 @@ const MacroCard: React.FC<MacroCardProps> = ({
   value,
   percentage,
   backgroundColor,
-  textColor = "text-gray-800",
+  textColor = "text-gray-800 dark:text-gray-100",
 }) => {
   // Determine if percentage exceeds 100% and set appropriate colors
   const isOverGoal = percentage !== undefined && percentage > 100;
