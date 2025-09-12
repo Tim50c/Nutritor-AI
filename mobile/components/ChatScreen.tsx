@@ -141,24 +141,26 @@ const ChatScreen = () => {
         "diet modified",
       ];
 
-      // Check if the bot response indicates weight updates
-      const weightKeywords = [
-        "weight updated",
-        "weight has been updated",
-        "current weight is now",
-        "weight set to",
-        "congratulations",
-        "goal achieved",
-        "reached your goal",
-      ];
+      // Check if the bot response indicates weight updates - REMOVED TO MAKE WEIGHT UPDATES SILENT
+      // Weight updates are now handled silently like other profile updates
+      // const weightKeywords = [
+      //   "weight updated",
+      //   "weight has been updated",
+      //   "current weight is now",
+      //   "weight set to",
+      //   "congratulations",
+      //   "goal achieved",
+      //   "reached your goal",
+      // ];
 
       const shouldRefreshDiet = dietKeywords.some((keyword) =>
         botResponse.toLowerCase().includes(keyword.toLowerCase())
       );
 
-      const shouldRefreshWeight = weightKeywords.some((keyword) =>
-        botResponse.toLowerCase().includes(keyword.toLowerCase())
-      );
+      // Removed weight refresh logic to make weight updates silent like other profile updates
+      // const shouldRefreshWeight = weightKeywords.some((keyword) =>
+      //   botResponse.toLowerCase().includes(keyword.toLowerCase())
+      // );
 
       // Check for goal achievement from metadata
       if (goalAchievementData) {
@@ -173,7 +175,7 @@ const ChatScreen = () => {
         );
       }
 
-      if (shouldRefreshDiet || shouldRefreshWeight) {
+      if (shouldRefreshDiet) {
         setIsRefreshingData(true); // Show refresh indicator
       }
 
@@ -186,19 +188,14 @@ const ChatScreen = () => {
         console.log("✅ Diet data refreshed successfully");
       }
 
-      if (shouldRefreshWeight) {
-        console.log("🔄 Weight update detected, refreshing analytics...");
-        // Refresh analytics data which includes weight information
-        await refreshAnalytics();
-        console.log("✅ Analytics data refreshed successfully");
-      }
+      // Weight updates are now handled silently - no loading animations
 
-      // If either diet or weight was updated, also refresh analytics after a short delay
-      if (shouldRefreshDiet || shouldRefreshWeight) {
+      // If diet was updated, also refresh analytics after a short delay
+      if (shouldRefreshDiet) {
         setTimeout(async () => {
           try {
             await refreshAnalytics();
-            console.log("✅ Analytics data refreshed after diet/weight change");
+            console.log("✅ Analytics data refreshed after diet change");
           } catch (error) {
             console.error("❌ Error in delayed analytics refresh:", error);
           } finally {
