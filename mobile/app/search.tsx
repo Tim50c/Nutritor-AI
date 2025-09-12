@@ -14,7 +14,6 @@ import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { useDietContext, DietFood } from "@/context/DietContext";
 import FoodSection from "@/components/FoodSection";
-import { icons } from "@/constants/icons";
 import CustomSlider from "@/components/CustomSlider";
 import { Ionicons } from "@expo/vector-icons";
 import { SearchService } from "@/services";
@@ -452,7 +451,7 @@ const Search = () => {
               <AnimatableView animation="fadeIn" duration={500} className="items-center justify-center py-16">
                 <Ionicons name="search-outline" size={80} color="#E5E7EB" />
                 <Text className="text-gray-500 text-base mt-4">Search for food by name or filter by nutrients</Text>
-                <Text className="text-gray-400 text-sm mt-1">Try searching for "chicken", "apple", or use filters</Text>
+                <Text className="text-gray-400 text-sm mt-1">Try searching for &quot;chicken&quot;, &quot;apple&quot;, or use filters</Text>
                 <View className="px-4 mt-12 w-full">
                   <Text className="text-lg font-semibold text-gray-800 mb-3">Quick Searches</Text>
                   <View className="flex-row flex-wrap">

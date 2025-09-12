@@ -4,13 +4,14 @@ import { Animated, Easing, View } from "react-native";
 import { PieChart } from "react-native-gifted-charts";
 import { Text } from "./CustomText";
 import LoadingSpinner from "./LoadingSpinner";
+import { useIsDark } from "@/theme/useIsDark";
 
 // A new component for the simplified macro display, now with animated text and progress.
 const MacroItem = ({
   label,
   color,
-  animatedValue,
-  targetValue,
+  animatedValue, // We pass the Animated.Value directly
+  targetValue, // Target value for calculating progress
 }: {
   label: string;
   color: string;
@@ -21,15 +22,20 @@ const MacroItem = ({
   const [progressPercent, setProgressPercent] = useState(0);
 
   useEffect(() => {
+    // This listener updates both text and progress, which guarantees a re-render.
     const listenerId = animatedValue.addListener((animation) => {
+      // Remove decimal places for macros
       const newValue = Math.round(animation.value);
       const newText = newValue.toString();
       const newProgress = Math.min((newValue / (targetValue || 1)) * 100, 100);
+
       if (newText !== displayText || newProgress !== progressPercent) {
         setDisplayText(newText);
         setProgressPercent(newProgress);
       }
     });
+
+    // Cleanup the listener when the component unmounts
     return () => {
       animatedValue.removeListener(listenerId);
     };
@@ -38,14 +44,14 @@ const MacroItem = ({
   return (
     <View className="mb-4">
       <View className="flex-row items-center justify-between mb-1">
-        <Text className="text-sm text-secondary dark:text-secondary-dark">
-          {label}
-        </Text>
-        <Text className="text-base font-semibold text-default dark:text-default-dark">
+        <Text className="text-sm text-gray-500 dark:text-gray-200">{label}</Text>
+        <Text className="text-base font-semibold text-gray-800 dark:text-gray-100">
           {displayText}g
         </Text>
       </View>
-      <View className="h-2 bg-bg-surface dark:bg-bg-surface-dark rounded-full overflow-hidden">
+
+      {/* Animated Progress Bar */}
+      <View className="h-2 bg-gray-100 dark:bg-gray-600 rounded-full overflow-hidden">
         <View
           style={{
             width: `${progressPercent}%`,
@@ -65,6 +71,7 @@ export default function DietSummary({
   isTabFocused?: boolean;
 }) {
   const { dietSummary, targetNutrition, loading, syncing } = useDietContext();
+  const isDark = useIsDark();
 
   // Animation values for each metric
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -81,7 +88,7 @@ export default function DietSummary({
   const [animatedCalorieText, setAnimatedCalorieText] = useState("0");
   const [pieChartData, setPieChartData] = useState([
     { value: 0, color: "#F97316" },
-    { value: 100, color: "#F3F4F6" },
+    { value: 100, color: isDark ? "#050505" : "#F3F4F6" },
   ]);
 
   // Optimized listener for the main calorie animation with throttling
@@ -214,7 +221,7 @@ export default function DietSummary({
       setAnimatedCalorieText("0");
       setPieChartData([
         { value: 0, color: "#F97316" },
-        { value: 100, color: "#F3F4F6" },
+        { value: 100, color: isDark ? "#050505" : "#F3F4F6" },
       ]);
     }
   }, [loading]);
@@ -241,17 +248,17 @@ export default function DietSummary({
     <Animated.View style={{ opacity: fadeAnim }}>
       <View className="mx-4 mb-6">
         <View className="flex-row items-center justify-between mb-4">
-          <Text className="text-xl font-bold ml-2 text-default dark:text-default-dark">
+          <Text className="text-xl font-bold text-gray-800 dark:text-gray-200 ml-2">
             Diet Summary
           </Text>
           {syncing && (
             <View className="flex-row items-center mr-2">
               <LoadingSpinner isProcessing={true} size={16} color="#F97316" />
-              <Text className="text-sm ml-2 text-warning">Syncing...</Text>
+              <Text className="text-sm text-orange-500 ml-2">Syncing...</Text>
             </View>
           )}
         </View>
-        <View className="flex-row items-center justify-between bg-bg-surface dark:bg-bg-surface-dark rounded-2xl p-6 shadow-sm">
+        <View className="flex-row items-center justify-between bg-white dark:bg-black rounded-2xl p-6 shadow-sm">
           {/* Left Side: Calorie Donut Chart */}
           <View className="relative w-[140px] h-[140px] items-center justify-center">
             <PieChart
@@ -261,14 +268,13 @@ export default function DietSummary({
               innerRadius={50} // Bigger ring
               showText={false}
               showTooltip={false}
+              backgroundColor={isDark ? "#050505" : "#F3F4F6"}
             />
             <View className="absolute inset-0 items-center justify-center">
-              <Text className="text-2xl font-extrabold text-accent dark:text-accent-dark">
+              <Text className="text-2xl font-extrabold text-orange-500 dark:text-orange-200">
                 {animatedCalorieText}
               </Text>
-              <Text className="text-sm text-secondary dark:text-secondary-dark">
-                kcal
-              </Text>
+              <Text className="text-sm text-gray-500 dark:text-gray-300">kcal</Text>
             </View>
           </View>
 

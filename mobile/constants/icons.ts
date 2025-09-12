@@ -2,6 +2,7 @@ import analyticsActive from "@/assets/icons/analytics-active.svg";
 import analytics from "@/assets/icons/analytics.svg";
 import analyticsDark from "@/assets/icons/analytics-dark.svg";
 import arrow from "@/assets/icons/arrow.svg";
+import arrowDark from "@/assets/icons/arrow-dark.svg";
 import attachmentIcon from "@/assets/icons/attachment-icon.svg";
 import BarcodeModeIcon from "@/assets/icons/barcode-mode-icon.svg";
 import CameraModeIcon from "@/assets/icons/camera-mode-icon.svg";
@@ -60,6 +61,7 @@ export const icons = {
   search,
   searchDark,
   arrow,
+  arrowDark,
   chatIcon,
   fileIcon,
   fileIconPng,

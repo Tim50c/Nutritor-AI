@@ -424,22 +424,22 @@ const Analytics = () => {
 
   if (analyticsLoading && !analyticsData) {
     return (
-      <SafeAreaView className="flex-1 bg-white justify-center items-center">
+      <SafeAreaView className="flex-1 bg-white dark:bg-black justify-center items-center">
         <ActivityIndicator size="large" color="#009FFA" />
-        <Text className="mt-4 text-gray-500">Loading analytics...</Text>
+        <Text className="mt-4 text-gray-500 dark:text-gray-200">Loading analytics...</Text>
       </SafeAreaView>
     );
   }
   if (error) {
     return (
-      <SafeAreaView className="flex-1 bg-white justify-center items-center">
-        <Text className="text-red-500">{error}</Text>
+      <SafeAreaView className="flex-1 bg-white dark:bg-black justify-center items-center">
+        <Text className="text-red-500 dark:text-red-400">{error}</Text>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-white dark:bg-black">
       <CustomHeaderWithBack title="Analytics" />
       <ScrollView
         contentContainerStyle={{ paddingBottom: 120 }}
@@ -467,7 +467,7 @@ const Analytics = () => {
         {shouldShowLoading ? (
           <View className="mt-4 flex-1 justify-center items-center py-8">
             <ActivityIndicator size="small" color="#009FFA" />
-            <Text className="mt-2 text-gray-500 text-sm">
+            <Text className="mt-2 text-gray-500 dark:text-gray-200 text-sm">
               Loading {tab} data...
             </Text>
           </View>

@@ -1,46 +1,38 @@
-import React from 'react';
-import { View, TouchableOpacity, Image } from 'react-native';
-import { Text } from '../../components/CustomText';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-
-import CustomButtonAuth from '../../components/CustomButtonAuth';
-import {Ionicons} from "@expo/vector-icons";
-
-// icon defined here
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React from "react";
+import { View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import CustomButtonAuth from "../../components/CustomButtonAuth";
+import { Text } from "../../components/CustomText";
 
 export default function PromptVerification() {
   const router = useRouter();
   const { email } = useLocalSearchParams();
 
   return (
-    <SafeAreaView style={{ backgroundColor: '#FFFFFF', flex: 1 }}>
-        {/* <TouchableOpacity 
-            onPress={() => router.back()} 
-            style={{ position: 'absolute', top: 60, left: 24, zIndex: 10 }}>
-            {/*<Image source={backIcon} style={{ width: 24, height: 24, tintColor: '#1F2937' }} resizeMode='contain' />
-          <Ionicons name="arrow-back" size={24} color="#1F2937" />
-        </TouchableOpacity> */}
-      
-      <View style={{ flex: 1, paddingHorizontal: 24, justifyContent: 'center', alignItems: 'center' }}>
-          
-          {/* Main content centered vertically */}
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}> 
-            <Text style={{ color: '#1F2937', fontSize: 32, fontWeight: 'bold', textAlign: 'center', marginBottom: 8, marginTop: 30 }}>
-              Verify Your Email
+    <SafeAreaView className="bg-white dark:bg-black flex-1">
+      <View className="flex-1 px-6 justify-center items-center">
+        <View className="flex-1 justify-center items-center">
+          <Text className="text-3xl font-bold text-center mb-2 mt-8 text-gray-800 dark:text-blue-300">
+            Verify Your Email
+          </Text>
+          <Text className="text-base mt-4 text-center leading-6 px-2 text-gray-500 dark:text-gray-300">
+            We&apos;ve sent a verification link to {"\n"}
+            <Text className="font-bold text-gray-800 dark:text-gray-100">
+              {email}
             </Text>
-            <Text style={{ color: '#6B7280', fontSize: 16, marginTop: 16, textAlign: 'center', lineHeight: 26, paddingHorizontal: 10 }}>
-                We&#39;ve sent a verification link to {'\n'}
-                <Text style={{ fontWeight: 'bold', color: '#1F2937' }}>{email}</Text>
-            </Text>
-            <Text style={{ color: '#6B7280', fontSize: 16, marginTop: 12, textAlign: 'center', lineHeight: 26, paddingHorizontal: 10 }}>
-                Please check your inbox and click the link to continue.
-            </Text>
-          </View>
+          </Text>
+          <Text className="text-base mt-3 text-center leading-6 px-2 text-gray-500 dark:text-gray-300">
+            Please check your inbox and click the link to continue.
+          </Text>
+        </View>
 
-          <View style={{ width: '100%', paddingBottom: 40 }}>
-            <CustomButtonAuth title="Back to Sign In" onPress={() => router.replace('./sign_in')} />
-          </View>
+        <View className="w-full pb-10">
+          <CustomButtonAuth
+            title="Back to Sign In"
+            onPress={() => router.replace("./sign_in")}
+          />
+        </View>
       </View>
     </SafeAreaView>
   );

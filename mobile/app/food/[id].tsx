@@ -12,16 +12,13 @@ import {
 } from "react-native";
 import { Text } from "@/components/CustomText";
 import { useLocalSearchParams, router } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import CustomButton from "@/components/CustomButton";
 import CustomAlert from "@/components/CustomAlert";
-import DietService from "@/services/diet-service";
 import FoodService from "@/services/food-service";
 import CameraService from "@/services/camera-service";
 import { FOODS } from "@/data/mockData";
 import { useDietContext } from "@/context/DietContext";
-import { analyticsEventEmitter } from "@/utils/analyticsEvents";
 import { images } from "@/constants/images";
 import { icons } from "@/constants/icons";
 import { Camera, CameraView } from "expo-camera";
@@ -59,7 +56,7 @@ const MacroCard: React.FC<MacroCardProps> = ({
   value,
   percentage,
   backgroundColor,
-  textColor = "text-gray-800",
+  textColor = "text-gray-800 dark:text-gray-100",
 }) => {
   // Determine if percentage exceeds 100% and set appropriate colors
   const isOverGoal = percentage !== undefined && percentage > 100;

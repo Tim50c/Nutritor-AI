@@ -1,34 +1,28 @@
-import React, { useState, useEffect } from "react";
-import {
-  View,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-  Platform,
-  Image,
-} from "react-native";
-import { Text } from '../../components/CustomText';
-import { SafeAreaView } from "react-native-safe-area-context";
+import axios from "axios";
 import { Link, useRouter } from "expo-router";
 import {
-  signInWithEmailAndPassword,
-  sendEmailVerification,
+  getAdditionalUserInfo,
   GoogleAuthProvider,
   OAuthProvider,
+  sendEmailVerification,
   signInWithCredential,
-  getAdditionalUserInfo,
+  signInWithEmailAndPassword,
   UserCredential, // --- Step 1: Import the UserCredential type ---
 } from "firebase/auth";
+import React, { useEffect, useState } from "react";
+import { Alert, ScrollView, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Text } from "../../components/CustomText";
 import { auth } from "../../config/firebase";
-import axios from "axios";
 
 // --- Social Auth Imports ---
-import * as WebBrowser from "expo-web-browser";
-import * as Google from "expo-auth-session/providers/google";
 import * as AppleAuthentication from "expo-apple-authentication";
+import * as Google from "expo-auth-session/providers/google";
+import * as WebBrowser from "expo-web-browser";
 
-import FormField from "../../components/FormField";
 import CustomButtonAuth from "../../components/CustomButtonAuth";
+import FormField from "../../components/FormField";
+import {useIsDark} from "@/theme/useIsDark";
 
 const googleIcon = require("../../assets/icons/google-icon.png");
 const appleIcon = require("../../assets/icons/apple-icon.png");
@@ -37,6 +31,8 @@ WebBrowser.maybeCompleteAuthSession();
 
 export default function SignIn() {
   const router = useRouter();
+  const isDarkMode = useIsDark();
+
   const [form, setForm] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({ email: "", password: "" });
   const [activeField, setActiveField] = useState("");
@@ -272,15 +268,29 @@ export default function SignIn() {
   };
 
   return (
-    <SafeAreaView style={{ backgroundColor: "#FFFFFF", flex: 1 }}>
+    <SafeAreaView
+      style={{ backgroundColor: isDarkMode ? "#0B0F17" : "#FFFFFF", flex: 1 }}
+    >
       <ScrollView
         contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
       >
         <View style={{ paddingHorizontal: 24, paddingVertical: 40 }}>
-          <Text style={{ color: "#1F2937", fontSize: 28, fontWeight: "bold" }}>
+          <Text
+            style={{
+              color: isDarkMode ? "#F9FAFB" : "#1F2937",
+              fontSize: 28,
+              fontWeight: "bold",
+            }}
+          >
             Welcome Back to NutritorAI
           </Text>
-          <Text style={{ color: "#6B7280", fontSize: 16, marginTop: 8 }}>
+          <Text
+            style={{
+              color: isDarkMode ? "#9CA3AF" : "#6B7280",
+              fontSize: 16,
+              marginTop: 8,
+            }}
+          >
             Eat better. Get back on track.
           </Text>
 
@@ -311,7 +321,12 @@ export default function SignIn() {
               href="./forgot_password"
               style={{ alignSelf: "flex-end", marginTop: -8 }}
             >
-              <Text style={{ color: "#6B7280", fontSize: 14 }}>
+              <Text
+                style={{
+                  color: isDarkMode ? "#9CA3AF" : "#6B7280",
+                  fontSize: 14,
+                }}
+              >
                 Forgot Password?
               </Text>
             </Link>
@@ -332,22 +347,22 @@ export default function SignIn() {
           </View>
 
           <View style={{ gap: 16 }}>
-             <CustomButtonAuth 
-                title="Continue with Google" 
+             <CustomButtonAuth
+                title="Continue with Google"
                 onPress={() => {
                   setSocialAuthType('google');
                   promptAsync();
-                }} 
-                variant="social" 
+                }}
+                variant="social"
                 icon={googleIcon}
                 isLoading={isSubmitting && socialAuthType === 'google'}
              />
              {Platform.OS === 'ios' && (
-                <CustomButtonAuth 
-                    title="Continue with Apple" 
-                    onPress={handleAppleSignIn} 
-                    variant="social" 
-                    icon={appleIcon} 
+                <CustomButtonAuth
+                    title="Continue with Apple"
+                    onPress={handleAppleSignIn}
+                    variant="social"
+                    icon={appleIcon}
                     isLoading={isSubmitting && socialAuthType === 'apple'}
                 />
              )}
@@ -360,12 +375,21 @@ export default function SignIn() {
               marginTop: 32,
             }}
           >
-            <Text style={{ color: "#6B7280", fontSize: 14 }}>
+            <Text
+              style={{
+                color: isDarkMode ? "#9CA3AF" : "#6B7280",
+                fontSize: 14,
+              }}
+            >
               Don&apos;t have an account?{" "}
             </Text>
             <Link href="./sign_up">
               <Text
-                style={{ color: "#F97316", fontSize: 14, fontWeight: "bold" }}
+                style={{
+                  color: isDarkMode ? "#FB923C" : "#F97316",
+                  fontSize: 14,
+                  fontWeight: "bold",
+                }}
               >
                 Sign Up
               </Text>

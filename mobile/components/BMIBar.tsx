@@ -1,8 +1,8 @@
 // /app/components/BMIBar.tsx
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
-import { LayoutChangeEvent, View } from "react-native";
+import { View, LayoutChangeEvent } from "react-native";
 import { Text } from "./CustomText";
+import { LinearGradient } from "expo-linear-gradient";
 
 interface BMIBarProps {
   bmi: number;
@@ -18,8 +18,8 @@ const BMIBar: React.FC<BMIBarProps> = ({ bmi, status, min = 15, max = 35 }) => {
   // Handle invalid BMI values
   if (bmi <= 0 || isNaN(bmi)) {
     return (
-      <View className="mt-2 rounded-lg border border-border-default dark:border-border-default-dark bg-bg-surface dark:bg-bg-surface-dark p-4">
-        <Text className="text-sm text-secondary dark:text-secondary-dark">
+      <View className="mt-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-black p-4">
+        <Text className="text-sm text-gray-500 dark:text-gray-100">
           BMI data not available. Please update your weight and height in
           settings.
         </Text>
@@ -72,8 +72,8 @@ const BMIBar: React.FC<BMIBarProps> = ({ bmi, status, min = 15, max = 35 }) => {
   };
 
   return (
-    <View className="mt-2 rounded-lg border border-border-default dark:border-border-default-dark bg-bg-surface dark:bg-bg-surface-dark p-4">
-      <Text className="text-sm text-default dark:text-default-dark">
+    <View className="mt-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-black p-4">
+      <Text className="text-sm text-black dark:text-white">
         Your weight is{" "}
         <Text style={{ color: textColor }} className="font-semibold">
           {status}
@@ -88,9 +88,11 @@ const BMIBar: React.FC<BMIBarProps> = ({ bmi, status, min = 15, max = 35 }) => {
         {/* Gradient bar container */}
         <View
           onLayout={onBarLayout}
+          // height is handled by style below; keep full width via className
           className="w-full rounded-full overflow-hidden"
           style={{ height: 12, position: "relative" }}
         >
+          {/* LinearGradient fills the container horizontally */}
           <LinearGradient
             colors={[
               "#60A5FA",
@@ -117,6 +119,7 @@ const BMIBar: React.FC<BMIBarProps> = ({ bmi, status, min = 15, max = 35 }) => {
             style={{ flex: 1 }}
           />
 
+          {/* Marker: vertical line positioned absolutely */}
           {barWidth > 0 && (
             <View
               style={{
@@ -139,36 +142,28 @@ const BMIBar: React.FC<BMIBarProps> = ({ bmi, status, min = 15, max = 35 }) => {
               style={{ backgroundColor: "#60A5FA" }}
               className="w-2 h-2 rounded-full mr-1"
             />
-            <Text className="text-xs text-secondary dark:text-secondary-dark">
-              {"Underweight\n< 18.5"}
-            </Text>
+            <Text className="text-xs text-black dark:text-white">{"Underweight\n< 18.5"}</Text>
           </View>
           <View className="flex-row items-center">
             <View
               style={{ backgroundColor: "#34D399" }}
               className="w-2 h-2 rounded-full mr-1"
             />
-            <Text className="text-xs text-secondary dark:text-secondary-dark">
-              {"Normal\n18.5 – 24.9"}
-            </Text>
+            <Text className="text-xs text-black dark:text-white">{"Normal\n18.5 – 24.9"}</Text>
           </View>
           <View className="flex-row items-center">
             <View
               style={{ backgroundColor: "#FBBF24" }}
               className="w-2 h-2 rounded-full mr-1"
             />
-            <Text className="text-xs text-secondary dark:text-secondary-dark">
-              {"Overweight\n25 – 29.9"}
-            </Text>
+            <Text className="text-xs text-black dark:text-white">{"Overweight\n25 – 29.9"}</Text>
           </View>
           <View className="flex-row items-center">
             <View
               style={{ backgroundColor: "#F87171" }}
               className="w-2 h-2 rounded-full mr-1"
             />
-            <Text className="text-xs text-secondary dark:text-secondary-dark">
-              {"Obesity\n≥ 30"}
-            </Text>
+            <Text className="text-xs text-black dark:text-white">{"Obesity\n≥ 30"}</Text>
           </View>
         </View>
       </View>
