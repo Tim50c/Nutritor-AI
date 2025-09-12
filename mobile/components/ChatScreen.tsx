@@ -23,6 +23,7 @@ import { apiDomain } from "@/constants";
 import { useDietContext } from "@/context/DietContext"; // Import diet context for refreshing data
 import { useAnalytics } from "@/context/AnalyticsContext"; // Import analytics context for weight updates
 import { analyticsEventEmitter } from "@/utils/analyticsEvents"; // Import analytics event emitter
+import GoalAchievedModal from "./GoalAchievedModal"; // Import goal achievement modal
 
 // icon defined here
 import { icons } from "@/constants/icons";
@@ -49,7 +50,12 @@ const API_URL = `chat`; // Correct path for authInstance (baseURL already includ
 const ChatScreen = () => {
   const router = useRouter();
   const { refreshDietData } = useDietContext(); // Get diet refresh function
-  const { refreshAnalytics, invalidateAnalytics } = useAnalytics(); // Get analytics refresh functions
+  const {
+    refreshAnalytics,
+    invalidateAnalytics,
+    showGoalAchievedModal,
+    setShowGoalAchievedModal,
+  } = useAnalytics(); // Get analytics refresh functions and modal state
 
   const [isChatStarted, setIsChatStarted] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -57,6 +63,24 @@ const ChatScreen = () => {
   const [isAttachmentMenuVisible, setAttachmentMenuVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false); // <-- Add loading state
   const [isRefreshingData, setIsRefreshingData] = useState(false); // Loading state for data refresh
+
+  // Modal handlers for goal achievement
+  const handleCloseGoalModal = () => {
+    setShowGoalAchievedModal(false);
+  };
+
+  const handleSetNewGoal = () => {
+    // The modal will handle navigation to goal setting
+    setShowGoalAchievedModal(false);
+  };
+
+  // Debug: Monitor goal achievement modal state
+  useEffect(() => {
+    console.log(
+      "🎯 [ChatScreen] Goal achievement modal state:",
+      showGoalAchievedModal
+    );
+  }, [showGoalAchievedModal]);
 
   // Handle new chat creation
   const handleNewChat = () => {
@@ -788,6 +812,13 @@ const ChatScreen = () => {
           </View>
         )}
       </KeyboardAvoidingView>
+
+      {/* Goal Achievement Modal */}
+      <GoalAchievedModal
+        visible={showGoalAchievedModal}
+        onClose={handleCloseGoalModal}
+        onSetNewGoal={handleSetNewGoal}
+      />
     </SafeAreaView>
   );
 };
