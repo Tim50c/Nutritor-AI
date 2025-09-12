@@ -241,7 +241,23 @@ function formatFunctionResponse(functionCall, functionResponse) {
       if (functionResponse.error) {
         formattedResponse = `Error: ${functionResponse.error}`;
       } else if (functionResponse.success !== undefined) {
-        formattedResponse = functionResponse.message || JSON.stringify(functionResponse);
+        // Special handling for updateUserProfile to avoid verbose JSON
+        if (functionCall.name === 'updateUserProfile' && functionResponse.message) {
+          formattedResponse = functionResponse.message;
+        } else if (functionCall.name === 'getUserProfile' && functionResponse.success && functionResponse.profile) {
+          // Format user profile nicely for display
+          const profile = functionResponse.profile;
+          formattedResponse = `Profile Information:
+Name: ${profile.personal.fullName}
+Age: ${profile.personal.age}
+Gender: ${profile.personal.gender}
+Height: ${profile.physical.height} ${profile.physical.heightUnit}
+Current Weight: ${profile.physical.currentWeight} ${profile.physical.weightUnit}
+Goal Weight: ${profile.physical.goalWeight} ${profile.physical.weightUnit}
+Target Calories: ${profile.nutrition.targetCalories}`;
+        } else {
+          formattedResponse = functionResponse.message || JSON.stringify(functionResponse);
+        }
       } else {
         formattedResponse = JSON.stringify(functionResponse);
       }

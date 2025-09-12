@@ -660,12 +660,28 @@ async function updateUserProfile(uid, updateData) {
     
     await userRef.update(firebaseUpdateData);
     
+    // Build a descriptive message about what was updated
+    const updatedFields = [];
+    if (updateData.firstName !== undefined) updatedFields.push('first name');
+    if (updateData.lastName !== undefined) updatedFields.push('last name');
+    if (updateData.gender !== undefined) updatedFields.push('gender');
+    if (updateData.dateOfBirth !== undefined) updatedFields.push('date of birth');
+    if (updateData.height !== undefined) updatedFields.push('height');
+    if (updateData.currentWeight !== undefined) updatedFields.push('current weight');
+    if (updateData.goalWeight !== undefined) updatedFields.push('goal weight');
+    if (updateData.weightUnit !== undefined || updateData.heightUnit !== undefined) updatedFields.push('unit preferences');
+    if (updateData.targetNutrition !== undefined) updatedFields.push('nutrition targets');
+    
+    const updateMessage = updatedFields.length > 0 
+      ? `Successfully updated your ${updatedFields.join(', ')}.`
+      : 'Profile updated successfully.';
+    
     // Get updated profile for response
     const updatedProfile = await getUserProfile(uid);
     
     return {
       success: true,
-      message: 'Profile updated successfully',
+      message: updateMessage,
       updatedProfile: updatedProfile.profile
     };
   } catch (error) {
