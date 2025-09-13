@@ -482,6 +482,7 @@ const Analytics = () => {
           <>
             <View className="mt-4">
               <CalorieChart
+                key={`${tab}-${calorieChartData.length}`}
                 data={calorieChartData}
                 mode={tab}
                 onBarSelect={handleBarSelect}
