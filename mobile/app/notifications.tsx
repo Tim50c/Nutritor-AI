@@ -34,9 +34,26 @@ function NotificationCard({
     if (!timestamp) return "";
 
     try {
-      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      let date: Date;
+
+      // Handle Firestore timestamp with _seconds property (from backend API)
+      if (timestamp._seconds) {
+        date = new Date(timestamp._seconds * 1000);
+      }
+      // Handle other timestamp formats as fallback
+      else {
+        date = new Date(timestamp);
+      }
+
+      // Validate the date
+      if (isNaN(date.getTime())) {
+        console.warn("Invalid timestamp:", timestamp);
+        return "";
+      }
+
       const now = new Date();
-      const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+      const diffInMs = now.getTime() - date.getTime();
+      const diffInHours = diffInMs / (1000 * 60 * 60);
 
       if (diffInHours < 1) {
         const diffInMinutes = Math.floor(diffInHours * 60);
@@ -48,6 +65,12 @@ function NotificationCard({
         return diffInDays === 1 ? "1 day ago" : `${diffInDays} days ago`;
       }
     } catch (error) {
+      console.error(
+        "Error formatting timestamp:",
+        error,
+        "Original timestamp:",
+        timestamp
+      );
       return "";
     }
   };
@@ -111,8 +134,10 @@ const NotificationsScreen = () => {
     setRefreshing(true);
     try {
       await refreshNotifications();
+      console.log("📱 Notifications refreshed successfully");
     } catch (error) {
-      console.error("Error refreshing notifications:", error);
+      console.error("❌ Error refreshing notifications:", error);
+      // Could add a toast notification here for user feedback
     } finally {
       setRefreshing(false);
     }
@@ -143,15 +168,38 @@ const NotificationsScreen = () => {
 
       {/* Error State */}
       {error && !loading && (
-        <View className="flex-1 items-center justify-center px-6">
-          <Text className="text-red-500 text-center mb-4">{error}</Text>
-          <TouchableOpacity
-            className="bg-orange-500 px-6 py-3 rounded-lg"
-            onPress={onRefresh}
-          >
-            <Text className="text-white font-semibold">Try Again</Text>
-          </TouchableOpacity>
-        </View>
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={{ flexGrow: 1 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={["#FF6F2D"]} // Android - matches app theme
+              tintColor="#FF6F2D" // iOS - matches app theme
+              title="Pull to retry..."
+              titleColor="#FF6F2D"
+            />
+          }
+        >
+          <View className="flex-1 items-center justify-center px-6">
+            <Text className="text-red-500 dark:text-red-400 text-center mb-4 text-lg">
+              {error}
+            </Text>
+            <Text className="text-gray-500 dark:text-gray-400 text-center mb-6">
+              Pull down to refresh or tap the button below
+            </Text>
+            <TouchableOpacity
+              className="bg-orange-500 px-6 py-3 rounded-lg"
+              onPress={onRefresh}
+              disabled={refreshing}
+            >
+              <Text className="text-white font-semibold">
+                {refreshing ? "Refreshing..." : "Try Again"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       )}
 
       {/* Content */}
@@ -162,7 +210,14 @@ const NotificationsScreen = () => {
               className="px-6 pt-4"
               showsVerticalScrollIndicator={false}
               refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  colors={["#FF6F2D"]} // Android - matches app theme
+                  tintColor="#FF6F2D" // iOS - matches app theme
+                  title="Refreshing notifications..."
+                  titleColor="#FF6F2D"
+                />
               }
             >
               {/* Unread notifications section */}
@@ -200,19 +255,34 @@ const NotificationsScreen = () => {
               )}
             </ScrollView>
           ) : (
-            <View className="flex-1 items-center justify-center px-6">
-              <Image
-                source={images.emptyScreen}
-                className="w-52 h-52 mb-6"
-                resizeMode="contain"
-              />
-              <Text className="text-xl font-semibold mb-2 text-center text-black dark:text-white">
-                No notifications yet.
-              </Text>
-              <Text className="text-base text-gray-500 text-center dark:text-gray-400">
-                Your healthy habits are on track—keep it up!
-              </Text>
-            </View>
+            <ScrollView
+              className="flex-1"
+              contentContainerStyle={{ flexGrow: 1 }}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  colors={["#FF6F2D"]} // Android - matches app theme
+                  tintColor="#FF6F2D" // iOS - matches app theme
+                  title="Refreshing notifications..."
+                  titleColor="#FF6F2D"
+                />
+              }
+            >
+              <View className="flex-1 items-center justify-center px-6">
+                <Image
+                  source={images.emptyScreen}
+                  className="w-52 h-52 mb-6"
+                  resizeMode="contain"
+                />
+                <Text className="text-xl font-semibold mb-2 text-center text-black dark:text-white">
+                  No notifications yet.
+                </Text>
+                <Text className="text-base text-gray-500 text-center dark:text-gray-400">
+                  Your healthy habits are on track—keep it up!
+                </Text>
+              </View>
+            </ScrollView>
           )}
         </>
       )}

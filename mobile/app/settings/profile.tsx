@@ -81,7 +81,8 @@ const Profile = () => {
   const router = useRouter();
 
   // Form states
-  const [name, setName] = useState("");
+  const [firstname, setFirstname] = useState("");
+  const [lastname, setLastname] = useState("");
   const [email, setEmail] = useState("");
   const [dob, setDob] = useState("");
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -305,9 +306,8 @@ const Profile = () => {
 
   useEffect(() => {
     if (userProfile) {
-      setName(
-        `${userProfile.firstname || ""} ${userProfile.lastname || ""}`.trim()
-      );
+      setFirstname(userProfile.firstname || "");
+      setLastname(userProfile.lastname || "");
       setEmail(userProfile.email || "");
       setAvatarPreview(userProfile.avatar || null);
       setDob(getDobString(userProfile.dob));
@@ -454,16 +454,15 @@ const Profile = () => {
   };
 
   const handleSave = async () => {
-    if (!name.trim()) {
-      Alert.alert("Error", "Name is required");
+    if (!firstname.trim()) {
+      Alert.alert("Error", "First name is required");
       return;
     }
     setLoading(true);
     setError(null);
     try {
-      const nameParts = name.trim().split(" ");
-      const firstname = nameParts[0] || "";
-      const lastname = nameParts.slice(1).join(" ") || "";
+      const firstnameValue = firstname.trim();
+      const lastnameValue = lastname.trim();
       let heightInCm: number | null = null;
       let weightInKg: number | null = null;
       if (heightUnit === "cm" && heightValue) {
@@ -510,8 +509,8 @@ const Profile = () => {
       const optimisticProfile: import("@/context/UserContext").User = {
         ...(userProfile ?? {}),
         id: userProfile?.id || "",
-        firstname,
-        lastname,
+        firstname: firstnameValue,
+        lastname: lastnameValue,
         email: email.trim(),
         avatar: finalAvatarUrl || null,
         dob,
@@ -527,7 +526,8 @@ const Profile = () => {
 
       await ProfileService.updateProfile({
         image: finalAvatarUrl || undefined,
-        name: name.trim(),
+        firstname: firstnameValue,
+        lastname: lastnameValue,
         email: email.trim(),
         dob,
         gender,
@@ -693,7 +693,11 @@ const Profile = () => {
                           onPress={closeCameraModal}
                           className="absolute left-8"
                         >
-                          <Ionicons name="close" size={32} color={isDark ? "black" : "white"} />
+                          <Ionicons
+                            name="close"
+                            size={32}
+                            color={isDark ? "black" : "white"}
+                          />
                         </TouchableOpacity>
                         <TouchableOpacity
                           onPress={handleCameraCapture}
@@ -758,18 +762,33 @@ const Profile = () => {
             </Modal>
 
             <View className="px-4 flex-1">
-              <View className="mb-4">
-                <Text className="text-gray-700 dark:text-gray-300 text-sm mb-1">
-                  Name
-                </Text>
-                <TextInput
-                  className="border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 text-base bg-white dark:bg-gray-800 text-black dark:text-white"
-                  value={name}
-                  onChangeText={setName}
-                  placeholder="Enter your name"
-                  placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
-                  returnKeyType="next"
-                />
+              <View className="flex-row gap-4 mb-4">
+                <View className="flex-1">
+                  <Text className="text-gray-700 dark:text-gray-300 text-sm mb-1">
+                    First Name
+                  </Text>
+                  <TextInput
+                    className="border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 text-base bg-white dark:bg-gray-800 text-black dark:text-white"
+                    value={firstname}
+                    onChangeText={setFirstname}
+                    placeholder="Enter your first name"
+                    placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+                    returnKeyType="next"
+                  />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-gray-700 dark:text-gray-300 text-sm mb-1">
+                    Last Name
+                  </Text>
+                  <TextInput
+                    className="border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 text-base bg-white dark:bg-gray-800 text-black dark:text-white"
+                    value={lastname}
+                    onChangeText={setLastname}
+                    placeholder="Enter your last name"
+                    placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
+                    returnKeyType="next"
+                  />
+                </View>
               </View>
 
               <View className="mb-4">
@@ -793,8 +812,8 @@ const Profile = () => {
                 <View className="flex-1">
                   <Text className="text-gray-700 dark:text-gray-300 text-sm mb-1">
                     Date of Birth
-                    </Text>
-                    <TouchableOpacity
+                  </Text>
+                  <TouchableOpacity
                     onPress={showMode}
                     className="border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 bg-white dark:bg-black flex-row items-center justify-between min-h-[48px]"
                   >
@@ -822,7 +841,9 @@ const Profile = () => {
                   />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-gray-700 dark:text-gray-300 text-sm mb-1">Gender</Text>
+                  <Text className="text-gray-700 dark:text-gray-300 text-sm mb-1">
+                    Gender
+                  </Text>
                   <TouchableOpacity
                     onPress={() => {
                       setShowGenderPicker(true);
@@ -844,7 +865,9 @@ const Profile = () => {
               <View className="flex-row gap-4 mb-8">
                 <View className="flex-1">
                   <View className="flex-row items-center justify-between mb-1">
-                    <Text className="text-gray-700 dark:text-gray-300 text-sm">Height</Text>
+                    <Text className="text-gray-700 dark:text-gray-300 text-sm">
+                      Height
+                    </Text>
                     <TouchableOpacity
                       className="bg-gray-100 dark:bg-gray-700 rounded-lg px-2 py-1"
                       onPress={() =>

@@ -430,7 +430,7 @@ const Analytics = () => {
   if (analyticsLoading && !analyticsData) {
     return (
       <SafeAreaView className="flex-1 bg-white dark:bg-black justify-center items-center">
-        <ActivityIndicator size="large" color="#009FFA" />
+        <ActivityIndicator size="large" color="#FF6F2D" />
         <Text className="mt-4 text-gray-500 dark:text-gray-200">
           Loading analytics...
         </Text>
@@ -455,8 +455,8 @@ const Analytics = () => {
           <RefreshControl
             refreshing={analyticsLoading || nutritionLoading}
             onRefresh={handleRefresh}
-            colors={["#009FFA"]}
-            tintColor="#009FFA"
+            colors={["#FF6F2D"]} // Android - orange theme
+            tintColor="#FF6F2D" // iOS - orange theme
             title="Updating analytics..."
           />
         }
@@ -473,7 +473,7 @@ const Analytics = () => {
 
         {shouldShowLoading ? (
           <View className="mt-4 flex-1 justify-center items-center py-8">
-            <ActivityIndicator size="small" color="#009FFA" />
+            <ActivityIndicator size="small" color="#FF6F2D" />
             <Text className="mt-2 text-gray-500 dark:text-gray-200 text-sm">
               Loading {tab} data...
             </Text>

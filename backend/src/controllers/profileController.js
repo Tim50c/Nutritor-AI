@@ -142,8 +142,17 @@ exports.updateUserProfile = async (req, res, next) => {
 
     const updateData = {};
 
+    // Handle separate firstname and lastname fields
     if (body.firstname) updateData.firstname = body.firstname;
     if (body.lastname) updateData.lastname = body.lastname;
+    
+    // Backward compatibility: if name is provided, split it into firstname and lastname
+    if (body.name && !body.firstname && !body.lastname) {
+      const nameParts = body.name.trim().split(" ");
+      updateData.firstname = nameParts[0] || "";
+      updateData.lastname = nameParts.slice(1).join(" ") || "";
+    }
+    
     if (body.dob) updateData.dob = admin.firestore.Timestamp.fromDate(new Date(body.dob));
     if (body.gender) updateData.gender = body.gender;
     

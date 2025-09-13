@@ -56,8 +56,8 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={handleRefresh}
-            colors={["#2563EB"]} // Android
-            tintColor="#2563EB" // iOS
+            colors={["#FF6F2D"]} // Android - orange theme
+            tintColor="#FF6F2D" // iOS - orange theme
           />
         }
       >
