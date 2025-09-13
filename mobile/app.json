@@ -12,7 +12,12 @@
     "splash": {
       "image": "./assets/images/icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#ffffff",
+      "dark": {
+        "image": "./assets/images/icon.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#000000"
+      }
     },
     "plugins": [
       "expo-router",
@@ -36,7 +41,11 @@
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#FFFFFF"
+        "backgroundColor": "#FFFFFF",
+        "dark": {
+          "foregroundImage": "./assets/images/adaptive-icon.png",
+          "backgroundColor": "#000000"
+        }
       }
     },
     "ios": {
