@@ -59,7 +59,7 @@ const MealRemindersSection = ({
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.7}
-      className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-4 shadow-sm dark:shadow-sm"
+      className="bg-white dark:bg-gray-800 rounded-xl p-6 mb-4 shadow-sm dark:shadow-sm"
       style={{
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 1 },
@@ -88,9 +88,7 @@ const MealRemindersSection = ({
               className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4"
             >
               <View className="flex-row justify-between items-center mb-3">
-                <Text
-                  className="text-base font-medium capitalize text-gray-700 dark:text-gray-300"
-                >
+                <Text className="text-base font-medium capitalize text-gray-700 dark:text-gray-300">
                   {meal}
                 </Text>
                 <Toggle
@@ -121,14 +119,12 @@ const MealRemindersSection = ({
                       )
                     }
                     activeOpacity={0.7}
-                    className="flex-row justify-between items-center py-3 px-4 bg-gray-100 dark:bg-gray-700 rounded-lg mb-3"
+                    className="flex-row justify-between items-center py-3 px-6 bg-gray-100 dark:bg-gray-700 rounded-lg mb-3"
                   >
                     <Text className="text-base text-gray-700 dark:text-gray-300">
                       Reminder Time
                     </Text>
-                    <Text
-                      className="text-base text-orange-500 font-medium"
-                    >
+                    <Text className="text-base text-orange-500 font-medium">
                       {formatTime(
                         mealReminders[meal]?.time || { hour: 8, minute: 0 }
                       )}
@@ -137,14 +133,10 @@ const MealRemindersSection = ({
 
                   {/* Days Selection */}
                   <View>
-                    <Text
-                      className="text-base font-medium mb-3 text-gray-700 dark:text-gray-300"
-                    >
+                    <Text className="text-base font-medium mb-3 text-gray-700 dark:text-gray-300">
                       Active Days
                     </Text>
-                    <View
-                      className="flex-row justify-between"
-                    >
+                    <View className="flex-row justify-between">
                       {days.map((day, index) => {
                         const isSelected = (
                           mealReminders[meal]?.days || []
@@ -159,7 +151,7 @@ const MealRemindersSection = ({
                             ? "text-white"
                             : "text-gray-500 dark:text-gray-400"
                         }`;
-                        
+
                         return (
                           <TouchableOpacity
                             key={day}

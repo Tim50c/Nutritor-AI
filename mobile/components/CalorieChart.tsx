@@ -315,7 +315,7 @@ const CalorieChart: React.FC<CalorieChartProps> = ({
   }, [chartData.length, containerWidth]);
 
   return (
-    <View className="bg-white dark:bg-black rounded-xl border border-gray-200 dark:border-gray-700 p-4 m-2 shadow-sm">
+    <View className="bg-white dark:bg-black rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
       <Text className="text-lg font-semibold text-center text-gray-900 dark:text-gray-100">
         Calorie Trends
       </Text>
@@ -367,7 +367,7 @@ const CalorieChart: React.FC<CalorieChartProps> = ({
               animationDuration={800}
               disableScroll={true}
               backgroundColor={isDark ? "#000000" : "#FFFFFF"}
-              initialSpacing={0}
+              initialSpacing={8}
               endSpacing={0}
               showGradient={false}
               activeOpacity={0.8}

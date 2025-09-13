@@ -5,7 +5,7 @@ import { Text } from "./CustomText";
 
 export default function EmptyDietState() {
   return (
-    <View className="mx-4 mb-6 bg-gray-50 dark:bg-gray-800 rounded-2xl p-8 items-center justify-center border border-gray-100 dark:border-gray-700">
+    <View className="mx-6 mb-6 bg-gray-50 dark:bg-gray-800 rounded-2xl p-8 items-center justify-center border border-gray-100 dark:border-gray-700">
       <View className="w-16 h-16 bg-orange-100 rounded-full items-center justify-center mb-4">
         <icons.diet width={32} height={32} color="#F97316" />
       </View>

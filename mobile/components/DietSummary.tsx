@@ -44,7 +44,9 @@ const MacroItem = ({
   return (
     <View className="mb-4">
       <View className="flex-row items-center justify-between mb-1">
-        <Text className="text-sm text-gray-500 dark:text-gray-200">{label}</Text>
+        <Text className="text-sm text-gray-500 dark:text-gray-200">
+          {label}
+        </Text>
         <Text className="text-base font-semibold text-gray-800 dark:text-gray-100">
           {displayText}g
         </Text>
@@ -246,13 +248,13 @@ export default function DietSummary({
 
   return (
     <Animated.View style={{ opacity: fadeAnim }}>
-      <View className="mx-4 mb-6">
+      <View className="mx-6 mb-6">
         <View className="flex-row items-center justify-between mb-4">
-          <Text className="text-xl font-bold text-gray-800 dark:text-gray-200 ml-2">
+          <Text className="text-xl font-bold text-gray-800 dark:text-gray-200">
             Diet Summary
           </Text>
           {syncing && (
-            <View className="flex-row items-center mr-2">
+            <View className="flex-row items-center">
               <LoadingSpinner isProcessing={true} size={16} color="#F97316" />
               <Text className="text-sm text-orange-500 ml-2">Syncing...</Text>
             </View>
@@ -268,13 +270,15 @@ export default function DietSummary({
               innerRadius={50} // Bigger ring
               showText={false}
               showTooltip={false}
-              backgroundColor={isDark ? "#050505" : "#F3F4F6"}
+              backgroundColor={isDark ? "#050505" : "#FFFFFF"}
             />
             <View className="absolute inset-0 items-center justify-center">
               <Text className="text-2xl font-extrabold text-orange-500 dark:text-orange-200">
                 {animatedCalorieText}
               </Text>
-              <Text className="text-sm text-gray-500 dark:text-gray-300">kcal</Text>
+              <Text className="text-sm text-gray-500 dark:text-gray-300">
+                kcal
+              </Text>
             </View>
           </View>
 

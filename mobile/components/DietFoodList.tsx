@@ -35,5 +35,5 @@ export default function DietFoodList() {
     );
   };
 
-  return <View className="w-full px-4 mb-4">{renderContent()}</View>;
+  return <View className="w-full px-6 mb-4">{renderContent()}</View>;
 }

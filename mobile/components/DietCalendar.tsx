@@ -51,7 +51,7 @@ export default function DietCalendar() {
   const weekDays = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 
   return (
-    <View className="bg-orange-500 dark:bg-orange-700 rounded-2xl mx-4 mt-2 mb-6 p-3 shadow-lg">
+    <View className="bg-orange-500 dark:bg-orange-700 rounded-2xl mx-6 mt-2 mb-6 p-3 shadow-lg">
       {/* Month navigation */}
       <View className="flex-row items-center justify-between mb-2">
         <TouchableOpacity

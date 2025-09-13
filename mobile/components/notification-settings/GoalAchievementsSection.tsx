@@ -37,7 +37,7 @@ const GoalAchievementsSection = ({
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.7}
-      className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-4 shadow-sm dark:shadow-sm"
+      className="bg-white dark:bg-gray-800 rounded-xl p-6 mb-4 shadow-sm dark:shadow-sm"
       style={{
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 1 },
@@ -67,9 +67,11 @@ const GoalAchievementsSection = ({
           <TouchableOpacity
             onPress={() => openTimePicker("goal", goalAchievements.time)}
             activeOpacity={0.7}
-            className="flex-row justify-between items-center py-3 px-4 bg-gray-100 dark:bg-gray-700 rounded-lg mb-4"
+            className="flex-row justify-between items-center py-3 px-6 bg-gray-100 dark:bg-gray-700 rounded-lg mb-4"
           >
-            <Text className="text-base text-gray-700 dark:text-gray-300">Check Time</Text>
+            <Text className="text-base text-gray-700 dark:text-gray-300">
+              Check Time
+            </Text>
             <Text className="text-base text-orange-500 font-medium">
               {formatTime(goalAchievements.time)}
             </Text>
@@ -77,23 +79,19 @@ const GoalAchievementsSection = ({
 
           {/* Days Selection */}
           <View>
-            <Text
-              className="text-base font-medium mb-3 text-gray-700 dark:text-gray-300"
-            >
+            <Text className="text-base font-medium mb-3 text-gray-700 dark:text-gray-300">
               Active Days
             </Text>
             <View className="flex-row justify-between">
               {days.map((day, index) => {
                 const isSelected = (goalAchievements.days || []).includes(day);
                 const buttonClasses = `w-10 h-10 rounded-full justify-center items-center ${
-                  isSelected
-                    ? "bg-orange-500"
-                    : "bg-gray-200 dark:bg-gray-700"
+                  isSelected ? "bg-orange-500" : "bg-gray-200 dark:bg-gray-700"
                 }`;
                 const textClasses = `text-xs font-semibold ${
                   isSelected ? "text-white" : "text-gray-500 dark:text-gray-400"
                 }`;
-                
+
                 return (
                   <TouchableOpacity
                     key={day}
@@ -112,9 +110,7 @@ const GoalAchievementsSection = ({
                     activeOpacity={0.8}
                     className={buttonClasses}
                   >
-                    <Text className={textClasses}>
-                      {dayLabels[index]}
-                    </Text>
+                    <Text className={textClasses}>{dayLabels[index]}</Text>
                   </TouchableOpacity>
                 );
               })}

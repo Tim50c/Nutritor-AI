@@ -1,23 +1,20 @@
-import React from 'react';
-import { View, TouchableOpacity } from 'react-native';
-import { Text } from './CustomText';
+import React from "react";
+import { View, TouchableOpacity } from "react-native";
+import { Text } from "./CustomText";
 
-
-export type TabOption = 'daily' | 'weekly' | 'monthly';
+export type TabOption = "daily" | "weekly" | "monthly";
 
 type Props = {
   value: TabOption;
   onChange: (t: TabOption) => void;
-}
-
+};
 
 const ToggleTabs: React.FC<Props> = ({ value, onChange }) => {
-  const tabs: {key: TabOption; label: string}[] = [
-    {key: 'daily', label: 'Daily'},
-    {key: 'weekly', label: 'Weekly'},
-    {key: 'monthly', label: 'Monthly'},
+  const tabs: { key: TabOption; label: string }[] = [
+    { key: "daily", label: "Daily" },
+    { key: "weekly", label: "Weekly" },
+    { key: "monthly", label: "Monthly" },
   ];
-
 
   return (
     <View className="flex-row rounded-full bg-primary-40 dark:bg-orange-600 p-1">
@@ -33,7 +30,7 @@ const ToggleTabs: React.FC<Props> = ({ value, onChange }) => {
           >
             <Text
               className={`text-base ${
-                active ? "text-white font-semibold" : "text-gray-200"
+                active ? "text-white font-semibold" : "text-white"
               }`}
             >
               {tab.label}
@@ -43,6 +40,6 @@ const ToggleTabs: React.FC<Props> = ({ value, onChange }) => {
       })}
     </View>
   );
-}
+};
 
 export default ToggleTabs;

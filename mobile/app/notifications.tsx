@@ -36,8 +36,14 @@ function NotificationCard({
     try {
       let date: Date;
 
+      // Handle Firestore timestamp with seconds/nanoseconds structure
+      if (timestamp.seconds !== undefined) {
+        date = new Date(
+          timestamp.seconds * 1000 + Math.floor(timestamp.nanoseconds / 1000000)
+        );
+      }
       // Handle Firestore timestamp with _seconds property (from backend API)
-      if (timestamp._seconds) {
+      else if (timestamp._seconds) {
         date = new Date(timestamp._seconds * 1000);
       }
       // Handle other timestamp formats as fallback
@@ -77,7 +83,7 @@ function NotificationCard({
 
   return (
     <TouchableOpacity
-      className={`flex-row items-center rounded-2xl p-4 mb-3 ${
+      className={`flex-row items-center rounded-2xl p-6 mb-3 ${
         read
           ? "bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700"
           : "bg-orange-50 dark:bg-orange-600 border border-orange-200 dark:border-orange-400"

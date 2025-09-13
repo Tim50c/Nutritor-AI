@@ -849,13 +849,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    padding: 24,
   },
   startBox: {
     width: "100%",
     backgroundColor: "#F8F9FA",
     borderRadius: 16,
-    padding: 25,
+    padding: 24,
     alignItems: "center",
     borderWidth: 1,
     borderColor: "#E5E7EB",
@@ -897,7 +897,7 @@ const styles = StyleSheet.create({
   },
   startButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "bold" },
   // Message list
-  messageList: { flex: 1, paddingHorizontal: 15 },
+  messageList: { flex: 1, paddingHorizontal: 24 },
   // Loading status text
   refreshingText: {
     color: "#FF5A16",
@@ -981,8 +981,8 @@ const styles = StyleSheet.create({
   attachmentMenuContainer: {
     position: "absolute",
     bottom: 60,
-    left: 15,
-    right: 15,
+    left: 24,
+    right: 24,
     alignItems: "flex-end",
     zIndex: 999,
   },
@@ -1070,7 +1070,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 10,
+    paddingHorizontal: 24,
     paddingVertical: 8,
     borderTopWidth: 1,
     borderTopColor: "#E5E7EB",

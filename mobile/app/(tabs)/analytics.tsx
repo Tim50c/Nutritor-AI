@@ -450,7 +450,7 @@ const Analytics = () => {
       <CustomHeaderWithBack title="Analytics" />
       <ScrollView
         contentContainerStyle={{ paddingBottom: 120 }}
-        className="px-4"
+        className="px-6"
         refreshControl={
           <RefreshControl
             refreshing={analyticsLoading || nutritionLoading}

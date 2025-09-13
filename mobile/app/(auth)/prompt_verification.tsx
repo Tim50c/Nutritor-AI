@@ -16,13 +16,13 @@ export default function PromptVerification() {
           <Text className="text-3xl font-bold text-center mb-2 mt-8 text-gray-800 dark:text-blue-300">
             Verify Your Email
           </Text>
-          <Text className="text-base mt-4 text-center leading-6 px-2 text-gray-500 dark:text-gray-300">
+          <Text className="text-base mt-4 text-center leading-6 px-6 text-gray-500 dark:text-gray-300">
             We&apos;ve sent a verification link to {"\n"}
             <Text className="font-bold text-gray-800 dark:text-gray-100">
               {email}
             </Text>
           </Text>
-          <Text className="text-base mt-3 text-center leading-6 px-2 text-gray-500 dark:text-gray-300">
+          <Text className="text-base mt-3 text-center leading-6 px-6 text-gray-500 dark:text-gray-300">
             Please check your inbox and click the link to continue.
           </Text>
         </View>

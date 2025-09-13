@@ -61,7 +61,7 @@ export default function HomeScreen() {
           />
         }
       >
-        <View className="p-4">
+        <View className="px-6 py-4">
           {loading ? (
             // Show loading spinner only on initial load (when no data exists)
             <View className="flex-1 justify-center items-center py-20">

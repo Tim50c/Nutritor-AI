@@ -15,6 +15,7 @@ import {
   View,
 } from "react-native";
 import { Text } from "../../components/CustomText";
+import CustomHeaderWithBack from "../../components/CustomHeaderWithBack";
 
 const { width } = Dimensions.get("window");
 
@@ -178,24 +179,7 @@ const More = () => {
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-black">
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-800">
-        <TouchableOpacity
-          className="bg-black dark:bg-white w-10 h-10 rounded-full justify-center items-center"
-          onPress={() => router.back()}
-        >
-          <View>
-            {isDark ? (
-              <icons.arrowDark width={20} height={20} />
-            ) : (
-              <icons.arrow width={20} height={20} />
-            )}
-          </View>
-        </TouchableOpacity>
-        <Text className="text-xl font-bold text-black dark:text-white">
-          More Settings
-        </Text>
-        <View className="w-10 h-10" />
-      </View>
+      <CustomHeaderWithBack title="More Settings" />
 
       <View className="flex-1 p-6">
         {/* Theme Mode Preference */}
@@ -538,6 +522,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   toggleButtonActive: {
+    backgroundColor: "#FFFFFF",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,

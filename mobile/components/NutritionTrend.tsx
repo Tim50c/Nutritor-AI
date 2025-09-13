@@ -142,7 +142,7 @@ const NutritionTrend: React.FC<NutritionTrendProps> = ({
   };
 
   return (
-    <View className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-black">
+    <View className="rounded-lg border border-gray-200 dark:border-gray-700 p-6 bg-white dark:bg-black">
       <Text className="text-center text-lg font-semibold text-gray-900 dark:text-gray-100">
         {getPeriodText()} Nutrition Trend
       </Text>

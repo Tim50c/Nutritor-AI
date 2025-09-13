@@ -265,7 +265,7 @@ const Profile = () => {
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-black">
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-3">
+      <View className="flex-row items-center justify-between px-6 py-3">
         <TouchableOpacity
           className="bg-black dark:bg-white w-10 h-10 rounded-full justify-center items-center"
           onPress={() => router.replace("/(tabs)/settings")}

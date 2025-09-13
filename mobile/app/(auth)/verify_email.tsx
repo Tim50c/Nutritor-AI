@@ -53,7 +53,7 @@ export default function VerifyEmailHandler() {
             <Text className="text-3xl font-bold text-center mb-2 text-gray-800 dark:text-gray-100">
               Email Verified!
             </Text>
-            <Text className="text-lg mt-4 text-center leading-6 px-5 text-gray-500 dark:text-gray-400">
+            <Text className="text-lg mt-4 text-center leading-6 px-6 text-gray-500 dark:text-gray-400">
               Your account has been successfully verified.
             </Text>
             <View className="w-full mt-10">
@@ -71,7 +71,7 @@ export default function VerifyEmailHandler() {
             <Text className="text-3xl font-bold text-center mb-2 text-red-600 dark:text-red-400">
               Verification Failed
             </Text>
-            <Text className="text-lg mt-4 text-center leading-6 px-5 text-gray-500 dark:text-gray-400">
+            <Text className="text-lg mt-4 text-center leading-6 px-6 text-gray-500 dark:text-gray-400">
               {errorMessage}
             </Text>
             <View className="w-full mt-10">

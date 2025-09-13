@@ -36,7 +36,7 @@ const Favorites = () => {
     return (
       <SafeAreaView className="flex-1 bg-white dark:bg-black">
         {/* Header */}
-        <View className="flex-row items-center justify-between px-4 py-3">
+        <View className="flex-row items-center justify-between px-6 py-3">
           <TouchableOpacity
             className="bg-black dark:bg-white w-10 h-10 rounded-full justify-center items-center"
             onPress={() => router.back()}
@@ -49,7 +49,9 @@ const Favorites = () => {
               )}
             </View>
           </TouchableOpacity>
-          <Text className="text-xl font-bold text-black dark:text-white">Favorites</Text>
+          <Text className="text-xl font-bold text-black dark:text-white">
+            Favorites
+          </Text>
           <View className="w-10 h-10" />
         </View>
 
@@ -82,7 +84,7 @@ const Favorites = () => {
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-black">
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-3">
+      <View className="flex-row items-center justify-between px-6 py-3">
         <TouchableOpacity
           className="bg-black dark:bg-white w-10 h-10 rounded-full justify-center items-center"
           onPress={() => router.back()}
@@ -95,12 +97,14 @@ const Favorites = () => {
             )}
           </View>
         </TouchableOpacity>
-        <Text className="text-xl font-bold text-black dark:text-white">Favorites</Text>
+        <Text className="text-xl font-bold text-black dark:text-white">
+          Favorites
+        </Text>
         <View className="w-10 h-10" />
       </View>
 
       <ScrollView
-        className="flex-1 px-4 pt-4"
+        className="flex-1 px-6 pt-4"
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
