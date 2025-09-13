@@ -64,7 +64,7 @@ exports.recognizeFoodDetails = async (req, res) => {
         {
           role: "user",
           parts: [
-            { text: "What food is this? Provide only the name of the food." },
+            { text: "What food is this? Provide only the name of the food with no capitalization." },
             {
               inline_data: {
                 mime_type: imageFile.mimetype,
@@ -158,6 +158,7 @@ exports.recognizeFoodDetails = async (req, res) => {
     );
 
     // Save the food to database and get the ID
+    console.log(`[LOG] Generated food object:`, generatedFood);
     console.log('[LOG] Saving food to database...');
     const foodRef = await db.collection('foods').add(generatedFood.toFirestore());
     const savedFoodId = foodRef.id;

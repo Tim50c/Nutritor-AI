@@ -598,8 +598,10 @@ const FoodDetails = () => {
                 {food &&
                 isFavorite(Array.isArray(food.id) ? food.id[0] : food.id) ? (
                   <icons.heartFill width={16} height={16} />
+                ) : isDark ? (
+                  <icons.heartDark width={16} height={16} />
                 ) : (
-                  isDark ? (<icons.heartDark width={16} height={16} />) : <icons.heart width={16} height={16} />
+                  <icons.heart width={16} height={16} />
                 )}
               </TouchableOpacity>
             </View>
@@ -630,8 +632,10 @@ const FoodDetails = () => {
                 {food &&
                 isFavorite(Array.isArray(food.id) ? food.id[0] : food.id) ? (
                   <icons.heartFill width={16} height={16} />
+                ) : isDark ? (
+                  <icons.heartDark width={16} height={16} />
                 ) : (
-                  isDark ? (<icons.heartDark width={16} height={16} />) : <icons.heart width={16} height={16} />
+                  <icons.heart width={16} height={16} />
                 )}
               </TouchableOpacity>
             </View>
@@ -668,8 +672,10 @@ const FoodDetails = () => {
                 {food &&
                 isFavorite(Array.isArray(food.id) ? food.id[0] : food.id) ? (
                   <icons.heartFill width={16} height={16} />
+                ) : isDark ? (
+                  <icons.heartDark width={16} height={16} />
                 ) : (
-                  isDark ? (<icons.heartDark width={16} height={16} />) : <icons.heart width={16} height={16} />
+                  <icons.heart width={16} height={16} />
                 )}
               </TouchableOpacity>
             </View>
@@ -681,130 +687,137 @@ const FoodDetails = () => {
           className="absolute bottom-8 right-4 w-12 h-12 bg-orange-500 dark:bg-orange-600 rounded-full items-center justify-center shadow-lg"
           onPress={handleImagePress}
         >
-          <Ionicons name="pencil" size={20} color={isDark ? "black" : "white"} />
+          <Ionicons
+            name="pencil"
+            size={20}
+            color={isDark ? "black" : "white"}
+          />
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        className="flex-1 -mt-6 bg-white dark:bg-black rounded-t-3xl px-6 pt-6"
-        contentContainerStyle={{ flexGrow: 1 }}
-      >
-        {/* Title Section */}
-        <View className="mb-6">
-          <Text className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-            {food.name}
-          </Text>
-          {/* Show saving status */}
-          {isSavingImage && (
-            <View className="flex-row items-center mb-2">
-              <ActivityIndicator size="small" color="#ff5a16" />
-              <Text className="ml-2 text-orange-600 dark:text-orange-400 text-sm font-medium">
-                Saving image changes...
-              </Text>
-            </View>
-          )}
-          <Text className="text-gray-600 dark:text-gray-400 leading-relaxed">
-            {food.description}
-          </Text>
-          {/* Show source information for API-recognized foods */}
-          {"source" in food && food.source && (
-            <View className="flex-row items-center mt-2">
-              <Ionicons
-                name={
-                  food.source === "gemini"
-                    ? "sparkles"
+      {/* Main content wrapper with flex: 1 */}
+      <View className="flex-1">
+        <ScrollView
+          className="flex-1 -mt-6 bg-white dark:bg-black rounded-t-3xl px-6 pt-6"
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 120 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Title Section */}
+          <View className="mb-6">
+            <Text className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+              {food.name}
+            </Text>
+            {/* Show saving status */}
+            {isSavingImage && (
+              <View className="flex-row items-center mb-2">
+                <ActivityIndicator size="small" color="#ff5a16" />
+                <Text className="ml-2 text-orange-600 dark:text-orange-400 text-sm font-medium">
+                  Saving image changes...
+                </Text>
+              </View>
+            )}
+            <Text className="text-gray-600 dark:text-gray-400 leading-relaxed">
+              {food.description}
+            </Text>
+            {/* Show source information for API-recognized foods */}
+            {"source" in food && food.source && (
+              <View className="flex-row items-center mt-2">
+                <Ionicons
+                  name={
+                    food.source === "gemini"
+                      ? "sparkles"
+                      : food.source === "openfoodfacts"
+                        ? "barcode"
+                        : "information-circle"
+                  }
+                  size={16}
+                  color={isDark ? "#9CA3AF" : "#666"}
+                />
+                <Text className="text-gray-500 dark:text-gray-400 text-sm ml-2 capitalize">
+                  Recognized by{" "}
+                  {food.source === "gemini"
+                    ? "AI"
                     : food.source === "openfoodfacts"
-                      ? "barcode"
-                      : "information-circle"
-                }
-                size={16}
-                color={isDark ? "#9CA3AF" : "#666"}
+                      ? "Barcode Database"
+                      : food.source}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* Macro Cards Grid */}
+          <View className="mb-6">
+            {/* Top Row - Calories and Protein */}
+            <View className="flex-row mb-3">
+              <MacroCard
+                title="Calories"
+                value={`${(food.calories || 0).toLocaleString()} kcal`}
+                backgroundColor="bg-purple-200 dark:bg-purple-800"
               />
-              <Text className="text-gray-500 dark:text-gray-400 text-sm ml-2 capitalize">
-                Recognized by{" "}
-                {food.source === "gemini"
-                  ? "AI"
-                  : food.source === "openfoodfacts"
-                    ? "Barcode Database"
-                    : food.source}
-              </Text>
+              <MacroCard
+                title="Protein"
+                value={`${food.protein || 0}g`}
+                percentage={proteinPercentage}
+                backgroundColor="bg-green-300 dark:bg-green-800"
+              />
             </View>
+
+            {/* Bottom Row - Carbs and Fat */}
+            <View className="flex-row">
+              <MacroCard
+                title="Carbs"
+                value={`${food.carbs || 0}g`}
+                percentage={carbsPercentage}
+                backgroundColor="bg-yellow-300 dark:bg-yellow-800"
+              />
+              <MacroCard
+                title="Fat"
+                value={`${food.fat || 0}g`}
+                percentage={fatPercentage}
+                backgroundColor="bg-orange-400 dark:bg-orange-800"
+                textColor="text-white dark:text-gray-200"
+              />
+            </View>
+          </View>
+
+          {/* Goal Section */}
+          <GoalCard />
+        </ScrollView>
+
+        {/* Fixed Add to Diet Button at bottom */}
+        <View className="bg-white dark:bg-black border-t border-gray-200 dark:border-gray-800 px-6 py-4">
+          {/* Show both buttons if source is from history or diet */}
+          {source === "history" || source === "diet" ? (
+            <View className="flex-row gap-3">
+              <View className="flex-1">
+                <CustomButton
+                  label={isAddingToDiet ? "Adding..." : "Add to Diet"}
+                  onPress={handleAddToDiet}
+                  disabled={isAddingToDiet || isRemovingFromDiet}
+                  style="bg-gray-200 dark:bg-gray-700"
+                  textStyle="text-black dark:text-white"
+                />
+              </View>
+              <View className="flex-1">
+                <CustomButton
+                  label={
+                    isRemovingFromDiet ? "Removing..." : "Remove from Diet"
+                  }
+                  onPress={handleRemoveFromDiet}
+                  disabled={isAddingToDiet || isRemovingFromDiet}
+                  style="bg-orange-500"
+                />
+              </View>
+            </View>
+          ) : (
+            /* Show only Add button for suggestions, favorites, and search results */
+            <CustomButton
+              label={isAddingToDiet ? "Adding..." : "Add to My Diet"}
+              onPress={handleAddToDiet}
+              disabled={isAddingToDiet}
+            />
           )}
         </View>
-
-        {/* Macro Cards Grid */}
-        <View className="mb-6">
-          {/* Top Row - Calories and Protein */}
-          <View className="flex-row mb-3">
-            <MacroCard
-              title="Calories"
-              value={`${(food.calories || 0).toLocaleString()} kcal`}
-              backgroundColor="bg-purple-200 dark:bg-purple-800"
-            />
-            <MacroCard
-              title="Protein"
-              value={`${food.protein || 0}g`}
-              percentage={proteinPercentage}
-              backgroundColor="bg-green-300 dark:bg-green-800"
-            />
-          </View>
-
-          {/* Bottom Row - Carbs and Fat */}
-          <View className="flex-row">
-            <MacroCard
-              title="Carbs"
-              value={`${food.carbs || 0}g`}
-              percentage={carbsPercentage}
-              backgroundColor="bg-yellow-300 dark:bg-yellow-800"
-            />
-            <MacroCard
-              title="Fat"
-              value={`${food.fat || 0}g`}
-              percentage={fatPercentage}
-              backgroundColor="bg-orange-400 dark:bg-orange-800"
-              textColor="text-white dark:text-gray-200"
-            />
-          </View>
-        </View>
-
-        {/* Goal Section */}
-        <GoalCard />
-
-        {/* Add some bottom padding to ensure content doesn't get hidden behind the fixed button */}
-        <View className="h-20" />
-      </ScrollView>
-
-      {/* Fixed Add to Diet Button at bottom */}
-      <View className="absolute bottom-0 left-0 right-0 bg-white dark:bg-black border-t border-gray-200 dark:border-gray-800 px-6 py-4 mb-8">
-        {/* Show both buttons if source is from history or diet */}
-        {source === "history" || source === "diet" ? (
-          <View className="flex-row gap-3">
-            <View className="flex-1">
-              <CustomButton
-                label={isAddingToDiet ? "Adding..." : "Add to Diet"}
-                onPress={handleAddToDiet}
-                disabled={isAddingToDiet || isRemovingFromDiet}
-                style="bg-gray-200 dark:bg-gray-700"
-                textStyle="text-black dark:text-white"
-              />
-            </View>
-            <View className="flex-1">
-              <CustomButton
-                label={isRemovingFromDiet ? "Removing..." : "Remove from Diet"}
-                onPress={handleRemoveFromDiet}
-                disabled={isAddingToDiet || isRemovingFromDiet}
-                style="bg-orange-500"
-              />
-            </View>
-          </View>
-        ) : (
-          /* Show only Add button for suggestions, favorites, and search results */
-          <CustomButton
-            label={isAddingToDiet ? "Adding..." : "Add to My Diet"}
-            onPress={handleAddToDiet}
-            disabled={isAddingToDiet}
-          />
-        )}
       </View>
 
       {/* Image Options Modal */}
