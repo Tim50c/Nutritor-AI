@@ -42,7 +42,7 @@ class AxiosService {
     }
   }
 
-  private static clearTokenCache(): void {
+  public static clearTokenCache(): void {
     this.tokenCache = { token: null, expiry: 0 };
   }
 

@@ -77,6 +77,26 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({
   // Keep track of ongoing requests to prevent duplicates
   const refreshPromiseRef = useRef<Promise<void> | null>(null);
 
+  // Clear analytics data when user logs out or switches
+  const prevUserIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const newId = userProfile?.id ?? null;
+    const prevId = prevUserIdRef.current;
+
+    if (prevId !== newId) {
+      console.log(
+        "🔁 [AnalyticsContext] User changed - clearing cached analytics state"
+      );
+      setAnalyticsData(null);
+      setLastUpdated(null);
+      setError(null);
+      setShouldInvalidate(true); // Force refresh for new user
+    }
+
+    prevUserIdRef.current = newId;
+  }, [userProfile?.id]);
+
   // Main function to fetch all analytics data
   const refreshAnalytics = useCallback(async (): Promise<void> => {
     if (!userProfile || isLoadingProfile) {

@@ -920,6 +920,39 @@ export function DietProvider({ children }: { children: ReactNode }) {
     initializeData();
   }, [userProfile, isLoadingProfile, refreshHomeData, fetchFavoriteFoods]);
 
+  // Clear caches and reset diet state when user logs out or switches accounts
+  const prevUserIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const newId = userProfile?.id ?? null;
+    const prevId = prevUserIdRef.current;
+
+    // Clear cached data if user ID changes (logout or switch user)
+    if (prevId !== newId) {
+      console.log(
+        "🔁 [DietContext] User changed - clearing cached diet state"
+      );
+      // Reset all in-memory diet/cache state
+      setDataCache(new Map());
+      setLastFetchTime(null);
+      setHomeFoods([]);
+      setDietFoods([]);
+      setHomeSummary(initialSummary);
+      setDietSummary(initialSummary);
+      setSuggestedFoods([]);
+      setFavoriteFoods([]);
+      setFavoriteFoodIds([]);
+      setTargetNutrition(initialSummary);
+      setLoading(true); // Set loading to true to show loading indicator for new user
+      setRefreshing(false);
+      setSyncing(false);
+      recentAdditionsRef.current.clear();
+    }
+
+    // Update previous id for future comparisons
+    prevUserIdRef.current = newId;
+  }, [userProfile?.id]);
+
   // React to changes in user profile target nutrition (e.g., after goal updates)
   // This only watches userProfile.targetNutrition to avoid dependency loops
   useEffect(() => {

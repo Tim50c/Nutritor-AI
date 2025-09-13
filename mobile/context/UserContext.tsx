@@ -9,6 +9,7 @@ import { auth } from "../config/firebase";
 import NutritionModel from "@/models/nutrition-model";
 import { onAuthStateChanged, User as FirebaseAuthUser } from "firebase/auth";
 import { SearchService, AnalysisService } from "@/services";
+import AxiosService from "@/config/api/axios";
 
 // 1. Define a type that accurately reflects the backend data model
 export type User = {
@@ -85,6 +86,9 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         // User is signed out, clear profile
         setUserProfile(null);
         setIsLoadingProfile(false);
+        AxiosService.clearTokenCache(); // Clear axios token cache
+        AnalysisService.clearCache(); // Clear analytics cache
+        console.log("🔒 User logged out, caches cleared.");
       }
     });
 
