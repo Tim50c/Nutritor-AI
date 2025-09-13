@@ -251,7 +251,7 @@ const CalorieChart: React.FC<CalorieChartProps> = ({
 
     // Use more conservative ratios that work across all device sizes
     const baseBarRatio =
-      windowWidth < 350 ? 0.55 : windowWidth < 400 ? 0.6 : 0.65;
+      windowWidth < 350 ? 0.65 : windowWidth < 400 ? 0.7 : 0.75;
 
     if (totalColumns === 7) {
       // Daily view: Conservative sizing for 7 bars
@@ -280,7 +280,7 @@ const CalorieChart: React.FC<CalorieChartProps> = ({
     } else {
       // Weekly/Monthly view: Even more conservative for variable columns
       const targetBarToSpacingRatio =
-        baseBarRatio + (totalColumns <= 4 ? 0.05 : 0);
+        baseBarRatio + (totalColumns <= 4 ? 0.1 : 0.05);
       const totalSpaces = totalColumns - 1;
 
       const totalUnits =
