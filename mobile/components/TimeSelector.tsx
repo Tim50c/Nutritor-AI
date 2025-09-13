@@ -7,6 +7,7 @@ import {
   NativeSyntheticEvent,
 } from "react-native";
 import { Text } from "./CustomText";
+import { useIsDark } from "@/theme/useIsDark";
 
 const ITEM_HEIGHT = 35;
 
@@ -21,6 +22,7 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
   onValueChange,
   type,
 }) => {
+  const isDark = useIsDark();
   const scrollViewRef = React.useRef<ScrollView>(null);
   const values =
     type === "hour"
@@ -51,7 +53,7 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.selectorContainer}>
-        <View style={styles.indicator} />
+        <View style={[styles.indicator, isDark ? styles.darkIndicator : null]} />
         <ScrollView
           ref={scrollViewRef}
           showsVerticalScrollIndicator={false}
@@ -77,7 +79,12 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({
             return (
               <View key={value} style={styles.item}>
                 <Text
-                  style={[styles.text, isSelected ? styles.selectedText : null]}
+                  style={[
+                    styles.text,
+                    isDark ? styles.darkText : null,
+                    isSelected ? styles.selectedText : null,
+                    isSelected && isDark ? styles.darkSelectedText : null,
+                  ]}
                 >
                   {formatValue(value)}
                 </Text>
@@ -121,6 +128,10 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255, 90, 22, 1)",
     zIndex: -1,
   },
+  darkIndicator: {
+    backgroundColor: "rgba(255, 90, 22, 0.2)",
+    borderColor: "rgba(255, 90, 22, 1)",
+  },
   item: {
     height: ITEM_HEIGHT,
     justifyContent: "center",
@@ -131,9 +142,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#666",
   },
+  darkText: {
+    color: "#999",
+  },
   selectedText: {
     fontWeight: "500",
     fontSize: 16,
+    color: "#ff5a16",
+  },
+  darkSelectedText: {
     color: "#ff5a16",
   },
 });

@@ -1,13 +1,20 @@
-import React, {useState} from "react";
-import {KeyboardAvoidingView, Platform, View, TouchableOpacity, SafeAreaView} from "react-native";
-import { Text } from '../../components/CustomText';
-import {useRouter} from "expo-router";
+import React, { useState } from "react";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  View,
+  TouchableOpacity,
+  SafeAreaView,
+} from "react-native";
+import { Text } from "../../components/CustomText";
+import { useRouter } from "expo-router";
 import { icons } from "@/constants/icons";
 import { useUser } from "@/context/UserContext";
 import CustomButton from "@/components/CustomButton";
 import CustomInput from "@/components/CustomInput";
 import CustomModal from "@/components/CustomModal";
 import { PasswordService } from "@/services";
+import { useIsDark } from "@/theme/useIsDark";
 
 const passwordStrengthCheck = (password: string) => {
   // At least 8 chars, one letter, one number, one special char
@@ -19,11 +26,12 @@ const ChangePassword = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
-  const [modalType, setModalType] = useState<'success' | 'error'>("error");
+  const [modalType, setModalType] = useState<"success" | "error">("error");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const router = useRouter();
   const { userProfile } = useUser();
+  const isDark = useIsDark();
 
   const handleSave = async () => {
     // Reset error message
@@ -31,7 +39,9 @@ const ChangePassword = () => {
 
     // Validate passwords
     if (!passwordStrengthCheck(newPassword)) {
-      setErrorMessage("Password must be at least 8 characters, contain a number, a letter, and a special character.");
+      setErrorMessage(
+        "Password must be at least 8 characters, contain a number, a letter, and a special character."
+      );
       setModalType("error");
       setModalVisible(true);
       return;
@@ -48,14 +58,16 @@ const ChangePassword = () => {
     try {
       // Call backend API to change password
       await PasswordService.changePassword({
-        newPassword: newPassword
+        newPassword: newPassword,
       });
-      
+
       setModalType("success");
       setModalVisible(true);
     } catch (error: any) {
       console.error("Password change error:", error);
-      setErrorMessage(error.message || "An error occurred while changing the password.");
+      setErrorMessage(
+        error.message || "An error occurred while changing the password."
+      );
       setModalType("error");
       setModalVisible(true);
     } finally {
@@ -72,18 +84,24 @@ const ChangePassword = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-white dark:bg-black">
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-3">
-        <TouchableOpacity 
-          className="bg-black w-10 h-10 rounded-full justify-center items-center" 
+      <View className="flex-row items-center justify-between px-6 py-3">
+        <TouchableOpacity
+          className="bg-black dark:bg-white w-10 h-10 rounded-full justify-center items-center"
           onPress={() => router.back()}
         >
-          <View style={{ transform: [{ rotate: '0deg' }] }}>
-            <icons.arrow width={20} height={20} color="#FFFFFF" />
+          <View style={{ transform: [{ rotate: "0deg" }] }}>
+            {isDark ? (
+              <icons.arrowDark width={20} height={20} color="#000000" />
+            ) : (
+              <icons.arrow width={20} height={20} color="#FFFFFF" />
+            )}
           </View>
         </TouchableOpacity>
-        <Text className="text-xl font-bold text-black">Change Password</Text>
+        <Text className="text-xl font-bold text-black dark:text-white">
+          Change Password
+        </Text>
         <View className="w-10 h-10" />
       </View>
 
@@ -107,8 +125,8 @@ const ChangePassword = () => {
             secureTextEntry
           />
           <View className="mt-8">
-            <CustomButton 
-              label={loading ? "Saving..." : "Save"} 
+            <CustomButton
+              label={loading ? "Saving..." : "Save"}
               onPress={handleSave}
               disabled={loading}
             />
@@ -117,7 +135,11 @@ const ChangePassword = () => {
       </KeyboardAvoidingView>
       <CustomModal
         visible={modalVisible}
-        title={modalType === "success" ? "Password changed" : "Password Change Failed"}
+        title={
+          modalType === "success"
+            ? "Password changed"
+            : "Password Change Failed"
+        }
         message={
           modalType === "success"
             ? "Congratulation! Your password has been updated!"

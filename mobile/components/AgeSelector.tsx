@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, ScrollView, StyleSheet, NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import { Text } from './CustomText'; // Make sure this path is correct
+import { useIsDark } from '@/theme/useIsDark';
 
 const AGES = Array.from({ length: 83 }, (_, i) => i + 18); // Ages 18 to 100
 const ITEM_HEIGHT = 60;
@@ -12,24 +13,31 @@ interface AgeSelectorProps {
 
 const AgeSelector: React.FC<AgeSelectorProps> = ({ selectedValue, onValueChange }) => {
   const scrollViewRef = React.useRef<ScrollView>(null);
+  const isDark = useIsDark();
+
+  const colors = {
+    indicator: isDark ? '#1E293B' : '#FFF7F2',
+    text: isDark ? '#9CA3AF' : '#9CA3AF',
+    selectedText: isDark ? '#FF7A3A' : '#FF5A16',
+  };
 
   // Added correct type for the event
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const y = event.nativeEvent.contentOffset.y;
     const index = Math.round(y / ITEM_HEIGHT);
-    
+
     // Ensure index is within bounds to prevent errors
     if (index >= 0 && index < AGES.length) {
       const age = AGES[index];
       if (age !== selectedValue) {
-          onValueChange(age);
+        onValueChange(age);
       }
     }
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.indicator} />
+      <View style={[styles.indicator, { backgroundColor: colors.indicator }]} />
       <ScrollView
         ref={scrollViewRef}
         showsVerticalScrollIndicator={false}
@@ -38,10 +46,10 @@ const AgeSelector: React.FC<AgeSelectorProps> = ({ selectedValue, onValueChange 
         onMomentumScrollEnd={handleScroll}
         contentContainerStyle={styles.scrollContent}
         onLayout={() => {
-            const initialIndex = AGES.indexOf(selectedValue);
-            if (initialIndex > -1) {
-                scrollViewRef.current?.scrollTo({ y: initialIndex * ITEM_HEIGHT, animated: false });
-            }
+          const initialIndex = AGES.indexOf(selectedValue);
+          if (initialIndex > -1) {
+            scrollViewRef.current?.scrollTo({ y: initialIndex * ITEM_HEIGHT, animated: false });
+          }
         }}
       >
         {AGES.map((age) => {
@@ -49,7 +57,13 @@ const AgeSelector: React.FC<AgeSelectorProps> = ({ selectedValue, onValueChange 
           return (
             <View key={age} style={styles.item}>
               {/* --- THIS IS THE FIXED LINE --- */}
-              <Text style={[styles.text, isSelected ? styles.selectedText : null]}>
+              <Text
+                style={[
+                  styles.text,
+                  { color: colors.text },
+                  isSelected && { ...styles.selectedText, color: colors.selectedText },
+                ]}
+              >
                 {age}
               </Text>
             </View>
@@ -74,7 +88,6 @@ const styles = StyleSheet.create({
     left: '5%',
     right: '5%',
     height: ITEM_HEIGHT,
-    backgroundColor: '#FFF7F2',
     borderRadius: 12,
     zIndex: -1,
   },
@@ -84,16 +97,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   text: {
-    // Using fontWeight lets CustomText handle the font file
     fontWeight: '500', // Medium
     fontSize: 32,
-    color: '#9CA3AF', // Gray for non-selected
+    color: '#9CA3AF', // fallback
   },
   selectedText: {
-    // Using fontWeight lets CustomText handle the font file
     fontWeight: '700', // Bold
     fontSize: 48,
-    color: '#FF5A16', // Orange for selected
+    color: '#FF5A16', // fallback
   },
 });
 

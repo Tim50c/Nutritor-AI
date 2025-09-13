@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import React, { useEffect, useState } from "react";
 import {
-  View,
-  Modal,
-  TouchableOpacity,
-  TextInput,
-  Alert,
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
+  Modal,
   Platform,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { Text } from "./CustomText";
-import { Ionicons } from "@expo/vector-icons";
 
 interface WeightEditModalProps {
   visible: boolean;
@@ -81,21 +81,30 @@ const WeightEditModal: React.FC<WeightEditModalProps> = ({
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           className="w-full px-6"
         >
-          <View className="bg-white rounded-lg p-6 w-full">
+          <View className="bg-white dark:bg-gray-900 rounded-lg p-6 w-full">
             <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-lg font-semibold">{title}</Text>
+              <Text className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                {title}
+              </Text>
               <TouchableOpacity onPress={onClose} disabled={isUpdating}>
-                <Ionicons name="close" size={24} color="#6B7280" />
+                <Ionicons
+                  name="close"
+                  size={24}
+                  color={isUpdating ? "#9CA3AF" : "#6B7280"}
+                />
               </TouchableOpacity>
             </View>
 
             <View className="mb-6">
-              <Text className="text-gray-600 mb-2">Weight ({weightUnit})</Text>
+              <Text className="text-gray-600 dark:text-gray-400 mb-2">
+                Weight ({weightUnit})
+              </Text>
               <TextInput
                 value={inputValue}
                 onChangeText={setInputValue}
                 placeholder={`Enter weight in ${weightUnit}`}
-                className="border border-gray-300 rounded-lg px-4 py-3 text-base"
+                className="border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-base text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
+                placeholderTextColor={"#9CA3AF"}
                 editable={!isUpdating}
                 selectTextOnFocus
               />
@@ -105,9 +114,9 @@ const WeightEditModal: React.FC<WeightEditModalProps> = ({
               <TouchableOpacity
                 onPress={onClose}
                 disabled={isUpdating}
-                className="flex-1 py-3 px-4 rounded-lg border border-gray-300"
+                className="flex-1 py-3 px-4 rounded-lg border border-gray-300 dark:border-gray-600"
               >
-                <Text className="text-center text-gray-700 font-medium">
+                <Text className="text-center text-gray-700 dark:text-gray-200 font-medium">
                   Cancel
                 </Text>
               </TouchableOpacity>
@@ -115,8 +124,7 @@ const WeightEditModal: React.FC<WeightEditModalProps> = ({
               <TouchableOpacity
                 onPress={handleUpdate}
                 disabled={isUpdating}
-                className="flex-1 py-3 px-4 rounded-lg"
-                style={{ backgroundColor: "#ff5a16" }}
+                className="flex-1 py-3 px-4 rounded-lg bg-[#ff5a16]"
               >
                 {isUpdating ? (
                   <ActivityIndicator size="small" color="white" />

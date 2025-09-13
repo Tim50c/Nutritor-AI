@@ -1,4 +1,3 @@
-// mobile/app/(onboarding)/nutrition.tsx
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -14,6 +13,7 @@ import { useRouter } from "expo-router";
 import { useOnboarding } from "../../context/OnboardingContext";
 import { auth } from "../../config/firebase";
 import apiClient from "../../utils/apiClients";
+import { useIsDark } from "@/theme/useIsDark";
 
 import CustomButtonAuth from "../../components/CustomButtonAuth";
 import FormField from "../../components/FormField";
@@ -22,6 +22,15 @@ import { icons } from "../../constants/icons";
 export default function NutritionScreen() {
   const router = useRouter();
   const { data, updateData } = useOnboarding();
+  const isDark = useIsDark();
+
+  const colors = {
+    background: isDark ? "#0B1220" : "#FFFFFF",
+    primary: isDark ? "#ff7a3a" : "#ff5a16",
+    textPrimary: isDark ? "#F3F4F6" : "#1E1E1E",
+    textSecondary: isDark ? "#9CA3AF" : "#8A8A8E",
+    backButton: isDark ? "#374151" : "#000000",
+  };
 
   const [isLoading, setIsLoading] = useState(true);
   const [calories, setCalories] = useState("");
@@ -32,18 +41,7 @@ export default function NutritionScreen() {
 
   useEffect(() => {
     const fetchNutritionSuggestions = async () => {
-
-      if (
-        !data.age ||
-        !data.gender ||
-        !data.height ||
-        !data.weightCurrent ||
-        !data.weightGoal
-      ) {
-        console.log(
-          "🍎 [Nutrition] Waiting for onboarding data to be initialized..."
-        );
-        console.log("🍎 [Nutrition] Current data:", data);
+      if (!data.age || !data.gender || !data.height || !data.weightCurrent || !data.weightGoal) {
         setIsLoading(false);
         return;
       }
@@ -52,7 +50,6 @@ export default function NutritionScreen() {
       try {
         const user = auth.currentUser;
         if (!user) throw new Error("Authentication error.");
-
         const idToken = await user.getIdToken();
 
         const payload = {
@@ -63,13 +60,9 @@ export default function NutritionScreen() {
           weightGoal: data.weightGoal,
         };
 
-        const response = await apiClient.post(
-          "/api/v1/nutrition/predict",
-          payload,
-          {
-            headers: { Authorization: `Bearer ${idToken}` },
-          }
-        );
+        const response = await apiClient.post("/api/v1/nutrition/predict", payload, {
+          headers: { Authorization: `Bearer ${idToken}` },
+        });
 
         if (response.data.success) {
           const suggestions = response.data.data;
@@ -82,26 +75,19 @@ export default function NutritionScreen() {
           throw new Error(response.data.error || "Failed to get suggestions.");
         }
       } catch (error: any) {
-        console.error(
-          "Failed to fetch nutrition suggestions:",
-          error.response?.data || error.message
-        );
         setCalories(data.targetNutrition.calories.toString());
         setProtein(data.targetNutrition.protein.toString());
         setCarbs(data.targetNutrition.carbs.toString());
         setFat(data.targetNutrition.fat.toString());
         setFiber(data.targetNutrition.fiber.toString());
-        Alert.alert(
-          "Error",
-          "Could not fetch AI suggestions. Please enter your targets manually."
-        );
+        Alert.alert("Error", "Could not fetch AI suggestions. Please enter your targets manually.");
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchNutritionSuggestions();
-  }, [data.age, data.gender, data.height, data.weightCurrent, data.weightGoal]); // Re-run when onboarding data changes
+  }, [data.age, data.gender, data.height, data.weightCurrent, data.weightGoal]);
 
   const handleNext = () => {
     const numericValues = {
@@ -115,10 +101,7 @@ export default function NutritionScreen() {
     for (const key in numericValues) {
       const typedKey = key as keyof typeof numericValues;
       if (isNaN(numericValues[typedKey]) || numericValues[typedKey] < 0) {
-        Alert.alert(
-          "Invalid Input",
-          `Please enter a valid, non-negative number for ${typedKey}.`
-        );
+        Alert.alert("Invalid Input", `Please enter a valid, non-negative number for ${typedKey}.`);
         return;
       }
     }
@@ -129,76 +112,38 @@ export default function NutritionScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView
-        style={[
-          styles.container,
-          { justifyContent: "center", alignItems: "center" },
-        ]}
-      >
-        <ActivityIndicator size="large" color="#ff5a16" />
-        <Text style={styles.loadingText}>
-          Calculating your nutrition goals...
-        </Text>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background, justifyContent: "center", alignItems: "center" }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Calculating your nutrition goals...</Text>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContainer}
-        keyboardShouldPersistTaps="handled"
-      >
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backButton}
-          >
+          <TouchableOpacity onPress={() => router.back()} style={[styles.backButton, { backgroundColor: colors.backButton }]}>
             <View style={{ transform: [{ rotate: "0deg" }] }}>
               <icons.arrow width={20} height={20} color="#FFFFFF" />
             </View>
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.title}>Your Daily Nutrition Goals</Text>
-        <Text style={styles.subtitle}>
-          We&apos;ve calculated these targets based on your profile. Feel free
-          to adjust them.
+        <Text style={[styles.title, { color: colors.textPrimary }]}>Your Daily Nutrition Goals</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+          We&apos;ve calculated these targets based on your profile. Feel free to adjust them.
         </Text>
 
         <View>
-          <FormField
-            label="Daily Calories"
-            value={calories}
-            onChangeText={setCalories}
-            keyboardType="number-pad"
-          />
-          <FormField
-            label="Protein (grams)"
-            value={protein}
-            onChangeText={setProtein}
-            keyboardType="number-pad"
-          />
-          <FormField
-            label="Carbs (grams)"
-            value={carbs}
-            onChangeText={setCarbs}
-            keyboardType="number-pad"
-          />
-          <FormField
-            label="Fat (grams)"
-            value={fat}
-            onChangeText={setFat}
-            keyboardType="number-pad"
-          />
+          <FormField label="Daily Calories" value={calories} onChangeText={setCalories} keyboardType="number-pad" />
+          <FormField label="Protein (grams)" value={protein} onChangeText={setProtein} keyboardType="number-pad" />
+          <FormField label="Carbs (grams)" value={carbs} onChangeText={setCarbs} keyboardType="number-pad" />
+          <FormField label="Fat (grams)" value={fat} onChangeText={setFat} keyboardType="number-pad" />
         </View>
 
         <View style={styles.buttonContainer}>
-          <CustomButtonAuth
-            title="Finish Setup"
-            onPress={handleNext}
-            containerStyles={{ backgroundColor: "#ff5a16" }}
-          />
+          <CustomButtonAuth title="Finish Setup" onPress={handleNext} containerStyles={{ backgroundColor: colors.primary }} />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -208,7 +153,6 @@ export default function NutritionScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
   },
   scrollContainer: {
     flexGrow: 1,
@@ -223,20 +167,17 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#000000",
     justifyContent: "center",
     alignItems: "center",
   },
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#1E1E1E",
     textAlign: "center",
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 14,
-    color: "#8A8A8E",
     textAlign: "center",
     marginBottom: 32,
     paddingHorizontal: 16,
@@ -250,6 +191,5 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: "#8A8A8E",
   },
 });

@@ -1,3 +1,7 @@
+import { authInstance } from "@/config/api/axios"; // Import auth instance for API calls
+import { useAnalytics } from "@/context/AnalyticsContext"; // Import analytics context for weight updates
+import { useDietContext } from "@/context/DietContext"; // Import diet context for refreshing data
+import { analyticsEventEmitter } from "@/utils/analyticsEvents"; // Import analytics event emitter
 import ImageUtils from "@/utils/ImageUtils";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
@@ -18,13 +22,11 @@ import {
 } from "react-native";
 import CustomHeaderWithBack from "./CustomHeaderWithBack";
 import { Text } from "./CustomText";
-import { authInstance } from "@/config/api/axios"; // Import auth instance for API calls
-import { apiDomain } from "@/constants";
-import { useDietContext } from "@/context/DietContext"; // Import diet context for refreshing data
-import { useAnalytics } from "@/context/AnalyticsContext"; // Import analytics context for weight updates
+import GoalAchievedModal from "./GoalAchievedModal"; // Import goal achievement modal
 
 // icon defined here
 import { icons } from "@/constants/icons";
+import { useIsDark } from "@/theme/useIsDark";
 
 interface Message {
   id: string;
@@ -46,17 +48,40 @@ interface PickerAsset {
 const API_URL = `chat`; // Correct path for authInstance (baseURL already includes /api/v1/)
 
 const ChatScreen = () => {
+  const isDark = useIsDark();
   const router = useRouter();
   const { refreshDietData } = useDietContext(); // Get diet refresh function
-  const { refreshAnalytics, invalidateAnalytics } = useAnalytics(); // Get analytics refresh functions
+  const {
+    refreshAnalytics,
+    invalidateAnalytics,
+    showGoalAchievedModal,
+    setShowGoalAchievedModal,
+  } = useAnalytics(); // Get analytics refresh functions and modal state
 
-  
   const [isChatStarted, setIsChatStarted] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isAttachmentMenuVisible, setAttachmentMenuVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false); // <-- Add loading state
   const [isRefreshingData, setIsRefreshingData] = useState(false); // Loading state for data refresh
+
+  // Modal handlers for goal achievement
+  const handleCloseGoalModal = () => {
+    setShowGoalAchievedModal(false);
+  };
+
+  const handleSetNewGoal = () => {
+    // The modal will handle navigation to goal setting
+    setShowGoalAchievedModal(false);
+  };
+
+  // Debug: Monitor goal achievement modal state
+  useEffect(() => {
+    console.log(
+      "🎯 [ChatScreen] Goal achievement modal state:",
+      showGoalAchievedModal
+    );
+  }, [showGoalAchievedModal]);
 
   // Handle new chat creation
   const handleNewChat = () => {
@@ -95,14 +120,17 @@ const ChatScreen = () => {
   };
 
   // Function to refresh diet data when agent performs diet operations
-  const handleDietDataRefresh = async (botResponse: string) => {
+  const handleDietDataRefresh = async (
+    botResponse: string,
+    goalAchievementData?: any
+  ) => {
     try {
       // Check if the bot response indicates diet modifications
       const dietKeywords = [
         "added to your diet for today",
         "removed from your diet",
         "added to your diet",
-        "removed from your diet", 
+        "removed from your diet",
         "deleted from your diet",
         "added to diet",
         "removed from diet",
@@ -111,29 +139,44 @@ const ChatScreen = () => {
         "successfully added",
         "successfully removed",
         "diet updated",
-        "diet modified"
+        "diet modified",
       ];
 
-      // Check if the bot response indicates weight updates
-      const weightKeywords = [
-        "weight updated",
-        "weight has been updated",
-        "current weight is now",
-        "weight set to",
-        "congratulations",
-        "goal achieved",
-        "reached your goal"
-      ];
+      // Check if the bot response indicates weight updates - REMOVED TO MAKE WEIGHT UPDATES SILENT
+      // Weight updates are now handled silently like other profile updates
+      // const weightKeywords = [
+      //   "weight updated",
+      //   "weight has been updated",
+      //   "current weight is now",
+      //   "weight set to",
+      //   "congratulations",
+      //   "goal achieved",
+      //   "reached your goal",
+      // ];
 
-      const shouldRefreshDiet = dietKeywords.some(keyword => 
+      const shouldRefreshDiet = dietKeywords.some((keyword) =>
         botResponse.toLowerCase().includes(keyword.toLowerCase())
       );
 
-      const shouldRefreshWeight = weightKeywords.some(keyword => 
-        botResponse.toLowerCase().includes(keyword.toLowerCase())
-      );
+      // Removed weight refresh logic to make weight updates silent like other profile updates
+      // const shouldRefreshWeight = weightKeywords.some((keyword) =>
+      //   botResponse.toLowerCase().includes(keyword.toLowerCase())
+      // );
 
-      if (shouldRefreshDiet || shouldRefreshWeight) {
+      // Check for goal achievement from metadata
+      if (goalAchievementData) {
+        console.log(
+          "🎯 Goal achievement detected from chat response:",
+          goalAchievementData
+        );
+        analyticsEventEmitter.emitWeightGoalAchieved(
+          goalAchievementData.currentWeight,
+          goalAchievementData.goalWeight,
+          goalAchievementData.unit
+        );
+      }
+
+      if (shouldRefreshDiet) {
         setIsRefreshingData(true); // Show refresh indicator
       }
 
@@ -146,19 +189,14 @@ const ChatScreen = () => {
         console.log("✅ Diet data refreshed successfully");
       }
 
-      if (shouldRefreshWeight) {
-        console.log("🔄 Weight update detected, refreshing analytics...");
-        // Refresh analytics data which includes weight information
-        await refreshAnalytics();
-        console.log("✅ Analytics data refreshed successfully");
-      }
+      // Weight updates are now handled silently - no loading animations
 
-      // If either diet or weight was updated, also refresh analytics after a short delay
-      if (shouldRefreshDiet || shouldRefreshWeight) {
+      // If diet was updated, also refresh analytics after a short delay
+      if (shouldRefreshDiet) {
         setTimeout(async () => {
           try {
             await refreshAnalytics();
-            console.log("✅ Analytics data refreshed after diet/weight change");
+            console.log("✅ Analytics data refreshed after diet change");
           } catch (error) {
             console.error("❌ Error in delayed analytics refresh:", error);
           } finally {
@@ -185,15 +223,38 @@ const ChatScreen = () => {
         alignItems: "center",
       }}
     >
-      <Text style={{ color: "#FFFFFF", fontSize: 18, fontWeight: "bold" }}>+</Text>
+      <Text style={{ color: "#FFFFFF", fontSize: 18, fontWeight: "bold" }}>
+        +
+      </Text>
     </TouchableOpacity>
   );
   const flatListRef = useRef<FlatList<Message>>(null);
   const [clientId, setClientId] = useState<string>("");
 
+  // Auto-scroll function
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+  };
+
   useEffect(() => {
     setClientId(Date.now().toString() + Math.random().toString(36).substr(2));
   }, []);
+
+  // Auto-scroll when messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      scrollToBottom();
+    }
+  }, [messages]);
+
+  // Auto-scroll when loading state changes
+  useEffect(() => {
+    if (isLoading) {
+      scrollToBottom();
+    }
+  }, [isLoading]);
 
   const getCurrentTimestamp = () =>
     new Date().toLocaleTimeString("en-US", {
@@ -212,11 +273,13 @@ const ChatScreen = () => {
       },
       {
         id: "2",
-        text: "I can help you with:\n• Search our food database\n• Analyze food images\n• Manage your daily diet\n• Track your weight progress\n• Check goal achievements\n\nWhat would you like to know?",
+        text: "I can help you with:\n• Search for foods in the current food list\n• Check nutrition information for specific foods\n• View and manage your daily diet\n• Track and update weight progress\n• Check goal achievement\n• View and update user profile information\n\nWhat would you like to know?",
         sender: "bot",
       },
     ]);
     setIsChatStarted(true);
+    // Auto-scroll after chat starts
+    setTimeout(() => scrollToBottom(), 200);
   };
 
   const sendData = async (prompt: string, asset?: PickerAsset) => {
@@ -300,13 +363,16 @@ const ChatScreen = () => {
 
     try {
       console.log("🚀 Sending chat message to API...");
-      console.log("📡 Chat backend URL:", `${authInstance.defaults.baseURL}${API_URL}`);
+      console.log(
+        "📡 Chat backend URL:",
+        `${authInstance.defaults.baseURL}${API_URL}`
+      );
       console.log("📝 API endpoint path:", API_URL);
-      
+
       // Use authInstance for authenticated requests to the agent with longer timeout
       const response = await authInstance.post(API_URL, formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          "Content-Type": "multipart/form-data",
         },
         timeout: 30000, // 60 seconds timeout for AI responses
       });
@@ -323,9 +389,9 @@ const ChatScreen = () => {
         timestamp: getCurrentTimestamp(),
       };
       setMessages((prev) => [...prev, botMessage]);
-      
+
       // 🔄 Refresh diet data if the response indicates diet changes
-      await handleDietDataRefresh(data.text);
+      await handleDietDataRefresh(data.text, data.goalAchieved);
     } catch (error: any) {
       console.error("💥 Error in chat sendData:", error);
 
@@ -364,13 +430,20 @@ const ChatScreen = () => {
             }
           }
 
-          console.log("🔄 Attempting fallback request to:", `${authInstance.defaults.baseURL}${API_URL}`);
-          const fallbackResponse = await authInstance.post(API_URL, fallbackFormData, {
-            headers: {
-              'Content-Type': 'multipart/form-data',
-            },
-            timeout: 30000, // 60 seconds timeout for AI responses
-          });
+          console.log(
+            "🔄 Attempting fallback request to:",
+            `${authInstance.defaults.baseURL}${API_URL}`
+          );
+          const fallbackResponse = await authInstance.post(
+            API_URL,
+            fallbackFormData,
+            {
+              headers: {
+                "Content-Type": "multipart/form-data",
+              },
+              timeout: 30000, // 60 seconds timeout for AI responses
+            }
+          );
 
           const fallbackData = fallbackResponse.data;
           console.log("✅ Chat fallback request successful");
@@ -383,10 +456,13 @@ const ChatScreen = () => {
             timestamp: getCurrentTimestamp(),
           };
           setMessages((prev) => [...prev, botMessage]);
-          
+
           // 🔄 Refresh diet data if the fallback response indicates diet changes
-          await handleDietDataRefresh(fallbackData.text);
-          
+          await handleDietDataRefresh(
+            fallbackData.text,
+            fallbackData.goalAchieved
+          );
+
           return; // Exit early on success
         } catch (fallbackError) {
           console.error("❌ Chat fallback also failed:", fallbackError);
@@ -398,19 +474,27 @@ const ChatScreen = () => {
       console.error("❌ Error status:", error?.response?.status);
       console.error("❌ Error message:", error?.message);
       console.error("❌ Server response:", error?.response?.data);
-      
-      let errorText = "Sorry, I couldn't connect to the server. Please try again.";
-      
+
+      let errorText =
+        "Sorry, I couldn't connect to the server. Please try again.";
+
       if (error?.response?.status === 500) {
-        errorText = "Server error detected. The AI service might be temporarily unavailable. Please check if all required API keys are configured on the server.";
+        errorText =
+          "Server error detected. The AI service might be temporarily unavailable. Please check if all required API keys are configured on the server.";
       } else if (error?.response?.status === 404) {
-        errorText = "Chat endpoint not found. Please check the server configuration.";
-      } else if (error?.response?.status === 401 || error?.response?.status === 403) {
+        errorText =
+          "Chat endpoint not found. Please check the server configuration.";
+      } else if (
+        error?.response?.status === 401 ||
+        error?.response?.status === 403
+      ) {
         errorText = "Authentication error. Please try logging in again.";
       } else if (error?.message?.includes("Network request failed")) {
-        errorText = "Connection error. Please check your internet and try again.";
+        errorText =
+          "Connection error. Please check your internet and try again.";
       } else if (error?.message?.includes("timeout")) {
-        errorText = "Request timed out. The AI is taking longer than expected. Please try again.";
+        errorText =
+          "Request timed out. The AI is taking longer than expected. Please try again.";
       }
 
       const errorMessage: Message = {
@@ -492,7 +576,8 @@ const ChatScreen = () => {
   // --- (CHANGE 4) - UPDATED RENDER FUNCTION ---
   // It now knows how to display an image if `imageUri` exists.
   const renderMessageItem = ({ item }: { item: Message }) => {
-    const isUser = item.sender === "user";
+    const isUser = item.sender === "user"; // Assuming useIsDark is imported and available
+
     return (
       <View style={styles.messageRow}>
         {item.author && (
@@ -503,42 +588,55 @@ const ChatScreen = () => {
             ]}
           >
             {!isUser && <View style={styles.livechatIcon} />}
-            <Text style={styles.metadataText}>
+            <Text
+              style={[styles.metadataText, isDark && styles.metadataTextDark]}
+            >
               {item.author} {item.timestamp}
             </Text>
           </View>
         )}
         {/* Render the image if it exists */}
         {item.imageUri && (
-          <Image source={{ uri: item.imageUri }} style={styles.chatImage} />
+          <Image
+            source={{ uri: item.imageUri }}
+            style={[styles.chatImage, isDark && styles.chatImageDark]}
+          />
         )}
         {/* Render the text bubble if text exists */}
         {item.text && item.text.trim() !== "" && (
           <View
             style={[
               styles.messageBubble,
-              isUser ? styles.userBubble : styles.botBubble,
+              isUser
+                ? styles.userBubble
+                : [styles.botBubble, isDark && styles.botBubbleDark],
               item.imageUri ? { marginTop: 8 } : {},
             ]}
           >
             <Text
-              style={isUser ? styles.userMessageText : styles.botMessageText}
+              style={
+                isUser
+                  ? styles.userMessageText
+                  : [styles.botMessageText, isDark && styles.botMessageTextDark]
+              }
             >
               {item.text}
             </Text>
           </View>
         )}
         {item.readStatus && isUser && (
-          <Text style={styles.readStatus}>{item.readStatus}</Text>
+          <Text style={[styles.readStatus, isDark && styles.readStatusDark]}>
+            {item.readStatus}
+          </Text>
         )}
       </View>
     );
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <CustomHeaderWithBack 
-        title="NutritorAI Agent" 
+    <SafeAreaView style={[styles.container, isDark && styles.containerDark]}>
+      <CustomHeaderWithBack
+        title="NutritorAI Agent"
         rightComponent={<NewChatButton />}
       />
 
@@ -549,13 +647,23 @@ const ChatScreen = () => {
       >
         {!isChatStarted ? (
           <View style={styles.startContainer}>
-            <View style={styles.startBox}>
+            <View style={[styles.startBox, isDark && styles.startBoxDark]}>
               <icons.chatIcon width={60} height={60} className="mb-5" />
-              <Text style={styles.startTitle} className="mt-3">
+              <Text
+                style={[styles.startTitle, isDark && styles.startTitleDark]}
+                className="mt-3"
+              >
                 Meet Your NutritorAI Agent!
               </Text>
-              <Text style={styles.startSubtitle}>
-                Your intelligent nutrition assistant that can analyze food images, manage your diet, track weight progress, and provide personalized nutrition guidance.
+              <Text
+                style={[
+                  styles.startSubtitle,
+                  isDark && styles.startSubtitleDark,
+                ]}
+              >
+                Your intelligent nutrition assistant that can analyze food
+                images, manage your diet, track weight progress, and provide
+                personalized nutrition guidance.
               </Text>
               <TouchableOpacity
                 style={styles.startButton}
@@ -574,6 +682,8 @@ const ChatScreen = () => {
               renderItem={renderMessageItem}
               style={styles.messageList}
               contentContainerStyle={{ paddingBottom: 10, paddingTop: 10 }}
+              onContentSizeChange={() => scrollToBottom()}
+              onLayout={() => scrollToBottom()}
             />
             {isLoading && (
               <ActivityIndicator
@@ -585,40 +695,34 @@ const ChatScreen = () => {
             {isRefreshingData && (
               <View style={{ alignItems: "center", paddingVertical: 8 }}>
                 <ActivityIndicator size="small" color="#FF5A16" />
-                <Text style={{ color: "#FF5A16", fontSize: 12, marginTop: 4 }}>
+                <Text
+                  style={[
+                    styles.refreshingText,
+                    isDark && styles.refreshingTextDark,
+                  ]}
+                >
                   Refreshing your data...
                 </Text>
               </View>
             )}
-            <View style={styles.inputArea}>
+            <View style={[styles.inputArea, isDark && styles.inputAreaDark]}>
               {isAttachmentMenuVisible && (
                 <View style={styles.attachmentMenuContainer}>
-                  <View style={styles.attachmentMenu}>
+                  <View
+                    style={[
+                      styles.attachmentMenu,
+                      isDark && styles.attachmentMenuDark,
+                    ]}
+                  >
                     {/* Upper half with orange background */}
                     <View
-                      style={{
-                        backgroundColor: "#ff5a16",
-                        flex: 1,
-                        borderTopLeftRadius: 18,
-                        borderTopRightRadius: 18,
-                        justifyContent: "center",
-                        alignItems: "center",
-                        marginLeft: -8,
-                        marginRight: -8,
-                        marginTop: -8,
-                        paddingLeft: 8,
-                      }}
+                      style={[
+                        styles.menuOptionHalf,
+                        isDark && styles.menuOptionHalfDark,
+                      ]}
                     >
                       <TouchableOpacity
-                        style={[
-                          styles.menuOption,
-                          {
-                            backgroundColor: "transparent",
-                            flex: 1,
-                            width: "100%",
-                            margin: 0,
-                          },
-                        ]}
+                        style={[styles.menuOption]}
                         onPress={handleAttachFile}
                       >
                         <icons.fileIcon
@@ -631,7 +735,7 @@ const ChatScreen = () => {
                         <Text
                           style={[
                             styles.menuOptionText,
-                            { paddingLeft: 8, color: "#ffffff" },
+                            styles.menuOptionTextWhite,
                           ]}
                         >
                           Send File
@@ -640,28 +744,13 @@ const ChatScreen = () => {
                     </View>
                     {/* Lower half with white background */}
                     <View
-                      style={{
-                        backgroundColor: "#ffffff",
-                        flex: 1,
-                        borderBottomLeftRadius: 18,
-                        borderBottomRightRadius: 18,
-                        justifyContent: "center",
-                        alignItems: "center",
-                        marginLeft: -8,
-                        marginRight: -8,
-                        marginBottom: -8,
-                        paddingLeft: 8,
-                      }}
+                      style={[
+                        styles.menuOptionHalfLower,
+                        isDark && styles.menuOptionHalfLowerDark,
+                      ]}
                     >
                       <TouchableOpacity
-                        style={[
-                          styles.menuOption,
-                          {
-                            flex: 1,
-                            width: "100%",
-                            margin: 0,
-                          },
-                        ]}
+                        style={[styles.menuOption]}
                         onPress={handleAttachImage}
                       >
                         <icons.screenShotIcon
@@ -669,26 +758,43 @@ const ChatScreen = () => {
                           height={22}
                           className="mr-2.5"
                           stroke="#555"
+                          color={isDark ? "white" : "#555"}
                         />
                         <Text
-                          style={[styles.menuOptionText, { paddingLeft: 8 }]}
+                          style={[
+                            styles.menuOptionText,
+                            isDark && styles.menuOptionTextDark,
+                          ]}
                         >
                           Attach a screenshot
                         </Text>
                       </TouchableOpacity>
                     </View>
                   </View>
-                  <View style={styles.menuPointer} />
+                  <View
+                    style={[
+                      styles.menuPointer,
+                      isDark && styles.menuPointerDark,
+                    ]}
+                  />
                 </View>
               )}
-              <View style={styles.inputContainer}>
+              <View
+                style={[
+                  styles.inputContainer,
+                  isDark && styles.inputContainerDark,
+                ]}
+              >
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, isDark && styles.inputDark]}
                   value={input}
                   onChangeText={setInput}
                   placeholder="Write a message"
-                  placeholderTextColor="#888"
-                  onFocus={() => setAttachmentMenuVisible(false)}
+                  placeholderTextColor={isDark ? "#9CA3AF" : "#888"}
+                  onFocus={() => {
+                    setAttachmentMenuVisible(false);
+                    setTimeout(() => scrollToBottom(), 300);
+                  }}
                 />
                 <TouchableOpacity
                   onPress={() => setAttachmentMenuVisible((prev) => !prev)}
@@ -698,10 +804,9 @@ const ChatScreen = () => {
                     width={24}
                     height={24}
                     className="mx-2"
-                    stroke="#888"
+                    stroke={isDark ? "#9CA3AF" : "#888"}
                   />
                 </TouchableOpacity>
-                {/* Send button now calls the unified `sendData` function */}
                 <TouchableOpacity
                   onPress={() => sendData(input)}
                   style={{ marginRight: 16 }}
@@ -710,7 +815,7 @@ const ChatScreen = () => {
                     width={24}
                     height={24}
                     className="mx-2"
-                    stroke="#888"
+                    stroke={isDark ? "#9CA3AF" : "#888"}
                   />
                 </TouchableOpacity>
               </View>
@@ -718,58 +823,91 @@ const ChatScreen = () => {
           </View>
         )}
       </KeyboardAvoidingView>
+
+      {/* Goal Achievement Modal */}
+      <GoalAchievedModal
+        visible={showGoalAchievedModal}
+        onClose={handleCloseGoalModal}
+        onSetNewGoal={handleSetNewGoal}
+      />
     </SafeAreaView>
   );
 };
 
 // --- (CHANGE 6) - ADDED STYLE FOR CHAT IMAGE ---
 const styles = StyleSheet.create({
+  // Main container
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF", // White background instead of string
+    backgroundColor: "#FFFFFF",
   },
+  containerDark: {
+    backgroundColor: "#000000",
+  },
+  // Start chat section
   startContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    padding: 24,
   },
   startBox: {
     width: "100%",
-    backgroundColor: "#F8F9FA", // Light gray background instead of string
+    backgroundColor: "#F8F9FA",
     borderRadius: 16,
-    padding: 25,
+    padding: 24,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#E5E7EB", // Light gray border instead of string
+    borderColor: "#E5E7EB",
+  },
+  startBoxDark: {
+    backgroundColor: "#374151",
+    borderColor: "#4B5563",
   },
   startTitle: {
     fontSize: 18,
     fontWeight: "600",
     textAlign: "center",
     marginBottom: 10,
-    color: "#1F2937", // Dark gray color instead of string
+    color: "#1F2937",
+  },
+  startTitleDark: {
+    color: "#FFFFFF",
   },
   startSubtitle: {
     fontSize: 14,
-    color: "#6B7280", // Medium gray color instead of string
+    color: "#6B7280",
     textAlign: "center",
     marginBottom: 25,
     lineHeight: 20,
+  },
+  startSubtitleDark: {
+    color: "#9CA3AF",
   },
   privacyLink: {
     color: "accent dark:accent-dark",
     textDecorationLine: "underline",
   },
   startButton: {
-    backgroundColor: "#FF5A16", // Orange color instead of string
+    backgroundColor: "#FF5A16",
     paddingVertical: 15,
     borderRadius: 12,
     width: "100%",
     alignItems: "center",
   },
   startButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "bold" },
-  messageList: { flex: 1, paddingHorizontal: 15 },
+  // Message list
+  messageList: { flex: 1, paddingHorizontal: 24 },
+  // Loading status text
+  refreshingText: {
+    color: "#FF5A16",
+    fontSize: 12,
+    marginTop: 4,
+  },
+  refreshingTextDark: {
+    color: "#FF5A16",
+  },
+  // Message bubbles and chat components
   messageRow: { marginBottom: 10 },
   metadataContainer: {
     flexDirection: "row",
@@ -786,6 +924,9 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   metadataText: { fontSize: 12, color: "#888" },
+  metadataTextDark: {
+    color: "#9CA3AF",
+  },
   messageBubble: {
     paddingVertical: 10,
     paddingHorizontal: 15,
@@ -793,22 +934,29 @@ const styles = StyleSheet.create({
     maxWidth: "80%",
   },
   botBubble: {
-    backgroundColor: "#F3F4F6", // Light gray background instead of string
+    backgroundColor: "#F3F4F6",
     borderWidth: 1,
-    borderColor: "#E5E7EB", // Light gray border instead of string
+    borderColor: "#E5E7EB",
     alignSelf: "flex-start",
     borderTopLeftRadius: 4,
   },
+  botBubbleDark: {
+    backgroundColor: "#4B5563",
+    borderColor: "#6B7280",
+  },
   userBubble: {
-    backgroundColor: "#FF5A16", // Orange color instead of string
+    backgroundColor: "#FF5A16",
     alignSelf: "flex-end",
     borderTopRightRadius: 4,
   },
   botMessageText: {
     fontSize: 15,
-    color: "#000000", // Black color for bot messages
+    color: "#000000",
   },
-  userMessageText: { fontSize: 15, color: "#FFFFFF" }, // White color for user messages
+  botMessageTextDark: {
+    color: "#FFFFFF",
+  },
+  userMessageText: { fontSize: 15, color: "#FFFFFF" },
   chatImage: {
     width: "70%",
     aspectRatio: 1,
@@ -823,23 +971,26 @@ const styles = StyleSheet.create({
     alignSelf: "flex-end",
     marginTop: 4,
   },
+  // Input area
   inputArea: {
     position: "relative",
-    backgroundColor: "bg-surface dark:bg-surface-dark",
+  },
+  inputAreaDark: {
+    backgroundColor: "#1f2937",
   },
   attachmentMenuContainer: {
     position: "absolute",
     bottom: 60,
-    left: 15,
-    right: 15,
+    left: 24,
+    right: 24,
     alignItems: "flex-end",
     zIndex: 999,
   },
   attachmentMenu: {
-    backgroundColor: "bg-surface dark:bg-surface-dark",
+    backgroundColor: "#FFFFFF",
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: "border-default dark:border-default-dark",
+    borderColor: "#E5E7EB",
     width: "60%",
     padding: 8,
     shadowColor: "#000",
@@ -850,6 +1001,12 @@ const styles = StyleSheet.create({
     zIndex: 1000,
     flexDirection: "column",
     height: 120,
+  },
+  attachmentMenuDark: {
+    backgroundColor: "#374151",
+    borderColor: "#4B5563",
+    shadowColor: "#FFF",
+    shadowOpacity: 0.1,
   },
   menuPointer: {
     position: "absolute",
@@ -864,34 +1021,78 @@ const styles = StyleSheet.create({
     borderTopWidth: 10,
     borderLeftColor: "transparent",
     borderRightColor: "transparent",
-    borderTopColor: "bg-surface dark:bg-surface-dark",
+    borderTopColor: "#FFFFFF",
+  },
+  menuPointerDark: {
+    borderTopColor: "#374151",
+  },
+  menuOptionHalf: {
+    backgroundColor: "#ff5a16",
+    flex: 1,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: -8,
+    marginRight: -8,
+    marginTop: -8,
+    paddingLeft: 8,
+  },
+  menuOptionHalfDark: {
+    backgroundColor: "#ff5a16",
+  },
+  menuOptionHalfLower: {
+    backgroundColor: "#ffffff",
+    flex: 1,
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: -8,
+    marginRight: -8,
+    marginBottom: -8,
+    paddingLeft: 8,
+  },
+  menuOptionHalfLowerDark: {
+    backgroundColor: "#374151",
   },
   menuOption: { flexDirection: "row", alignItems: "center", padding: 10 },
-  menuIcon: { width: 22, height: 22, marginRight: 10, tintColor: "#555" },
   menuOptionText: {
     fontSize: 16,
-    color: "text-default dark:text-default-dark",
+    color: "#000000",
+  },
+  menuOptionTextDark: {
+    color: "#FFFFFF",
+  },
+  menuOptionTextWhite: {
+    color: "#FFFFFF",
   },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 10,
+    paddingHorizontal: 24,
     paddingVertical: 8,
     borderTopWidth: 1,
-    borderTopColor: "border-default dark:border-default-dark",
+    borderTopColor: "#E5E7EB",
+  },
+  inputContainerDark: {
+    borderTopColor: "#4B5563",
   },
   input: {
     flex: 1,
     height: 40,
     fontSize: 16,
     paddingHorizontal: 10,
-    color: "text-default dark:text-default-dark",
+    color: "#000000",
   },
-  icon: {
-    width: 24,
-    height: 24,
-    marginHorizontal: 8,
-    tintColor: "text-secondary dark:text-secondary-dark",
+  inputDark: {
+    color: "#FFFFFF",
+  },
+  chatImageDark: {
+    borderColor: "#4B5563",
+  },
+  readStatusDark: {
+    color: "#9CA3AF",
   },
 });
 

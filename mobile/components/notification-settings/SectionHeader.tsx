@@ -3,6 +3,7 @@ import React from "react";
 import { Animated, View } from "react-native";
 import { Text } from "../CustomText";
 import Toggle from "../Toggle";
+import { useIsDark } from "@/theme/useIsDark";
 
 interface SectionHeaderProps {
   title: string;
@@ -19,16 +20,12 @@ const SectionHeader = ({
   onToggle,
   rotationValue,
 }: SectionHeaderProps) => {
+  const isDark = useIsDark();
   return (
-    <View
-      style={{
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-      }}
-    >
-      <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+    <View className="flex-row justify-between items-center">
+      <View className="flex-row items-center flex-1">
         <Animated.View
+          className="mr-3.5"
           style={{
             transform: [
               {
@@ -38,16 +35,19 @@ const SectionHeader = ({
                 }),
               },
             ],
-            marginRight: 14,
           }}
         >
-          <icons.forwardArrow width={16} height={16} />
+          {isDark ? (
+            <icons.forwardArrowDark width={16} height={16} />
+          ) : (
+            <icons.forwardArrow width={16} height={16} />
+          )}
         </Animated.View>
-        <View style={{ flex: 0.9 }}>
-          <Text style={{ fontSize: 18, fontWeight: "600", color: "#111214" }}>
+        <View className="flex-[0.9]">
+          <Text className="text-lg font-semibold text-gray-900 dark:text-white">
             {title}
           </Text>
-          <Text style={{ fontSize: 14, color: "#6B7280" }}>{description}</Text>
+          <Text className="text-sm text-gray-500 dark:text-gray-400">{description}</Text>
         </View>
       </View>
       <Toggle value={enabled} onValueChange={onToggle} />

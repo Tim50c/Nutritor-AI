@@ -4,7 +4,7 @@ import { useUser } from "@/context/UserContext"; // This is your upgraded contex
 import { useRouter } from "expo-router";
 import React, { use } from "react";
 import { Image, TouchableOpacity, View } from "react-native";
-import { Text } from './CustomText';
+import { Text } from "./CustomText";
 import IconButton from "./IconButton";
 import { images } from "@/constants/images";
 import { useIsDark } from "@/theme/useIsDark";
@@ -47,19 +47,21 @@ export default function HomeTopBar() {
   }
 
   return (
-    <View className="flex-row items-center justify-between px-4 py-3 bg-white dark:bg-bg-default-dark">
+    <View className="flex-row items-center justify-between px-6 py-3 bg-white dark:bg-bg-default-dark">
       {/* Left side: Avatar + Welcome */}
       <View className="flex-row items-center">
         <Image
           source={
-            userProfile?.avatar && typeof userProfile.avatar === 'string' 
-              ? { uri: userProfile.avatar } 
+            userProfile?.avatar && typeof userProfile.avatar === "string"
+              ? { uri: userProfile.avatar }
               : images.default_avatar
           }
           className="w-10 h-10 rounded-full mr-2"
         />
         <View>
-          <Text className="text-sm text-gray-500 dark:text-gray-100">Welcome</Text>
+          <Text className="text-sm text-gray-500 dark:text-gray-100">
+            Welcome
+          </Text>
           {/* --- FIX 3.2: Combine firstname and lastname for the full name --- */}
           <Text className="text-base font-bold dark:text-gray-100">{`${userProfile.firstname} ${userProfile.lastname}`}</Text>
         </View>

@@ -142,61 +142,71 @@ const NutritionTrend: React.FC<NutritionTrendProps> = ({
   };
 
   return (
-    <View className="rounded-lg border border-gray-200 p-4 bg-white">
-      <Text className="text-center text-lg font-semibold">
+    <View className="rounded-lg border border-gray-200 dark:border-gray-700 p-6 bg-white dark:bg-black">
+      <Text className="text-center text-lg font-semibold text-gray-900 dark:text-gray-100">
         {getPeriodText()} Nutrition Trend
       </Text>
+
       {period ? (
-        <Text className="text-center text-xs text-gray-500 mt-1">
+        <Text className="text-center text-xs text-gray-500 dark:text-gray-400 mt-1">
           Period: {period}
         </Text>
       ) : null}
 
+      {/* Protein */}
       <View className="mt-4">
-        <Text className="text-sm">Protein Intake</Text>
-        <View className="mt-2 rounded-full overflow-hidden bg-gray-200 h-3">
+        <Text className="text-sm text-gray-800 dark:text-gray-100">
+          Protein Intake
+        </Text>
+        <View className="mt-2 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 h-3">
           <View
             style={{ width: `${Math.min(proteinPct, 100)}%` }}
             className="h-3 bg-protein-200"
           />
         </View>
-        <Text className="text-xs mt-1 text-gray-500">
+        <Text className="text-xs mt-1 text-gray-500 dark:text-gray-400">
           {proteinPct >= 100 ? "Met" : "Meeting"} your {mode} protein goal •{" "}
           {proteinPct}%
         </Text>
-        <Text className="text-xs text-gray-400">
+        <Text className="text-xs text-gray-400 dark:text-gray-500">
           {protein.toFixed(1)}g / {proteinGoal.toFixed(1)}g
         </Text>
       </View>
 
+      {/* Carbs */}
       <View className="mt-4">
-        <Text className="text-sm">Carbohydrate Balance</Text>
-        <View className="mt-2 rounded-full overflow-hidden bg-gray-200 h-3">
+        <Text className="text-sm text-gray-800 dark:text-gray-100">
+          Carbohydrate Balance
+        </Text>
+        <View className="mt-2 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 h-3">
           <View
             style={{ width: `${Math.min(carbsPct, 100)}%` }}
             className="h-3 bg-primary-100"
           />
         </View>
-        <Text className="text-xs mt-1 text-gray-500">
+        <Text className="text-xs mt-1 text-gray-500 dark:text-gray-400">
           {carbsPct >= 100 ? "Above" : "Within"} recommended range • {carbsPct}%
         </Text>
-        <Text className="text-xs text-gray-400">
+        <Text className="text-xs text-gray-400 dark:text-gray-500">
           {carbs.toFixed(1)}g / {carbsGoal.toFixed(1)}g
         </Text>
       </View>
 
+      {/* Fat */}
       <View className="mt-4">
-        <Text className="text-sm">Fat Intake</Text>
-        <View className="mt-2 rounded-full overflow-hidden bg-gray-200 h-3">
+        <Text className="text-sm text-gray-800 dark:text-gray-100">
+          Fat Intake
+        </Text>
+        <View className="mt-2 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 h-3">
           <View
             style={{ width: `${Math.min(fatPct, 100)}%` }}
             className="h-3 bg-calories-500"
           />
         </View>
-        <Text className="text-xs mt-1 text-gray-500">
+        <Text className="text-xs mt-1 text-gray-500 dark:text-gray-400">
           {fatPct < 100 ? "Below" : "Above"} recommended intake • {fatPct}%
         </Text>
-        <Text className="text-xs text-gray-400">
+        <Text className="text-xs text-gray-400 dark:text-gray-500">
           {fat.toFixed(1)}g / {fatGoal.toFixed(1)}g
         </Text>
       </View>

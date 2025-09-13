@@ -8,7 +8,8 @@ import { auth } from '@/config/firebase';
 
 import FormField from '../../components/FormField';
 import CustomButtonAuth from '../../components/CustomButtonAuth';
-import {Ionicons} from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
+import { useIsDark } from '@/theme/useIsDark';
 
 export default function ResetPassword() {
   const router = useRouter();
@@ -18,6 +19,8 @@ export default function ResetPassword() {
   const [activeField, setActiveField] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  const isDark = useIsDark();
 
   const handleResetPassword = async () => {
     if (!form.newPassword || !form.confirmPassword) {
@@ -50,19 +53,19 @@ export default function ResetPassword() {
   }
 
   return (
-    <SafeAreaView style={{ backgroundColor: '#FFFFFF', flex: 1 }}>
-        <TouchableOpacity 
-            onPress={() => router.back()} 
-            style={{ position: 'absolute', top: 60, left: 24, zIndex: 10 }}>
-            {/*<Image source={backIcon} style={{ width: 24, height: 24, tintColor: '#1F2937' }} resizeMode='contain' />*/}
-          <Ionicons name="arrow-back" size={24} color="#1F2937" />
-        </TouchableOpacity>
+    <SafeAreaView className="bg-white dark:bg-black flex-1">
+      <TouchableOpacity 
+        onPress={() => router.back()} 
+        style={{ position: 'absolute', top: 60, left: 24, zIndex: 10 }}>
+        <Ionicons name="arrow-back" size={24} color={isDark ? '#FFFFFF' : '#1F2937'} />
+      </TouchableOpacity>
+
       <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'space-between' }}>
         <View style={{ paddingHorizontal: 24, paddingTop: 120 }}>
-          <Text style={{ color: '#1F2937', fontSize: 28, fontWeight: 'bold' }}>
+          <Text className="text-2xl font-bold text-gray-800 dark:text-gray-100">
             Reset Your Password
           </Text>
-          <Text style={{ color: '#6B7280', fontSize: 16, marginTop: 8, lineHeight: 24 }}>
+          <Text className="text-base mt-2 leading-6 text-gray-500 dark:text-gray-300">
             Enter a new password to regain access to your account.
           </Text>
 
@@ -101,19 +104,20 @@ export default function ResetPassword() {
         visible={showSuccessModal}
         onRequestClose={handleModalClose}
       >
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
-          <View style={{ backgroundColor: '#FFFFFF', borderRadius: 16, padding: 24, width: '85%', alignItems: 'center' }}>
-            <Text style={{ color: '#1F2937', fontSize: 20, fontWeight: 'bold' }}>Password changed</Text>
-            <Text style={{ color: '#6B7280', fontSize: 16, textAlign: 'center', marginTop: 12, lineHeight: 22 }}>
+        <View className="flex-1 justify-center items-center bg-black/50 dark:bg-white/50">
+          <View className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-[85%] items-center">
+            <Text className="text-lg font-bold text-gray-800 dark:text-gray-100">
+              Password changed
+            </Text>
+            <Text className="text-base text-center mt-3 leading-6 text-gray-500 dark:text-gray-300">
               Your password has been updated! You can now log in with your new credentials.
             </Text>
-            <View style={{ width: '100%', marginTop: 24 }}>
-                <CustomButtonAuth title="Log In" onPress={handleModalClose} />
+            <View className="w-full mt-6">
+              <CustomButtonAuth title="Log In" onPress={handleModalClose} />
             </View>
           </View>
         </View>
       </Modal>
-
     </SafeAreaView>
   );
 }

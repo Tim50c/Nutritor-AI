@@ -1,32 +1,32 @@
-import React from 'react';
-import { View, SafeAreaView } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useOnboarding } from '../../context/OnboardingContext';
+import { useRouter } from "expo-router";
+import React from "react";
+import { SafeAreaView, View } from "react-native";
+import { useOnboarding } from "../../context/OnboardingContext";
 
-import CustomButtonAuth from '../../components/CustomButtonAuth';
-import OnboardingHeader from '../../components/OnboardingHeader';
-import AgeSelector from '../../components/AgeSelector';
+import AgeSelector from "../../components/AgeSelector";
+import CustomButtonAuth from "../../components/CustomButtonAuth";
+import OnboardingHeader from "../../components/OnboardingHeader";
 
 export default function AgeScreen() {
   const router = useRouter();
   const { data, updateData } = useOnboarding();
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
-      <View style={{ flex: 1, paddingHorizontal: 24 }}>
+    <SafeAreaView className="flex-1 bg-white dark:bg-black">
+      <View className="flex-1 px-6">
         <OnboardingHeader title="What's your Age?" progress={0.25} />
-        
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+
+        <View className="flex-1 justify-center items-center">
           <AgeSelector
             selectedValue={data.age}
             onValueChange={(age) => updateData({ age })}
           />
         </View>
 
-        <View style={{ paddingBottom: 40 }}>
-          <CustomButtonAuth 
-            title="Continue" 
-            onPress={() => router.push('./gender')} 
+        <View className="pb-10">
+          <CustomButtonAuth
+            title="Continue"
+            onPress={() => router.push("./gender")}
           />
         </View>
       </View>

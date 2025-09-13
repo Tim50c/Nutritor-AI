@@ -18,8 +18,10 @@ import {
 import CustomHeaderWithBack from "./CustomHeaderWithBack";
 import { Text } from "./CustomText";
 import LoadingSpinner from "./LoadingSpinner";
+import { useIsDark } from "@/theme/useIsDark";
 
 const CameraScreen = () => {
+  const isDark = useIsDark();
   const [mode, setMode] = useState("camera"); // "camera" | "barcode" | "gallery"
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [cameraRef, setCameraRef] = useState<CameraView | null>(null);
@@ -164,11 +166,11 @@ const CameraScreen = () => {
 
   if (hasPermission === null) {
     return (
-      <SafeAreaView className="flex-1 bg-bg-default dark:bg-bg-default-dark">
+      <SafeAreaView className="flex-1 bg-white dark:bg-black">
         <CustomHeaderWithBack title="AI Camera" />
         <View className="flex-1 items-center justify-center">
           <LoadingSpinner isProcessing={true} />
-          <Text className="mt-4 text-secondary dark:text-secondary-dark">
+          <Text className="mt-4 text-gray-600 dark:text-gray-300">
             Requesting Camera Permission...
           </Text>
         </View>
@@ -178,25 +180,27 @@ const CameraScreen = () => {
 
   if (hasPermission === false) {
     return (
-      <SafeAreaView className="flex-1 bg-bg-default dark:bg-bg-default-dark">
+      <SafeAreaView className="flex-1 bg-white dark:bg-black">
         <CustomHeaderWithBack title="AI Camera" />
         <View className="flex-1 items-center justify-center px-6">
-          <icons.camera width={64} height={64} color="#A7A9AC" />
-          <Text className="text-xl font-semibold mt-4 text-center text-default dark:text-default-dark">
+          <icons.camera width={64} height={64} color="#9CA3AF" />
+          <Text className="text-xl font-semibold mt-4 text-center text-gray-800 dark:text-gray-100">
             Camera Access Required
           </Text>
-          <Text className="text-secondary dark:text-secondary-dark text-center mt-2 mb-6">
+          <Text className="text-gray-600 dark:text-gray-300 text-center mt-2 mb-6">
             Please enable camera access in your device settings to use the AI
             food recognition feature.
           </Text>
           <TouchableOpacity
-            className="bg-accent dark:bg-accent-dark px-6 py-3 rounded-lg"
+            className="bg-orange-500 px-6 py-3 rounded-lg dark:bg-orange-700"
             onPress={async () => {
               const { status } = await Camera.requestCameraPermissionsAsync();
               setHasPermission(status === "granted");
             }}
           >
-            <Text className="text-white font-semibold">Request Permission</Text>
+            <Text className="text-white font-semibold dark:text-black">
+              Request Permission
+            </Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -250,7 +254,7 @@ const CameraScreen = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-black dark:bg-bg-default-dark">
+    <SafeAreaView className="flex-1 bg-white dark:bg-black">
       <CustomHeaderWithBack
         title="AI Camera"
         onBackPress={() => NavigationUtils.goBack()}
@@ -351,7 +355,7 @@ const CameraScreen = () => {
 
             {/* Barcode scanning instructions */}
             <View className="absolute bottom-12 left-0 right-0 items-center">
-              <View className="bg-black bg-opacity-60 rounded-xl px-6 py-3">
+              <View className="bg-black/60 dark:bg-black/80 rounded-xl px-6 py-3">
                 <Text className="text-white text-center text-sm font-medium">
                   {scannedBarcode
                     ? "Looking up product..."
@@ -369,23 +373,21 @@ const CameraScreen = () => {
 
         {/* Bottom Controls - White background, no blur, larger height */}
         <View
-          className="absolute bottom-0 left-0 right-0 bg-bg-default dark:bg-bg-default-dark"
+          className="absolute bottom-0 left-0 right-0 bg-white dark:bg-black"
           style={styles.bottomControls}
         >
           <View className="px-6 py-8">
             {/* Mode Switch Buttons */}
             <View className="flex-row justify-around mb-8">
               <TouchableOpacity
-                className={`flex-1 items-center py-5 mx-2 rounded-xl border border-border-default dark:border-border-default-dark ${
-                  mode === "camera"
-                    ? "bg-accent dark:bg-accent-dark/90"
-                    : "bg-accent/60 dark:bg-accent-dark/60"
+                className={`flex-1 items-center py-5 mx-2 rounded-xl border border-black dark:border-white ${
+                  mode === "camera" ? "bg-orange-500/90" : "bg-orange-500/60"
                 }`}
                 onPress={() => handleModeChange("camera")}
               >
-                <icons.CameraModeIcon width={24} height={24} stroke="#FFFFFF" />
+                <icons.CameraModeIcon width={24} height={24} stroke="white" />
                 <Text
-                  className="text-default dark:text-default-dark text-sm font-medium"
+                  className="text-black text-sm font-medium dark:text-white"
                   style={{ marginTop: 8 }}
                 >
                   AI Camera
@@ -393,20 +395,14 @@ const CameraScreen = () => {
               </TouchableOpacity>
 
               <TouchableOpacity
-                className={`flex-1 items-center py-5 mx-2 rounded-xl border border-border-default dark:border-border-default-dark ${
-                  mode === "barcode"
-                    ? "bg-accent dark:bg-accent-dark/90"
-                    : "bg-accent/60 dark:bg-accent-dark/60"
+                className={`flex-1 items-center py-5 mx-2 rounded-xl border border-black dark:border-white ${
+                  mode === "barcode" ? "bg-orange-500/90" : "bg-orange-500/60"
                 }`}
                 onPress={() => handleModeChange("barcode")}
               >
-                <icons.BarcodeModeIcon
-                  width={24}
-                  height={24}
-                  stroke="#FFFFFF"
-                />
+                <icons.BarcodeModeIcon width={24} height={24} stroke="white" />
                 <Text
-                  className="text-default dark:text-default-dark text-sm font-medium"
+                  className="text-black text-sm font-medium dark:text-white"
                   style={{ marginTop: 8 }}
                 >
                   AI Barcode
@@ -414,20 +410,14 @@ const CameraScreen = () => {
               </TouchableOpacity>
 
               <TouchableOpacity
-                className={`flex-1 items-center py-5 mx-2 rounded-xl border border-border-default dark:border-border-default-dark ${
-                  mode === "gallery"
-                    ? "bg-accent dark:bg-accent-dark/90"
-                    : "bg-accent/60 dark:bg-accent-dark/60"
+                className={`flex-1 items-center py-5 mx-2 rounded-xl border border-black dark:border-white ${
+                  mode === "gallery" ? "bg-orange-500/90" : "bg-orange-500/60"
                 }`}
                 onPress={() => handleModeChange("gallery")}
               >
-                <icons.GalleryModeIcon
-                  width={24}
-                  height={24}
-                  stroke="#FFFFFF"
-                />
+                <icons.GalleryModeIcon width={24} height={24} stroke="white" />
                 <Text
-                  className="text-default dark:text-default-dark text-sm font-medium"
+                  className="text-black text-sm font-medium dark:text-white"
                   style={{ marginTop: 8 }}
                 >
                   Gallery
@@ -441,29 +431,30 @@ const CameraScreen = () => {
                 <TouchableOpacity
                   onPress={handleCapture}
                   disabled={isProcessing}
-                  className={`w-24 h-24 rounded-full items-center justify-center border-4 border-border-default dark:border-border-default-dark ${
+                  className={`w-24 h-24 rounded-full items-center justify-center border-4 border-black dark:border-white ${
                     isProcessing
-                      ? "bg-secondary dark:bg-secondary-dark"
-                      : "bg-accent dark:bg-accent-dark"
+                      ? "bg-gray-400 dark:bg-gray-600"
+                      : "bg-orange-500"
                   }`}
                 >
                   <View
                     className={`w-20 h-20 rounded-full items-center justify-center ${
                       isProcessing
-                        ? "bg-secondary dark:bg-secondary-dark"
-                        : "bg-accent-dark dark:bg-accent"
+                        ? "bg-gray-500 dark:bg-gray-700"
+                        : "bg-orange-600"
                     }`}
                   >
-                    <View className="w-5 h-5 bg-bg-default dark:bg-bg-default-dark rounded" />
+                    <View className="w-5 h-5 bg-black dark:bg-white rounded" />
                   </View>
                 </TouchableOpacity>
                 {isProcessing && (
                   <View className="items-center mt-3">
-                    <Text className="text-accent dark:text-accent-dark text-sm font-medium">
+                    <Text className="text-white text-sm font-medium">
                       Analyzing food...
                     </Text>
-                    <Text className="text-secondary dark:text-secondary-dark text-xs mt-1">
-                      Please wait while AI identifies your food
+                    <Text className="text-gray-300 text-xs mt-1">
+                      Please wait while AI identifies your food and{"\n"}
+                      calculating nutrition facts...
                     </Text>
                   </View>
                 )}
@@ -477,10 +468,10 @@ const CameraScreen = () => {
       {isProcessing && (
         <BlurView
           intensity={20}
-          tint="dark"
+          tint={isDark ? "dark" : "light"}
           className="absolute inset-0 flex-1 items-center justify-center"
         >
-          <View className="bg-black bg-opacity-60 rounded-2xl p-8 items-center">
+          <View className="bg-black/60 dark:bg-gray-800 rounded-2xl p-8 items-center">
             <View className="mb-6">
               <LoadingSpinner
                 isProcessing={isProcessing}
@@ -488,10 +479,10 @@ const CameraScreen = () => {
                 color="#FF5A16"
               />
             </View>
-            <Text className="text-accent dark:text-accent-dark text-lg font-semibold mb-2">
+            <Text className="text-white dark:text-white text-lg font-semibold mb-2">
               Analyzing Food
             </Text>
-            <Text className="text-secondary dark:text-secondary-dark text-sm text-center">
+            <Text className="text-gray-300 dark:text-gray-400 text-sm text-center">
               AI is identifying your food and{"\n"}calculating nutrition
               facts...
             </Text>

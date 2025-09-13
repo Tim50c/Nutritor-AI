@@ -1,49 +1,47 @@
-import React from "react";
-import {
-  ActivityIndicator,
-  Image,
-  ImageSourcePropType,
+import React from 'react';
+import { 
+  TouchableOpacity, 
+  Image, 
+  ImageSourcePropType, 
+  ActivityIndicator, 
+  ViewStyle, 
   StyleProp,
-  StyleSheet, // --- 1. IMPORT StyleSheet ---
-  TouchableOpacity,
-  ViewStyle,
-} from "react-native";
-import { Text } from "./CustomText";
+  StyleSheet,
+} from 'react-native';
+import { Text } from './CustomText';
+import { useIsDark } from '@/theme/useIsDark';
 
 interface CustomButtonProps {
   title: string;
   onPress: () => void;
-  variant?: "primary" | "social";
+  variant?: 'primary' | 'social';
   icon?: ImageSourcePropType;
   isLoading?: boolean;
   disabled?: boolean;
   containerStyles?: StyleProp<ViewStyle>;
 }
 
-const CustomButtonAuth: React.FC<CustomButtonProps> = ({
-  title,
-  onPress,
-  variant = "primary",
+const CustomButtonAuth: React.FC<CustomButtonProps> = ({ 
+  title, 
+  onPress, 
+  variant = 'primary', 
   icon,
   isLoading = false,
   disabled = false,
-  containerStyles,
+  containerStyles 
 }) => {
-  const isPrimary = variant === "primary";
+  const isDark = useIsDark();
+  const isPrimary = variant === 'primary';
   const isButtonDisabled = isLoading || disabled;
 
-  // --- 2. REMOVE THE TEXT STYLE STRING ---
-  // We will handle text styling with StyleSheet now.
-  let buttonStyle =
-    "w-full py-4 rounded-xl flex-row items-center justify-center";
+  let buttonStyle = "w-full py-4 rounded-xl flex-row items-center justify-center";
 
   if (isPrimary) {
-    buttonStyle += " bg-accent dark:bg-accent-dark";
+    buttonStyle += " bg-orange-500";
   } else {
-    buttonStyle +=
-      " bg-surface dark:bg-surface-dark border border-border-default dark:border-border-default-dark";
+    buttonStyle += " bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600";
   }
-
+  
   if (isButtonDisabled) {
     buttonStyle += " opacity-60";
   }
@@ -56,24 +54,15 @@ const CustomButtonAuth: React.FC<CustomButtonProps> = ({
       disabled={isButtonDisabled}
     >
       {isLoading ? (
-        <ActivityIndicator color={isPrimary ? "#FFFFFF" : "#FF5A16"} />
+        <ActivityIndicator color={isPrimary ? '#FFFFFF' : isDark ? '#FF5A16' : '#FF5A16'} />
       ) : (
         <>
-          {icon && (
-            <Image
-              source={icon}
-              className="w-6 h-6 mr-3"
-              resizeMode="contain"
-            />
-          )}
-
-          {/* --- 3. APPLY STYLES USING THE `style` PROP --- */}
-          <Text
-            style={[
-              styles.baseText,
-              isPrimary ? styles.primaryText : styles.socialText,
-            ]}
-          >
+          {icon && <Image source={icon} className="w-6 h-6 mr-3" resizeMode="contain" />}
+          
+          <Text style={[
+            styles.baseText,
+            isPrimary ? styles.primaryText : isDark ? styles.darkSocialText : styles.socialText
+          ]}>
             {title}
           </Text>
         </>
@@ -82,17 +71,19 @@ const CustomButtonAuth: React.FC<CustomButtonProps> = ({
   );
 };
 
-// --- 4. CREATE THE STYLESHEET FOR THE TEXT ---
 const styles = StyleSheet.create({
   baseText: {
-    fontSize: 15, // Equivalent to NativeWind's 'text-base'
-    fontWeight: "700", // Use '700' or 'bold'. This is what makes the text bold.
+    fontSize: 15,
+    fontWeight: '700',
   },
   primaryText: {
-    color: "#FFFFFF", // Equivalent to 'text-white'
+    color: '#FFFFFF',
   },
   socialText: {
-    color: "#1F2937", // Equivalent to 'text-default dark:text-default-dark'
+    color: '#1F2937',
+  },
+  darkSocialText: {
+    color: '#FFFFFF',
   },
 });
 

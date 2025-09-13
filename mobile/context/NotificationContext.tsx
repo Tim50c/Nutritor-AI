@@ -409,8 +409,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     return () => {
       isMounted = false;
       appStateSubscription?.remove();
-      Notifications.removeNotificationSubscription(notificationListener);
-      Notifications.removeNotificationSubscription(responseListener);
+      notificationListener.remove();
+      responseListener.remove();
     };
   }, [appState]);
 
@@ -480,7 +480,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       const unsubscribe = onSnapshot(
         q,
         (snapshot) => {
-          console.log(`📋 Firestore snapshot received - ${snapshot.docs.length} documents`);
+          console.log(
+            `📋 Firestore snapshot received - ${snapshot.docs.length} documents`
+          );
 
           // Clear existing timeout
           if (batchTimeoutRef.current) {
@@ -509,7 +511,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
           // Process first load
           if (isFirstLoadRef.current && snapshot.docs.length > 0) {
-            console.log(`🔄 First load - processing ${snapshot.docs.length} existing notifications`);
+            console.log(
+              `🔄 First load - processing ${snapshot.docs.length} existing notifications`
+            );
             snapshot.docs.forEach((doc) => {
               const data = doc.data();
               const notification = {
@@ -521,7 +525,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
                 type: data.type,
                 createdAt: data.createdAt,
               };
-              
+
               const existsInPending = pendingChanges.some(
                 (change) => change.notification.id === notification.id
               );
@@ -534,8 +538,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           // Batch process changes
           batchTimeoutRef.current = setTimeout(() => {
             if (pendingChanges.length > 0) {
-              console.log(`⚡ Processing ${pendingChanges.length} pending changes`);
-              
+              console.log(
+                `⚡ Processing ${pendingChanges.length} pending changes`
+              );
+
               setNotifications((prev) => {
                 let updated = [...prev];
 
@@ -543,10 +549,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
                   if (type === "add") {
                     if (!updated.find((n) => n.id === notification.id)) {
                       updated.unshift(notification);
-                      
+
                       // Trigger local notification logic
-                      const isRecentNotification = notification.createdAt?.seconds
-                        ? Date.now() / 1000 - notification.createdAt.seconds < 30
+                      const isRecentNotification = notification.createdAt
+                        ?.seconds
+                        ? Date.now() / 1000 - notification.createdAt.seconds <
+                          30
                         : true;
 
                       const shouldTriggerNotification =
@@ -559,7 +567,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
                       }
                     }
                   } else if (type === "modify") {
-                    const index = updated.findIndex((n) => n.id === notification.id);
+                    const index = updated.findIndex(
+                      (n) => n.id === notification.id
+                    );
                     if (index >= 0) {
                       updated[index] = notification;
                     }
@@ -567,14 +577,17 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
                 });
 
                 return updated
-                  .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
+                  .sort(
+                    (a, b) =>
+                      (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)
+                  )
                   .slice(0, 100);
               });
 
               // Clear pending changes
               pendingChanges.length = 0;
             }
-            
+
             setLoading(false);
             setError(null);
             isFirstLoadRef.current = false;
@@ -776,8 +789,11 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           return; // Success, exit retry loop
         }
       } catch (error) {
-        console.error(`❌ Error marking notification as read (attempt ${attempt}):`, error);
-        
+        console.error(
+          `❌ Error marking notification as read (attempt ${attempt}):`,
+          error
+        );
+
         if (attempt === retries) {
           // Final attempt failed, revert UI
           setNotifications((prev) =>
@@ -785,7 +801,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           );
         } else {
           // Wait before retry
-          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+          await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
         }
       }
     }
@@ -840,23 +856,78 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const refreshNotifications = useCallback(async () => {
     try {
-      console.log(`🔄 Refreshing notifications...`);
-      setLoading(true);
+      console.log(`🔄 Refreshing notifications from backend...`);
       setError(null);
-      
-      // Properly wait for stopListening to complete
-      stopListening();
-      
-      // Reset state
-      isFirstLoadRef.current = true;
-      setNotifications([]);
-      
-      // Start listening immediately
-      startListening();
+
+      const user = auth.currentUser;
+      if (!user) {
+        console.warn("❌ No authenticated user for refresh");
+        return;
+      }
+
+      // Fetch fresh notifications from backend API
+      try {
+        console.log("📡 Fetching notifications from backend API...");
+        const response = await fetch(
+          `${process.env.EXPO_PUBLIC_API_URL}/api/v1/notifications`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${await user.getIdToken()}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && Array.isArray(data.data)) {
+            console.log(
+              `✅ Fetched ${data.data.length} notifications from backend`
+            );
+
+            // Transform backend data to match our notification format
+            const fetchedNotifications = data.data.map((notification: any) => {
+              return {
+                id: notification.id || notification._id,
+                title: notification.title,
+                body: notification.body,
+                message:
+                  notification.message ||
+                  `${notification.title}: ${notification.body}`,
+                read: notification.read || false,
+                type: notification.type,
+                createdAt: notification.createdAt, // Keep original format from backend
+              };
+            });
+
+            // Update notifications state with fresh data
+            setNotifications(fetchedNotifications);
+            console.log(
+              `🔄 Updated notifications state with ${fetchedNotifications.length} items`
+            );
+          } else {
+            console.warn("⚠️ Invalid response format from backend:", data);
+          }
+        } else {
+          console.warn(
+            `⚠️ Backend API returned ${response.status}: ${response.statusText}`
+          );
+          // Fall back to Firestore refresh if backend fails
+          throw new Error(`Backend API error: ${response.status}`);
+        }
+      } catch (apiError) {
+        console.error("❌ Error fetching from backend API:", apiError);
+        console.log("🔄 Falling back to Firestore refresh...");
+
+        // Fallback to original Firestore refresh logic
+        stopListening();
+        isFirstLoadRef.current = true;
+        startListening();
+      }
     } catch (error: any) {
       console.error("❌ Error refreshing notifications:", error);
       setError(`Failed to refresh notifications: ${error.message}`);
-      setLoading(false);
     }
   }, [startListening, stopListening]);
 

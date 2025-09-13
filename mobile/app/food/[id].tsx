@@ -1,32 +1,30 @@
-import React, { useState } from "react";
-import {
-  View,
-  ScrollView,
-  ImageBackground,
-  TouchableOpacity,
-  StatusBar,
-  Image,
-  Alert,
-  Modal,
-  ActivityIndicator,
-} from "react-native";
-import { Text } from "@/components/CustomText";
-import { useLocalSearchParams, router } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from "@expo/vector-icons";
-import CustomButton from "@/components/CustomButton";
 import CustomAlert from "@/components/CustomAlert";
-import DietService from "@/services/diet-service";
-import FoodService from "@/services/food-service";
-import CameraService from "@/services/camera-service";
-import { FOODS } from "@/data/mockData";
-import { useDietContext } from "@/context/DietContext";
-import { analyticsEventEmitter } from "@/utils/analyticsEvents";
-import { images } from "@/constants/images";
+import CustomButton from "@/components/CustomButton";
+import { Text } from "@/components/CustomText";
 import { icons } from "@/constants/icons";
+import { images } from "@/constants/images";
+import { useDietContext } from "@/context/DietContext";
+import { FOODS } from "@/data/mockData";
+import CameraService from "@/services/camera-service";
+import FoodService from "@/services/food-service";
+import { useIsDark } from "@/theme/useIsDark";
+import { foodCacheEvents } from "@/utils/foodCacheEvents";
+import { Ionicons } from "@expo/vector-icons";
 import { Camera, CameraView } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
-import { foodCacheEvents } from "@/utils/foodCacheEvents";
+import { router, useLocalSearchParams } from "expo-router";
+import React, { useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  ImageBackground,
+  Modal,
+  ScrollView,
+  StatusBar,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 // Define the Food interface based on the backend response
 interface FoodData {
@@ -59,9 +57,8 @@ const MacroCard: React.FC<MacroCardProps> = ({
   value,
   percentage,
   backgroundColor,
-  textColor = "text-gray-800",
+  textColor = "text-gray-800 dark:text-gray-100",
 }) => {
-  // Determine if percentage exceeds 100% and set appropriate colors
   const isOverGoal = percentage !== undefined && percentage > 100;
   const progressBarWidth =
     percentage !== undefined ? Math.min(percentage, 100) : 0;
@@ -73,14 +70,16 @@ const MacroCard: React.FC<MacroCardProps> = ({
       <Text className={`text-xl font-bold ${textColor} mb-2`}>{value}</Text>
       {percentage !== undefined && (
         <View className="flex-row items-center justify-between">
-          <View className="flex-1 bg-black/20 rounded-full h-1.5 mr-2">
+          <View className="flex-1 bg-black/20 dark:bg-white/20 rounded-full h-1.5 mr-2">
             <View
               className={`${progressBarColor} rounded-full h-1.5`}
               style={{ width: `${progressBarWidth}%` }}
             />
           </View>
           <Text
-            className={`text-xs font-medium ${textColor} ${isOverGoal ? "text-red-600" : ""}`}
+            className={`text-xs font-medium ${textColor} ${
+              isOverGoal ? "text-red-600 dark:text-red-400" : ""
+            }`}
           >
             {percentage}%
           </Text>
@@ -91,21 +90,27 @@ const MacroCard: React.FC<MacroCardProps> = ({
 };
 
 // Goal Component
+// Goal Component
 const GoalCard: React.FC = () => (
-  <View className="bg-gray-100 rounded-2xl p-4 mb-6">
+  <View className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 mb-6">
     <View className="flex-row items-center">
-      <View className="w-12 h-12 bg-gray-300 rounded-full items-center justify-center mr-3">
+      <View className="w-12 h-12 bg-gray-300 dark:bg-gray-700 rounded-full items-center justify-center mr-3">
         <Ionicons name="checkmark-circle-outline" size={24} color="#666" />
       </View>
       <View className="flex-1">
-        <Text className="text-lg font-semibold text-gray-800 mb-1">Goal</Text>
-        <Text className="text-gray-600">Heart Health, Weight Maintenance</Text>
+        <Text className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-1">
+          Goal
+        </Text>
+        <Text className="text-gray-600 dark:text-gray-400">
+          Heart Health, Weight Maintenance
+        </Text>
       </View>
     </View>
   </View>
 );
 
 const FoodDetails = () => {
+  const isDark = useIsDark();
   const { id, foodData, capturedImage, source, addedAt, dietIndex } =
     useLocalSearchParams();
   const [isAddingToDiet, setIsAddingToDiet] = useState(false);
@@ -417,8 +422,10 @@ const FoodDetails = () => {
   // Handle case where food is not found
   if (!food) {
     return (
-      <View className="flex-1 justify-center items-center bg-white">
-        <Text className="text-lg text-gray-600">Food not found</Text>
+      <View className="flex-1 justify-center items-center bg-white dark:bg-black">
+        <Text className="text-lg text-gray-600 dark:text-gray-300">
+          Food not found
+        </Text>
         <CustomButton
           label="Go Back"
           onPress={() => router.back()}
@@ -555,8 +562,8 @@ const FoodDetails = () => {
   };
 
   return (
-    <View className="flex-1 bg-white">
-      <StatusBar barStyle="light-content" />
+    <View className="flex-1 bg-white dark:bg-black">
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
       {/* Header with Image */}
       <View className="relative">
@@ -574,21 +581,25 @@ const FoodDetails = () => {
             {/* Top Navigation */}
             <View className="flex-row justify-between items-center pt-12 px-4">
               <TouchableOpacity
-                className="w-10 h-10 bg-white rounded-full items-center justify-center"
+                className="w-10 h-10 bg-white dark:bg-black/50 rounded-full items-center justify-center"
                 onPress={() => router.back()}
               >
-                <Ionicons name="arrow-back" size={24} color="black" />
+                <Ionicons
+                  name="arrow-back"
+                  size={24}
+                  color={isDark ? "white" : "black"}
+                />
               </TouchableOpacity>
 
               <TouchableOpacity
-                className="w-10 h-10 bg-white rounded-full items-center justify-center"
+                className="w-10 h-10 bg-white dark:bg-black/50 rounded-full items-center justify-center"
                 onPress={handleFavoriteToggle}
               >
                 {food &&
                 isFavorite(Array.isArray(food.id) ? food.id[0] : food.id) ? (
                   <icons.heartFill width={16} height={16} />
                 ) : (
-                  <icons.heart width={16} height={16} />
+                  isDark ? (<icons.heartDark width={16} height={16} />) : <icons.heart width={16} height={16} />
                 )}
               </TouchableOpacity>
             </View>
@@ -597,26 +608,30 @@ const FoodDetails = () => {
           // Fallback for foods without images
           <ImageBackground
             source={images.fallback_food}
-            className="w-full h-80 "
+            className="w-full h-80"
           >
             {/* Top Navigation */}
             <View className="flex-row justify-between items-center pt-12 px-4">
               <TouchableOpacity
-                className="w-10 h-10 bg-white rounded-full items-center justify-center"
+                className="w-10 h-10 bg-white dark:bg-black/50 rounded-full items-center justify-center"
                 onPress={() => router.back()}
               >
-                <Ionicons name="arrow-back" size={24} color="black" />
+                <Ionicons
+                  name="arrow-back"
+                  size={24}
+                  color={isDark ? "white" : "black"}
+                />
               </TouchableOpacity>
 
               <TouchableOpacity
-                className="w-10 h-10 bg-white rounded-full items-center justify-center"
+                className="w-10 h-10 bg-white dark:bg-black/50 rounded-full items-center justify-center"
                 onPress={handleFavoriteToggle}
               >
                 {food &&
                 isFavorite(Array.isArray(food.id) ? food.id[0] : food.id) ? (
                   <icons.heartFill width={16} height={16} />
                 ) : (
-                  <icons.heart width={16} height={16} />
+                  isDark ? (<icons.heartDark width={16} height={16} />) : <icons.heart width={16} height={16} />
                 )}
               </TouchableOpacity>
             </View>
@@ -636,21 +651,25 @@ const FoodDetails = () => {
           <View className="absolute top-0 left-0 right-0 pt-12 px-4 pb-4">
             <View className="flex-row justify-between items-center">
               <TouchableOpacity
-                className="w-10 h-10 bg-white rounded-full items-center justify-center"
+                className="w-10 h-10 bg-white dark:bg-black/50 rounded-full items-center justify-center"
                 onPress={() => router.back()}
               >
-                <Ionicons name="arrow-back" size={24} color="black" />
+                <Ionicons
+                  name="arrow-back"
+                  size={24}
+                  color={isDark ? "white" : "black"}
+                />
               </TouchableOpacity>
 
               <TouchableOpacity
-                className="w-10 h-10 bg-white rounded-full items-center justify-center"
+                className="w-10 h-10 bg-white dark:bg-black/50 rounded-full items-center justify-center"
                 onPress={handleFavoriteToggle}
               >
                 {food &&
                 isFavorite(Array.isArray(food.id) ? food.id[0] : food.id) ? (
                   <icons.heartFill width={16} height={16} />
                 ) : (
-                  <icons.heart width={16} height={16} />
+                  isDark ? (<icons.heartDark width={16} height={16} />) : <icons.heart width={16} height={16} />
                 )}
               </TouchableOpacity>
             </View>
@@ -659,29 +678,32 @@ const FoodDetails = () => {
 
         {/* Edit button positioned at bottom right of image */}
         <TouchableOpacity
-          className="absolute bottom-8 right-4 w-12 h-12 bg-orange-500 rounded-full items-center justify-center shadow-lg"
+          className="absolute bottom-8 right-4 w-12 h-12 bg-orange-500 dark:bg-orange-600 rounded-full items-center justify-center shadow-lg"
           onPress={handleImagePress}
         >
-          <Ionicons name="pencil" size={20} color="white" />
+          <Ionicons name="pencil" size={20} color={isDark ? "black" : "white"} />
         </TouchableOpacity>
       </View>
 
-      <ScrollView className="flex-1 -mt-6 bg-white rounded-t-3xl px-6 pt-6">
+      <ScrollView
+        className="flex-1 -mt-6 bg-white dark:bg-black rounded-t-3xl px-6 pt-6"
+        contentContainerStyle={{ flexGrow: 1 }}
+      >
         {/* Title Section */}
         <View className="mb-6">
-          <Text className="text-2xl font-bold text-gray-900 mb-2">
+          <Text className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
             {food.name}
           </Text>
           {/* Show saving status */}
           {isSavingImage && (
             <View className="flex-row items-center mb-2">
               <ActivityIndicator size="small" color="#ff5a16" />
-              <Text className="ml-2 text-orange-600 text-sm font-medium">
+              <Text className="ml-2 text-orange-600 dark:text-orange-400 text-sm font-medium">
                 Saving image changes...
               </Text>
             </View>
           )}
-          <Text className="text-gray-600 leading-relaxed">
+          <Text className="text-gray-600 dark:text-gray-400 leading-relaxed">
             {food.description}
           </Text>
           {/* Show source information for API-recognized foods */}
@@ -696,9 +718,9 @@ const FoodDetails = () => {
                       : "information-circle"
                 }
                 size={16}
-                color="#666"
+                color={isDark ? "#9CA3AF" : "#666"}
               />
-              <Text className="text-gray-500 text-sm ml-2 capitalize">
+              <Text className="text-gray-500 dark:text-gray-400 text-sm ml-2 capitalize">
                 Recognized by{" "}
                 {food.source === "gemini"
                   ? "AI"
@@ -717,13 +739,13 @@ const FoodDetails = () => {
             <MacroCard
               title="Calories"
               value={`${(food.calories || 0).toLocaleString()} kcal`}
-              backgroundColor="bg-purple-200"
+              backgroundColor="bg-purple-200 dark:bg-purple-800"
             />
             <MacroCard
               title="Protein"
               value={`${food.protein || 0}g`}
               percentage={proteinPercentage}
-              backgroundColor="bg-green-300"
+              backgroundColor="bg-green-300 dark:bg-green-800"
             />
           </View>
 
@@ -733,14 +755,14 @@ const FoodDetails = () => {
               title="Carbs"
               value={`${food.carbs || 0}g`}
               percentage={carbsPercentage}
-              backgroundColor="bg-yellow-300"
+              backgroundColor="bg-yellow-300 dark:bg-yellow-800"
             />
             <MacroCard
               title="Fat"
               value={`${food.fat || 0}g`}
               percentage={fatPercentage}
-              backgroundColor="bg-orange-400"
-              textColor="text-white"
+              backgroundColor="bg-orange-400 dark:bg-orange-800"
+              textColor="text-white dark:text-gray-200"
             />
           </View>
         </View>
@@ -753,7 +775,7 @@ const FoodDetails = () => {
       </ScrollView>
 
       {/* Fixed Add to Diet Button at bottom */}
-      <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-4 mb-8">
+      <View className="absolute bottom-0 left-0 right-0 bg-white dark:bg-black border-t border-gray-200 dark:border-gray-800 px-6 py-4 mb-8">
         {/* Show both buttons if source is from history or diet */}
         {source === "history" || source === "diet" ? (
           <View className="flex-row gap-3">
@@ -762,8 +784,8 @@ const FoodDetails = () => {
                 label={isAddingToDiet ? "Adding..." : "Add to Diet"}
                 onPress={handleAddToDiet}
                 disabled={isAddingToDiet || isRemovingFromDiet}
-                style="bg-gray-200"
-                textStyle="text-black"
+                style="bg-gray-200 dark:bg-gray-700"
+                textStyle="text-black dark:text-white"
               />
             </View>
             <View className="flex-1">
@@ -793,27 +815,27 @@ const FoodDetails = () => {
         onRequestClose={() => setShowImageOptions(false)}
       >
         <TouchableOpacity
-          className="flex-1 bg-black/50 justify-center items-center"
+          className="flex-1 bg-black/50 dark:bg-black/60 justify-center items-center"
           activeOpacity={1}
           onPress={() => setShowImageOptions(false)}
         >
-          <View className="bg-white rounded-2xl mx-8 p-6 w-80">
-            <Text className="text-lg font-semibold text-center mb-4">
+          <View className="bg-white dark:bg-gray-800 rounded-2xl mx-8 p-6 w-80">
+            <Text className="text-lg font-semibold text-center mb-4 text-black dark:text-white">
               Change Food Image
             </Text>
             <TouchableOpacity
-              className="py-4 border-b border-gray-200"
+              className="py-4 border-b border-gray-200 dark:border-gray-700"
               onPress={handleGalleryPress}
             >
-              <Text className="text-center text-blue-600 text-lg">
+              <Text className="text-center text-blue-600 dark:text-blue-400 text-lg">
                 Choose from Gallery
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              className="py-4 border-b border-gray-200"
+              className="py-4 border-b border-gray-200 dark:border-gray-700"
               onPress={takePhoto}
             >
-              <Text className="text-center text-blue-600 text-lg">
+              <Text className="text-center text-blue-600 dark:text-blue-400 text-lg">
                 Take Photo
               </Text>
             </TouchableOpacity>
@@ -821,7 +843,9 @@ const FoodDetails = () => {
               className="py-4"
               onPress={() => setShowImageOptions(false)}
             >
-              <Text className="text-center text-red-600 text-lg">Cancel</Text>
+              <Text className="text-center text-red-600 dark:text-red-400 text-lg">
+                Cancel
+              </Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>

@@ -1,8 +1,9 @@
-import { icons } from "@/constants/icons";
-import { useRouter } from "expo-router";
 import React from "react";
-import { TouchableOpacity, View } from "react-native";
+import { View, TouchableOpacity } from "react-native";
 import { Text } from "./CustomText";
+import { useRouter } from "expo-router";
+import { icons } from "@/constants/icons";
+import { useIsDark } from "@/theme/useIsDark";
 
 interface CustomHeaderWithBackProps {
   title: string;
@@ -16,6 +17,7 @@ const CustomHeaderWithBack: React.FC<CustomHeaderWithBackProps> = ({
   rightComponent,
 }) => {
   const router = useRouter();
+  const isDark = useIsDark();
 
   const handleBackPress = () => {
     if (onBackPress) {
@@ -26,17 +28,21 @@ const CustomHeaderWithBack: React.FC<CustomHeaderWithBackProps> = ({
   };
 
   return (
-    <View className="flex-row items-center justify-between px-4 py-3 bg-bg-default dark:bg-bg-default-dark">
+    <View className="flex-row items-center justify-between px-6 py-3 bg-white dark:bg-black">
       <TouchableOpacity
-        className="bg-default dark:bg-default-dark w-10 h-10 rounded-full justify-center items-center"
+        className="bg-black dark:bg-white w-10 h-10 rounded-full justify-center items-center"
         onPress={handleBackPress}
       >
         <View style={{ transform: [{ rotate: "0deg" }] }}>
-          <icons.arrow width={20} height={20} color="#111214" />
+          {isDark ? (
+            <icons.arrowDark width={20} height={20} />
+          ) : (
+            <icons.arrow width={20} height={20} />
+          )}
         </View>
       </TouchableOpacity>
 
-      <Text className="text-xl font-bold flex-1 text-center text-default dark:text-default-dark">
+      <Text className="text-xl font-bold text-black dark:text-white flex-1 text-center">
         {title}
       </Text>
 

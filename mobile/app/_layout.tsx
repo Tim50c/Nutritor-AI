@@ -75,7 +75,11 @@ function AppContentWithSplashHandling({
   // Show loading screen if server is still warming up after splash
   if (isWarmingUp && isAppReady) {
     console.log("🎯 [Layout] Showing LoadingScreen (server warming up)");
-    return <LoadingScreen showLoadingText={true} />;
+    return (
+      <ThemeProvider>
+        <LoadingScreen showLoadingText={true} />
+      </ThemeProvider>
+    );
   }
 
   return <RootLayoutNav />;
@@ -318,7 +322,11 @@ function RootLayoutNav() {
   ]);
 
   if (isAuthLoading || isLoadingProfile) {
-    return <LoadingScreen showLoadingText={true} />;
+    return (
+      <ThemeProvider>
+        <LoadingScreen showLoadingText={true} />
+      </ThemeProvider>
+    );
   }
 
   return (
@@ -470,10 +478,12 @@ export default function RootLayout() {
   if (showCustomSplash) {
     console.log("🎯 [Layout] Showing CustomSplashScreen");
     return (
-      <CustomSplashScreen
-        onAnimationComplete={handleSplashComplete}
-        showLoadingText={true}
-      />
+      <ThemeProvider>
+        <CustomSplashScreen
+          onAnimationComplete={handleSplashComplete}
+          showLoadingText={true}
+        />
+      </ThemeProvider>
     );
   }
 
@@ -482,7 +492,11 @@ export default function RootLayout() {
     console.log(
       "🎯 [Layout] Splash complete but fonts not loaded, showing loading"
     );
-    return <LoadingScreen showLoadingText={true} />;
+    return (
+      <ThemeProvider>
+        <LoadingScreen showLoadingText={true} />
+      </ThemeProvider>
+    );
   }
 
   console.log("🎯 [Layout] Showing main app");

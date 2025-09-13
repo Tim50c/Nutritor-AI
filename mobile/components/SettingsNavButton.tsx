@@ -1,5 +1,6 @@
 // mobile/components/SettingsNavButton.tsx
 import { icons } from "@/constants/icons"; // Your icons are imported here
+import { useIsDark } from "@/theme/useIsDark";
 import { useRouter } from "expo-router";
 import React from "react";
 import { TouchableOpacity } from "react-native";
@@ -19,28 +20,24 @@ const SettingsNavButton: React.FC<SettingsNavButtonProps> = ({
   variant = "dark", // <-- Default to 'dark'
 }) => {
   const router = useRouter();
+  const isDark = useIsDark();
 
-  // Conditional styling based on the variant
-  const isLight = variant === "light";
-  const containerClass = isLight
-    ? `bg-transparent my-0` // Light variant has no background or margin
-    : `bg-accent dark:bg-accent-dark my-1`; // Dark variant uses accent
-
-  const textClass = isLight
-    ? "text-default dark:text-default-dark" // Light variant uses semantic text
-    : "text-white"; // Dark variant has white text
-
-  const iconColor = isLight ? "#111214" : "#FFFFFF"; // Set icon color
+  if (isDark) variant = "dark";
 
   return (
     <TouchableOpacity
-      className={`flex-row items-center justify-between px-5 py-4 rounded-2xl ${containerClass} ${style || ""}`}
+      className={`flex-row items-center justify-between px-5 py-4 rounded-2xl bg-transparent ${style || ""}`}
       activeOpacity={0.7}
       onPress={() => router.push(route)}
     >
-      <Text className={`${textClass} text-base font-medium`}>{label}</Text>
-      {/* Pass the color prop to your SVG icon component */}
-      <icons.forwardArrow width={20} height={20} color={iconColor} />
+      <Text className={`text-black dark:text-white text-base font-medium`}>
+        {label}
+      </Text>
+      {isDark ? (
+        <icons.forwardArrowDark width={20} height={20} />
+      ) : (
+        <icons.forwardArrow width={20} height={20} />
+      )}
     </TouchableOpacity>
   );
 };

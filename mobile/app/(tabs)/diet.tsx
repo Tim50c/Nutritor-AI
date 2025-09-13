@@ -6,11 +6,23 @@ import CustomHeaderWithBack from "@/components/CustomHeaderWithBack";
 import { useDietContext } from "@/context/DietContext";
 import { useFocusEffect } from "@react-navigation/native";
 import React, { useCallback, useEffect, useState } from "react";
-import { ScrollView, SafeAreaView } from "react-native";
+import { RefreshControl, ScrollView, SafeAreaView, View } from "react-native";
 
 const DietScreen = () => {
   const { dietDate, refreshDietData, dietSummary, loading } = useDietContext();
   const [isTabFocused, setIsTabFocused] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshDietData(dietDate, true); // Force refresh
+    } catch (error) {
+      console.error("Failed to refresh diet data:", error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Handle tab focus to trigger animations only when tab is visible
   useFocusEffect(
@@ -36,9 +48,19 @@ const DietScreen = () => {
       dietSummary.fat > 0);
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-white dark:bg-black">
       <CustomHeaderWithBack title="Diet" />
-      <ScrollView className="flex-1 bg-white">
+      <ScrollView
+        className="flex-1 bg-white dark:bg-black"
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            colors={["#FF6F2D"]} // Android - orange theme
+            tintColor="#FF6F2D" // iOS - orange theme
+          />
+        }
+      >
         <DietCalendar />
         {hasAnyFood ? (
           <>

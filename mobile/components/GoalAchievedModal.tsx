@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   View,
   Modal,
@@ -13,6 +13,7 @@ import { icons } from "@/constants/icons";
 import { useOnboarding } from "@/context/OnboardingContext";
 import { useUser } from "@/context/UserContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useIsDark } from "@/theme/useIsDark";
 
 const { width } = Dimensions.get("window");
 
@@ -27,6 +28,7 @@ const GoalAchievedModal: React.FC<GoalAchievedModalProps> = ({
   onClose,
   onSetNewGoal,
 }) => {
+  const isDark = useIsDark();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.3)).current;
   const bounceAnim = useRef(new Animated.Value(0)).current;
@@ -242,19 +244,18 @@ const GoalAchievedModal: React.FC<GoalAchievedModalProps> = ({
       statusBarTranslucent
     >
       <Animated.View
-        className="flex-1 justify-center items-center px-4"
+        className="flex-1 justify-center items-center px-4 bg-black/70 dark:bg-black/80"
         style={{
           opacity: fadeAnim,
-          backgroundColor: "rgba(0,0,0,0.7)",
         }}
       >
         <Animated.View
-          className="bg-white rounded-3xl p-8 mx-4 relative overflow-hidden"
+          className="bg-white dark:bg-gray-800 rounded-3xl p-8 mx-4 relative overflow-hidden"
           style={{
             transform: [{ scale: scaleAnim }],
-            shadowColor: "#000",
+            shadowColor: isDark ? "#fff" : "#000",
             shadowOffset: { width: 0, height: 20 },
-            shadowOpacity: 0.25,
+            shadowOpacity: isDark ? 0.15 : 0.25,
             shadowRadius: 25,
             elevation: 20,
             maxWidth: width - 32,
@@ -262,7 +263,7 @@ const GoalAchievedModal: React.FC<GoalAchievedModalProps> = ({
         >
           {/* Gradient overlay */}
           <LinearGradient
-            colors={["rgba(255,165,0,0.1)", "rgba(255,215,0,0.05)"]}
+            colors={isDark ? ["rgba(255,165,0,0.2)", "rgba(255,215,0,0.1)"] : ["rgba(255,165,0,0.1)", "rgba(255,215,0,0.05)"]}
             className="absolute inset-0 rounded-3xl"
           />
 
@@ -274,34 +275,31 @@ const GoalAchievedModal: React.FC<GoalAchievedModalProps> = ({
               }}
             >
               <View className="mb-4">
-                <icons.championCup width={80} height={80} />
+                <icons.championCup width={80} height={80} color={isDark ? "#ff5a16" : undefined} />
               </View>
             </Animated.View>
 
             <Text
-              className="text-3xl font-bold text-center mb-3"
-              style={{ color: "#1f2937" }}
+              className="text-3xl font-bold text-center mb-3 text-[#1f2937] dark:text-gray-100"
             >
               Amazing Work!
             </Text>
 
             <Text
-              className="text-xl font-semibold text-center mb-4"
-              style={{ color: "#f59e0b" }}
+              className="text-xl font-semibold text-center mb-4 text-amber-500"
             >
               Goal Achieved! 🎯
             </Text>
 
             <Text
-              className="text-base text-center leading-6 mb-2"
-              style={{ color: "#4b5563" }}
+              className="text-base text-center leading-6 mb-2 text-[#4b5563] dark:text-gray-300"
             >
               You&apos;ve successfully reached your weight goal! This incredible
               achievement shows your dedication and commitment to your health
               journey.
             </Text>
 
-            <Text className="text-sm text-center" style={{ color: "#6b7280" }}>
+            <Text className="text-sm text-center text-[#6b7280] dark:text-gray-400">
               Ready to set your next milestone?
             </Text>
           </View>
@@ -311,8 +309,7 @@ const GoalAchievedModal: React.FC<GoalAchievedModalProps> = ({
             <TouchableOpacity
               onPress={handleSetNewGoal}
               activeOpacity={0.8}
-              className="w-full py-4 px-6 rounded-2xl"
-              style={{ backgroundColor: "#f59e0b" }}
+              className="w-full py-4 px-6 rounded-2xl bg-amber-500"
             >
               <Text className="text-center text-white font-bold text-lg">
                 Set New Goal 🚀
@@ -322,12 +319,10 @@ const GoalAchievedModal: React.FC<GoalAchievedModalProps> = ({
             <TouchableOpacity
               onPress={onClose}
               activeOpacity={0.7}
-              className="w-full py-4 px-6 rounded-2xl border-2"
-              style={{ borderColor: "#e5e7eb", backgroundColor: "#f9fafb" }}
+              className="w-full py-4 px-6 rounded-2xl border-2 border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700"
             >
               <Text
-                className="text-center font-semibold text-lg"
-                style={{ color: "#374151" }}
+                className="text-center font-semibold text-lg text-gray-700 dark:text-gray-200"
               >
                 Maybe Later
               </Text>

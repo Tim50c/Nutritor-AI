@@ -1,9 +1,13 @@
 import { icons } from "@/constants/icons";
 import { useUser } from "@/context/UserContext";
+import { useTheme } from "@/theme/ThemeProvider";
+import { useIsDark } from "@/theme/useIsDark";
 import { useRouter } from "expo-router";
+import { getAuth } from "firebase/auth";
 import { useEffect, useState } from "react";
 import {
   Alert,
+  Dimensions,
   Modal,
   SafeAreaView,
   StyleSheet,
@@ -11,8 +15,9 @@ import {
   View,
 } from "react-native";
 import { Text } from "../../components/CustomText";
-import { useTheme } from "@/theme/ThemeProvider";
-import { getAuth } from "firebase/auth";
+import CustomHeaderWithBack from "../../components/CustomHeaderWithBack";
+
+const { width } = Dimensions.get("window");
 
 const More = () => {
   const router = useRouter();
@@ -22,6 +27,14 @@ const More = () => {
   const [weightUnit, setWeightUnit] = useState<"kg" | "lbs">("kg");
   const [heightUnit, setHeightUnit] = useState<"cm" | "ft">("cm");
 
+  // Track original values from user profile for change detection
+  const [originalWeightUnit, setOriginalWeightUnit] = useState<"kg" | "lbs">(
+    "kg"
+  );
+  const [originalHeightUnit, setOriginalHeightUnit] = useState<"cm" | "ft">(
+    "cm"
+  );
+
   // Theme picker state
   const { scheme, setScheme } = useTheme();
   const [showThemePicker, setShowThemePicker] = useState(false);
@@ -29,11 +42,16 @@ const More = () => {
     scheme
   );
 
+  const isDark = useIsDark();
+
   // When the user profile is loaded, set the initial state of the toggles
   useEffect(() => {
     if (userProfile?.unitPreferences) {
       setWeightUnit(userProfile.unitPreferences.weight);
       setHeightUnit(userProfile.unitPreferences.height);
+      // Set original values for change detection
+      setOriginalWeightUnit(userProfile.unitPreferences.weight);
+      setOriginalHeightUnit(userProfile.unitPreferences.height);
     }
   }, [userProfile]);
 
@@ -41,6 +59,47 @@ const More = () => {
   useEffect(() => {
     setThemeMode(scheme);
   }, [scheme]);
+
+  // Check if any unit preferences have changed
+  const hasChanges =
+    weightUnit !== originalWeightUnit || heightUnit !== originalHeightUnit;
+
+  const handleThemeSelect = async (mode: "system" | "light" | "dark") => {
+    try {
+      setThemeMode(mode);
+      await setScheme(mode);
+      setShowThemePicker(false);
+    } catch (error) {
+      console.error("Error setting theme:", error);
+      setShowThemePicker(false);
+    }
+  };
+
+  const getThemeIcon = (mode: string) => {
+    switch (mode) {
+      case "light":
+        return "☀️";
+      case "dark":
+        return "🌙";
+      case "system":
+        return "⚙️";
+      default:
+        return "☀️";
+    }
+  };
+
+  const getThemeDescription = (mode: string) => {
+    switch (mode) {
+      case "light":
+        return "Clean and bright interface";
+      case "dark":
+        return "Easy on your eyes";
+      case "system":
+        return "Matches your device setting";
+      default:
+        return "";
+    }
+  };
 
   const handleSave = async () => {
     const auth = getAuth();
@@ -70,7 +129,6 @@ const More = () => {
       });
 
       if (!response.ok) {
-        // Check if response is JSON
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.indexOf("application/json") !== -1) {
           const errorData = await response.json();
@@ -78,7 +136,6 @@ const More = () => {
             errorData.error || `Server error: ${response.status}`
           );
         } else {
-          // Response is likely HTML (404 page or similar)
           const errorText = await response.text();
           console.error("Non-JSON response:", errorText);
           throw new Error(
@@ -90,7 +147,6 @@ const More = () => {
       const responseData = await response.json();
 
       if (responseData.success) {
-        // Refetch profile to update context globally
         refetchUserProfile();
         Alert.alert("Success", "Preferences saved successfully!");
       } else {
@@ -99,7 +155,6 @@ const More = () => {
     } catch (error) {
       console.error("Error saving preferences:", error);
 
-      // More specific error handling
       let errorMessage = "An error occurred. Please try again.";
 
       if (
@@ -122,60 +177,74 @@ const More = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-white dark:bg-black">
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200">
-        <TouchableOpacity
-          className="bg-black w-10 h-10 rounded-full justify-center items-center"
-          onPress={() => router.back()}
-        >
-          <View>
-            <icons.arrow width={20} height={20} color="#FFFFFF" />
-          </View>
-        </TouchableOpacity>
-        <Text className="text-xl font-bold text-black">More Settings</Text>
-        <View className="w-10 h-10" />
-      </View>
+      <CustomHeaderWithBack title="More Settings" />
 
       <View className="flex-1 p-6">
         {/* Theme Mode Preference */}
         <View className="mb-8">
-          <Text className="text-lg font-semibold text-gray-800 mb-3">
+          <Text className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
             Theme Mode
           </Text>
           <TouchableOpacity
-            style={styles.toggleContainer}
+            style={[styles.themeSelector, isDark && styles.themeSelectorDark]}
             onPress={() => setShowThemePicker(true)}
             activeOpacity={0.8}
           >
-            <Text style={[styles.toggleText, { flex: 1, textAlign: "center" }]}>
-              {" "}
-              {themeMode === "system"
-                ? "System Default"
-                : themeMode === "light"
-                  ? "Light"
-                  : "Dark"}{" "}
-            </Text>
+            <View style={styles.themeSelectorContent}>
+              <Text style={styles.themeIcon}>{getThemeIcon(themeMode)}</Text>
+              <View style={styles.themeTextContainer}>
+                <Text
+                  style={[styles.themeTitle, isDark && styles.themeTitleDark]}
+                >
+                  {themeMode === "system"
+                    ? "System Default"
+                    : themeMode === "light"
+                      ? "Light Mode"
+                      : "Dark Mode"}
+                </Text>
+                <Text
+                  style={[
+                    styles.themeDescription,
+                    isDark && styles.themeDescriptionDark,
+                  ]}
+                >
+                  {getThemeDescription(themeMode)}
+                </Text>
+              </View>
+              <Text style={[styles.chevron, isDark && styles.chevronDark]}>
+                ›
+              </Text>
+            </View>
           </TouchableOpacity>
         </View>
 
         {/* Weight Unit Preference */}
         <View className="mb-8">
-          <Text className="text-lg font-semibold text-gray-800 mb-3">
+          <Text className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
             Weight Unit
           </Text>
-          <View style={styles.toggleContainer}>
+          <View
+            style={[
+              styles.toggleContainer,
+              isDark && styles.toggleContainerDark,
+            ]}
+          >
             <TouchableOpacity
               onPress={() => setWeightUnit("kg")}
               style={[
                 styles.toggleButton,
                 weightUnit === "kg" && styles.toggleButtonActive,
+                weightUnit === "kg" && isDark && styles.toggleButtonActiveDark,
               ]}
             >
               <Text
                 style={[
                   styles.toggleText,
                   weightUnit === "kg" && styles.toggleTextActive,
+                  !isDark && weightUnit === "kg" && styles.toggleTextActive,
+                  weightUnit === "kg" && isDark && styles.toggleTextActiveDark,
                 ]}
               >
                 Kilograms (kg)
@@ -186,12 +255,15 @@ const More = () => {
               style={[
                 styles.toggleButton,
                 weightUnit === "lbs" && styles.toggleButtonActive,
+                weightUnit === "lbs" && isDark && styles.toggleButtonActiveDark,
               ]}
             >
               <Text
                 style={[
                   styles.toggleText,
                   weightUnit === "lbs" && styles.toggleTextActive,
+                  !isDark && weightUnit === "lbs" && styles.toggleTextActive,
+                  weightUnit === "lbs" && isDark && styles.toggleTextActiveDark,
                 ]}
               >
                 Pounds (lbs)
@@ -202,21 +274,29 @@ const More = () => {
 
         {/* Height Unit Preference */}
         <View className="mb-8">
-          <Text className="text-lg font-semibold text-gray-800 mb-3">
+          <Text className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
             Height Unit
           </Text>
-          <View style={styles.toggleContainer}>
+          <View
+            style={[
+              styles.toggleContainer,
+              isDark && styles.toggleContainerDark,
+            ]}
+          >
             <TouchableOpacity
               onPress={() => setHeightUnit("cm")}
               style={[
                 styles.toggleButton,
                 heightUnit === "cm" && styles.toggleButtonActive,
+                heightUnit === "cm" && isDark && styles.toggleButtonActiveDark,
               ]}
             >
               <Text
                 style={[
                   styles.toggleText,
                   heightUnit === "cm" && styles.toggleTextActive,
+                  !isDark && heightUnit === "cm" && styles.toggleTextActive,
+                  heightUnit === "cm" && isDark && styles.toggleTextActiveDark,
                 ]}
               >
                 Centimeters (cm)
@@ -227,12 +307,15 @@ const More = () => {
               style={[
                 styles.toggleButton,
                 heightUnit === "ft" && styles.toggleButtonActive,
+                heightUnit === "ft" && isDark && styles.toggleButtonActiveDark,
               ]}
             >
               <Text
                 style={[
                   styles.toggleText,
                   heightUnit === "ft" && styles.toggleTextActive,
+                  !isDark && heightUnit === "ft" && styles.toggleTextActive,
+                  heightUnit === "ft" && isDark && styles.toggleTextActiveDark,
                 ]}
               >
                 Feet & Inches (ft)
@@ -241,95 +324,196 @@ const More = () => {
           </View>
         </View>
 
-        {/* Save Button */}
-        <View className="mt-auto">
-          <TouchableOpacity
-            className="bg-orange-500 rounded-2xl py-4 items-center"
-            onPress={handleSave}
-          >
-            <Text className="text-white text-lg font-bold">Save</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Save Button - Only show when changes are detected */}
+        {hasChanges && (
+          <View className="mt-auto">
+            <TouchableOpacity
+              className="bg-orange-500 dark:bg-orange-600 rounded-2xl py-4 items-center"
+              onPress={handleSave}
+            >
+              <Text className="text-white text-lg font-bold">Save</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
-      {/* Theme Picker Modal */}
+      {/* Enhanced Theme Picker Modal - Simplified */}
       <Modal
         visible={showThemePicker}
         transparent={true}
-        animationType="fade"
+        animationType="slide"
         onRequestClose={() => setShowThemePicker(false)}
       >
-        <View
-          style={{
-            flex: 1,
-            justifyContent: "center",
-            alignItems: "center",
-            backgroundColor: "rgba(0,0,0,0.2)",
-          }}
+        <TouchableOpacity
+          style={[styles.modalOverlay, isDark && styles.modalOverlayDark]}
+          activeOpacity={1}
+          onPress={() => setShowThemePicker(false)}
         >
           <View
-            style={{
-              backgroundColor: "white",
-              borderRadius: 16,
-              padding: 24,
-              minWidth: 280,
-            }}
+            style={[styles.modalContent, isDark && styles.modalContentDark]}
           >
-            <Text
-              style={{
-                fontSize: 18,
-                fontWeight: "bold",
-                marginBottom: 18,
-                textAlign: "center",
-              }}
-            >
-              Choose Theme Mode
-            </Text>
-            {["system", "light", "dark"].map((mode) => (
-              <TouchableOpacity
-                key={mode}
-                style={[
-                  styles.toggleButton,
-                  themeMode === mode && styles.toggleButtonActive,
-                  { marginBottom: 10 },
-                ]}
-                onPress={async () => {
-                  setThemeMode(mode as "system" | "light" | "dark");
-                  await setScheme(mode as "system" | "light" | "dark");
-                  setShowThemePicker(false);
-                }}
+            <TouchableOpacity activeOpacity={1}>
+              {/* Modal Header */}
+              <View
+                style={[styles.modalHeader, isDark && styles.modalHeaderDark]}
               >
                 <Text
+                  style={[styles.modalTitle, isDark && styles.modalTitleDark]}
+                >
+                  Choose Theme
+                </Text>
+                <Text
                   style={[
-                    styles.toggleText,
-                    themeMode === mode && styles.toggleTextActive,
+                    styles.modalSubtitle,
+                    isDark && styles.modalSubtitleDark,
                   ]}
                 >
-                  {mode === "system"
-                    ? "System Default"
-                    : mode.charAt(0).toUpperCase() + mode.slice(1)}
+                  Select your preferred appearance
                 </Text>
-              </TouchableOpacity>
-            ))}
-            <TouchableOpacity
-              style={{ marginTop: 8, alignItems: "center" }}
-              onPress={() => setShowThemePicker(false)}
-            >
-              <Text style={{ color: "#6B7280", fontSize: 16 }}>Cancel</Text>
+              </View>
+
+              {/* Theme Options */}
+              <View style={styles.themeOptions}>
+                {[
+                  {
+                    key: "system",
+                    label: "System Default",
+                    sublabel: "Follow device setting",
+                  },
+                  {
+                    key: "light",
+                    label: "Light Mode",
+                    sublabel: "Clean and bright",
+                  },
+                  {
+                    key: "dark",
+                    label: "Dark Mode",
+                    sublabel: "Easy on your eyes",
+                  },
+                ].map((option) => (
+                  <TouchableOpacity
+                    key={option.key}
+                    style={[
+                      styles.themeOption,
+                      isDark && styles.themeOptionDark,
+                      themeMode === option.key && styles.themeOptionSelected,
+                      themeMode === option.key &&
+                        isDark &&
+                        styles.themeOptionSelectedDark,
+                    ]}
+                    onPress={() =>
+                      handleThemeSelect(
+                        option.key as "system" | "light" | "dark"
+                      )
+                    }
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.themeOptionLeft}>
+                      <View
+                        style={[
+                          styles.themeIconContainer,
+                          isDark && styles.themeIconContainerDark,
+                          themeMode === option.key &&
+                            styles.themeIconContainerSelected,
+                          themeMode === option.key &&
+                            isDark &&
+                            styles.themeIconContainerSelectedDark,
+                        ]}
+                      >
+                        <Text style={styles.themeOptionIcon}>
+                          {getThemeIcon(option.key)}
+                        </Text>
+                      </View>
+                      <View>
+                        <Text
+                          style={[
+                            styles.themeOptionLabel,
+                            isDark && styles.themeOptionLabelDark,
+                            themeMode === option.key &&
+                              styles.themeOptionLabelSelected,
+                            themeMode === option.key &&
+                              isDark &&
+                              styles.themeOptionLabelSelectedDark,
+                          ]}
+                        >
+                          {option.label}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.themeOptionSublabel,
+                            isDark && styles.themeOptionSublabelDark,
+                            themeMode === option.key &&
+                              styles.themeOptionSublabelSelected,
+                            themeMode === option.key &&
+                              isDark &&
+                              styles.themeOptionSublabelSelectedDark,
+                          ]}
+                        >
+                          {option.sublabel}
+                        </Text>
+                      </View>
+                    </View>
+                    {themeMode === option.key && (
+                      <View
+                        style={[
+                          styles.checkmark,
+                          isDark && styles.checkmarkDark,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.checkmarkText,
+                            isDark && styles.checkmarkTextDark,
+                          ]}
+                        >
+                          ✓
+                        </Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Modal Footer */}
+              <View
+                style={[styles.modalFooter, isDark && styles.modalFooterDark]}
+              >
+                <TouchableOpacity
+                  style={[
+                    styles.cancelButton,
+                    isDark && styles.cancelButtonDark,
+                  ]}
+                  onPress={() => setShowThemePicker(false)}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      styles.cancelButtonText,
+                      isDark && styles.cancelButtonTextDark,
+                    ]}
+                  >
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </TouchableOpacity>
           </View>
-        </View>
+        </TouchableOpacity>
       </Modal>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  // Toggles
   toggleContainer: {
     flexDirection: "row",
     backgroundColor: "#F3F4F6",
     borderRadius: 12,
     padding: 4,
+  },
+  toggleContainerDark: {
+    backgroundColor: "#374151",
   },
   toggleButton: {
     flex: 1,
@@ -338,12 +522,15 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   toggleButtonActive: {
-    backgroundColor: "white",
+    backgroundColor: "#FFFFFF",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 1.41,
     elevation: 2,
+  },
+  toggleButtonActiveDark: {
+    backgroundColor: "#1f2937",
   },
   toggleText: {
     fontSize: 16,
@@ -352,6 +539,240 @@ const styles = StyleSheet.create({
   },
   toggleTextActive: {
     color: "#111827",
+  },
+  toggleTextActiveDark: {
+    color: "#FFFFFF",
+  },
+  // Theme selector styles
+  themeSelector: {
+    backgroundColor: "#F9FAFB",
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  themeSelectorDark: {
+    backgroundColor: "#374151",
+    borderColor: "#4B5563",
+  },
+  themeSelectorContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  themeIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  themeTextContainer: {
+    flex: 1,
+  },
+  themeTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#111827",
+    marginBottom: 2,
+  },
+  themeTitleDark: {
+    color: "#FFFFFF",
+  },
+  themeDescription: {
+    fontSize: 14,
+    color: "#6B7280",
+  },
+  themeDescriptionDark: {
+    color: "#9CA3AF",
+  },
+  chevron: {
+    fontSize: 20,
+    color: "#9CA3AF",
+    fontWeight: "300",
+  },
+  chevronDark: {
+    color: "#6B7280",
+  },
+  // Modal styles - simplified
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
+  },
+  modalOverlayDark: {
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+  },
+  modalOverlayTouch: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: "white",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: "80%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -5 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  modalContentDark: {
+    backgroundColor: "#1f2937",
+    shadowColor: "#fff",
+    borderTopWidth: 1,
+    borderColor: "#374151",
+  },
+  modalHeader: {
+    paddingTop: 24,
+    paddingHorizontal: 24,
+    paddingBottom: 20,
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F3F4F6",
+  },
+  modalHeaderDark: {
+    borderBottomColor: "#374151",
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 4,
+  },
+  modalTitleDark: {
+    color: "#FFFFFF",
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: "#6B7280",
+  },
+  modalSubtitleDark: {
+    color: "#9CA3AF",
+  },
+  themeOptions: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+  },
+  themeOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+    backgroundColor: "#F9FAFB",
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  themeOptionDark: {
+    backgroundColor: "#374151",
+    borderColor: "transparent",
+  },
+  themeOptionSelected: {
+    backgroundColor: "#FEF3E2",
+    borderColor: "#FB923C",
+  },
+  themeOptionSelectedDark: {
+    backgroundColor: "#431407",
+    borderColor: "#FB923C",
+  },
+  themeOptionLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  themeIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#E5E7EB",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  themeIconContainerDark: {
+    backgroundColor: "#4B5563",
+  },
+  themeIconContainerSelected: {
+    backgroundColor: "#FB923C",
+  },
+  themeIconContainerSelectedDark: {
+    backgroundColor: "#ff5a16",
+  },
+  themeOptionIcon: {
+    fontSize: 18,
+  },
+  themeOptionLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#111827",
+    marginBottom: 2,
+  },
+  themeOptionLabelDark: {
+    color: "#FFFFFF",
+  },
+  themeOptionLabelSelected: {
+    color: "#C2410C",
+  },
+  themeOptionLabelSelectedDark: {
+    color: "#FDBA74",
+  },
+  themeOptionSublabel: {
+    fontSize: 13,
+    color: "#6B7280",
+  },
+  themeOptionSublabelDark: {
+    color: "#9CA3AF",
+  },
+  themeOptionSublabelSelected: {
+    color: "#EA580C",
+  },
+  themeOptionSublabelSelectedDark: {
+    color: "#FB923C",
+  },
+  checkmark: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#FB923C",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  checkmarkDark: {
+    backgroundColor: "#FB923C",
+  },
+  checkmarkText: {
+    color: "white",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  checkmarkTextDark: {
+    color: "#FFFFFF",
+  },
+  modalFooter: {
+    paddingHorizontal: 24,
+    paddingBottom: 32,
+    paddingTop: 8,
+  },
+  modalFooterDark: {
+    borderTopWidth: 1,
+    borderTopColor: "#374151",
+  },
+  cancelButton: {
+    paddingVertical: 14,
+    alignItems: "center",
+    borderRadius: 12,
+    backgroundColor: "#F3F4F6",
+  },
+  cancelButtonDark: {
+    backgroundColor: "#4B5563",
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#6B7280",
+  },
+  cancelButtonTextDark: {
+    color: "#9CA3AF",
   },
 });
 

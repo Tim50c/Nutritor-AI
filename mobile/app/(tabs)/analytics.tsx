@@ -1,6 +1,7 @@
 import AnalyticsHeader from "@/components/AnalyticsHeader";
 import CalorieChart from "@/components/CalorieChart";
 import CustomHeaderWithBack from "@/components/CustomHeaderWithBack";
+import GoalAchievedModal from "@/components/GoalAchievedModal";
 import NutritionTrend from "@/components/NutritionTrend";
 import ToggleTabs, { TabOption } from "@/components/ToggleTabs";
 import { useAnalytics } from "@/context/AnalyticsContext";
@@ -24,7 +25,7 @@ const formatDateForAPI = (date: Date): string => {
 };
 
 const Analytics = () => {
-  const { userProfile } = useUser();
+  const { userProfile, refetchUserProfile } = useUser();
   // Determine weight unit from user profile
   const weightUnit = userProfile?.unitPreferences?.weight || "kg";
   const {
@@ -35,6 +36,8 @@ const Analytics = () => {
     getNutritionData,
     refreshNutritionTab,
     refreshAnalytics,
+    showGoalAchievedModal,
+    setShowGoalAchievedModal,
   } = useAnalytics();
 
   const [tab, setTab] = useState<TabOption>("daily");
@@ -406,6 +409,11 @@ const Analytics = () => {
     setRefreshTrigger((prev) => prev + 1);
     try {
       console.log("🔄 [Analytics] Manual refresh triggered");
+      // Refresh user profile first (this will also clear analytics cache)
+      await refetchUserProfile();
+      // Small delay to prevent race conditions and reduce load
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      // Then refresh analytics data
       await refreshAnalytics();
       if (tab !== "daily") {
         await refreshNutritionTab(tab);
@@ -413,7 +421,7 @@ const Analytics = () => {
     } catch (error) {
       console.error("❌ [Analytics] Manual refresh failed:", error);
     }
-  }, [refreshAnalytics, refreshNutritionTab, tab]);
+  }, [refreshAnalytics, refetchUserProfile, refreshNutritionTab, tab]);
 
   // Get raw weight values - AnalyticsHeader will handle unit conversion
   const weightGoal = analysisData?.weightGoal ?? 0;
@@ -421,32 +429,34 @@ const Analytics = () => {
 
   if (analyticsLoading && !analyticsData) {
     return (
-      <SafeAreaView className="flex-1 bg-white justify-center items-center">
-        <ActivityIndicator size="large" color="#009FFA" />
-        <Text className="mt-4 text-gray-500">Loading analytics...</Text>
+      <SafeAreaView className="flex-1 bg-white dark:bg-black justify-center items-center">
+        <ActivityIndicator size="large" color="#FF6F2D" />
+        <Text className="mt-4 text-gray-500 dark:text-gray-200">
+          Loading analytics...
+        </Text>
       </SafeAreaView>
     );
   }
   if (error) {
     return (
-      <SafeAreaView className="flex-1 bg-white justify-center items-center">
-        <Text className="text-red-500">{error}</Text>
+      <SafeAreaView className="flex-1 bg-white dark:bg-black justify-center items-center">
+        <Text className="text-red-500 dark:text-red-400">{error}</Text>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-white dark:bg-black">
       <CustomHeaderWithBack title="Analytics" />
       <ScrollView
         contentContainerStyle={{ paddingBottom: 120 }}
-        className="px-4"
+        className="px-6"
         refreshControl={
           <RefreshControl
             refreshing={analyticsLoading || nutritionLoading}
             onRefresh={handleRefresh}
-            colors={["#009FFA"]}
-            tintColor="#009FFA"
+            colors={["#FF6F2D"]} // Android - orange theme
+            tintColor="#FF6F2D" // iOS - orange theme
             title="Updating analytics..."
           />
         }
@@ -463,8 +473,8 @@ const Analytics = () => {
 
         {shouldShowLoading ? (
           <View className="mt-4 flex-1 justify-center items-center py-8">
-            <ActivityIndicator size="small" color="#009FFA" />
-            <Text className="mt-2 text-gray-500 text-sm">
+            <ActivityIndicator size="small" color="#FF6F2D" />
+            <Text className="mt-2 text-gray-500 dark:text-gray-200 text-sm">
               Loading {tab} data...
             </Text>
           </View>
@@ -513,6 +523,13 @@ const Analytics = () => {
           </>
         )}
       </ScrollView>
+
+      {/* Goal Achievement Modal */}
+      <GoalAchievedModal
+        visible={showGoalAchievedModal}
+        onClose={() => setShowGoalAchievedModal(false)}
+        onSetNewGoal={() => setShowGoalAchievedModal(false)}
+      />
     </SafeAreaView>
   );
 };

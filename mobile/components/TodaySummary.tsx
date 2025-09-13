@@ -80,7 +80,9 @@ function CircularProgress({ current, target }: CircularProgressProps) {
           />
         </Svg>
         <View className="items-center -mt-6">
-          <Text className="text-lg font-semibold mb-1 dark:text-gray-200">Calories</Text>
+          <Text className="text-lg font-semibold mb-1 dark:text-gray-200">
+            Calories
+          </Text>
           <Text className="text-2xl font-bold text-gray-700 dark:text-gray-200">
             {current}/{target}
           </Text>
@@ -106,7 +108,7 @@ export default function TodaySummary({
   // Show loading state if needed
   if (isLoading) {
     return (
-      <View className="bg-white dark:bg-gray-800 mx-4 rounded-2xl p-6 mb-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+      <View className="bg-white dark:bg-gray-800 rounded-2xl p-6 mb-6 border border-gray-200 dark:border-gray-700 shadow-sm">
         <Text className="text-lg font-semibold mb-6">Today Summary</Text>
         <View className="items-center mb-8">
           <Text className="text-gray-500 dark:text-gray-200">Loading...</Text>
@@ -145,9 +147,11 @@ export default function TodaySummary({
   ];
 
   return (
-    <View className="bg-white dark:bg-black mx-4 rounded-2xl p-6 mb-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+    <View className="bg-white dark:bg-black rounded-2xl p-6 mb-6 border border-gray-200 dark:border-gray-700 shadow-sm">
       <View className="flex-row items-center justify-between mb-6">
-        <Text className="text-lg font-semibold dark:text-gray-200">Today Summary</Text>
+        <Text className="text-lg font-semibold dark:text-gray-200">
+          Today Summary
+        </Text>
         {syncing && (
           <View className="flex-row items-center">
             <LoadingSpinner isProcessing={true} size={14} color="#F97316" />

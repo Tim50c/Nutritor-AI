@@ -1,6 +1,7 @@
 const { db, admin } = require('../config/firebase');
 const Food = require('../models/foodModel');
 const Diet = require('../models/dietModel');
+const User = require('../models/userModel');
 
 // Helper function for timezone-safe date formatting (UTC+7)
 const getLocalDateString = (date = new Date()) => {
@@ -312,10 +313,29 @@ async function getCurrentAndGoalWeight(uid) {
     }
     
     const userData = userDoc.data();
+    const weightUnit = userData.unitPreferences?.weight || 'kg';
+    
+    // Weight conversion logic
+    const KG_TO_LBS = 2.20462;
+    const kgToLbs = (kg) => Math.round(kg * KG_TO_LBS * 10) / 10;
+    
+    let currentWeight = userData.weightCurrent || 0;
+    let goalWeight = userData.weightGoal || 0;
+    
+    // Convert to lbs if user preference is lbs
+    if (weightUnit === 'lbs') {
+      currentWeight = currentWeight ? kgToLbs(currentWeight) : 0;
+      goalWeight = goalWeight ? kgToLbs(goalWeight) : 0;
+    } else {
+      // Round kg values to 1 decimal place
+      currentWeight = Math.round(currentWeight * 10) / 10;
+      goalWeight = Math.round(goalWeight * 10) / 10;
+    }
+    
     return {
-      currentWeight: userData.weightCurrent || 0,
-      goalWeight: userData.weightGoal || 0,
-      unit: userData.unitPreferences?.weight || 'kg'
+      currentWeight,
+      goalWeight,
+      unit: weightUnit
     };
   } catch (error) {
     console.error('[Agent] Error getting weight data:', error);
@@ -336,34 +356,60 @@ async function updateCurrentWeight(uid, newWeight) {
     }
     
     const userData = userDoc.data();
+    const weightUnit = userData.unitPreferences?.weight || 'kg';
     const goalWeight = userData.weightGoal;
     
-    // Update weight in user profile
+    // Weight conversion logic
+    const KG_TO_LBS = 2.20462;
+    const kgToLbs = (kg) => Math.round(kg * KG_TO_LBS * 10) / 10;
+    const lbsToKg = (lbs) => lbs / KG_TO_LBS;
+    
+    // Convert input weight to kg for storage if user entered in lbs
+    let weightInKgForStorage = newWeight;
+    if (weightUnit === 'lbs') {
+      weightInKgForStorage = lbsToKg(newWeight);
+    }
+    
+    // Update weight in user profile (always store in kg)
     await userRef.update({
-      weightCurrent: newWeight,
+      weightCurrent: weightInKgForStorage,
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
     
-    // Create weight log entry
+    // Create weight log entry (always store in kg)
     await db.collection('users').doc(uid).collection('weights')
       .add({ 
         date: new Date(), 
-        weight: newWeight 
+        weight: weightInKgForStorage 
       });
     
-    // Check goal achievement
-    const goalAchieved = goalWeight > 0 && Math.abs(newWeight - goalWeight) <= 0.1;
+    // Check goal achievement (always compare in kg)
+    const goalAchieved = goalWeight > 0 && Math.abs(weightInKgForStorage - goalWeight) <= 0.1;
+    
+    // Prepare display values in user's preferred unit
+    let displayCurrentWeight = weightInKgForStorage;
+    let displayGoalWeight = goalWeight;
+    
+    if (weightUnit === 'lbs') {
+      displayCurrentWeight = kgToLbs(weightInKgForStorage);
+      displayGoalWeight = goalWeight ? kgToLbs(goalWeight) : 0;
+    } else {
+      // Round kg values to 1 decimal place
+      displayCurrentWeight = Math.round(weightInKgForStorage * 10) / 10;
+      displayGoalWeight = Math.round(goalWeight * 10) / 10;
+    }
     
     console.log(`[Agent] Weight updated successfully. Goal achieved: ${goalAchieved}`);
     
     return {
       success: true,
       goalAchieved,
-      currentWeight: newWeight,
-      goalWeight,
+      currentWeight: displayCurrentWeight,
+      goalWeight: displayGoalWeight,
+      unit: weightUnit,
       message: goalAchieved 
-        ? `🎉 Congratulations! You've reached your weight goal of ${goalWeight}kg!` 
-        : `Weight updated to ${newWeight}kg`
+        ? `🎉 Congratulations! You've reached your weight goal of ${displayGoalWeight}${weightUnit}!` 
+        : `Weight updated to ${displayCurrentWeight}${weightUnit}`
     };
   } catch (error) {
     console.error('[Agent] Error updating weight:', error);
@@ -418,6 +464,236 @@ async function analyzeImageAndMatchFood(model, imageData) {
   }
 }
 
+// 10. Get user profile information
+async function getUserProfile(uid) {
+  try {
+    console.log(`[Agent] Getting profile for user ${uid}`);
+    
+    const userDoc = await db.collection('users').doc(uid).get();
+    
+    if (!userDoc.exists) {
+      return {
+        success: false,
+        error: 'User profile not found'
+      };
+    }
+    
+    const user = User.fromFirestore(userDoc);
+    
+    // Format date of birth for better readability
+    let formattedDob = null;
+    if (user.dob) {
+      const dobDate = user.dob.toDate ? user.dob.toDate() : new Date(user.dob);
+      formattedDob = dobDate.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    }
+    
+    // Calculate age from date of birth
+    let age = null;
+    if (user.dob) {
+      const dobDate = user.dob.toDate ? user.dob.toDate() : new Date(user.dob);
+      const today = new Date();
+      age = today.getFullYear() - dobDate.getFullYear();
+      const monthDiff = today.getMonth() - dobDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dobDate.getDate())) {
+        age--;
+      }
+    }
+    
+    // Format weight and height based on user preferences
+    const weightUnit = user.unitPreferences?.weight || 'kg';
+    const heightUnit = user.unitPreferences?.height || 'cm';
+    
+    let formattedCurrentWeight = user.weightCurrent;
+    let formattedGoalWeight = user.weightGoal;
+    let formattedHeight = user.height;
+    
+    if (weightUnit === 'lbs' && user.weightCurrent) {
+      formattedCurrentWeight = Math.round(user.weightCurrent * 2.20462 * 10) / 10;
+    }
+    if (weightUnit === 'lbs' && user.weightGoal) {
+      formattedGoalWeight = Math.round(user.weightGoal * 2.20462 * 10) / 10;
+    }
+    if (heightUnit === 'ft' && user.height) {
+      const feet = Math.floor(user.height / 30.48);
+      const inches = Math.round((user.height % 30.48) / 2.54);
+      formattedHeight = `${feet}'${inches}"`;
+    }
+    
+    return {
+      success: true,
+      profile: {
+        personal: {
+          firstName: user.firstname || 'Not set',
+          lastName: user.lastname || 'Not set',
+          fullName: `${user.firstname || ''} ${user.lastname || ''}`.trim() || 'Not set',
+          dateOfBirth: formattedDob || 'Not set',
+          age: age || 'Not set',
+          gender: user.gender || 'Not set',
+          email: user.email || 'Not available'
+        },
+        physical: {
+          height: formattedHeight || 'Not set',
+          heightUnit: heightUnit,
+          currentWeight: formattedCurrentWeight || 'Not set',
+          goalWeight: formattedGoalWeight || 'Not set',
+          weightUnit: weightUnit
+        },
+        nutrition: {
+          targetCalories: user.targetNutrition?.cal || 'Not set',
+          targetProtein: user.targetNutrition?.protein || 'Not set',
+          targetCarbs: user.targetNutrition?.carbs || 'Not set',
+          targetFat: user.targetNutrition?.fat || 'Not set'
+        },
+        preferences: {
+          weightUnit: user.unitPreferences?.weight || 'kg',
+          heightUnit: user.unitPreferences?.height || 'cm'
+        },
+        status: {
+          onboardingComplete: user.onboardingComplete || false,
+          hasAvatar: !!user.avatar
+        }
+      }
+    };
+  } catch (error) {
+    console.error('[Agent] Error getting user profile:', error);
+    throw error;
+  }
+}
+
+// 11. Update user profile information
+async function updateUserProfile(uid, updateData) {
+  try {
+    console.log(`[Agent] Updating profile for user ${uid}`, updateData);
+    
+    // Validate that user exists
+    const userDoc = await db.collection('users').doc(uid).get();
+    if (!userDoc.exists) {
+      return {
+        success: false,
+        error: 'User profile not found'
+      };
+    }
+    
+    const currentUserData = userDoc.data();
+    const userRef = db.collection('users').doc(uid);
+    const firebaseUpdateData = {};
+    
+    // Handle personal information updates
+    if (updateData.firstName !== undefined) {
+      firebaseUpdateData.firstname = updateData.firstName;
+    }
+    if (updateData.lastName !== undefined) {
+      firebaseUpdateData.lastname = updateData.lastName;
+    }
+    if (updateData.gender !== undefined) {
+      firebaseUpdateData.gender = updateData.gender;
+    }
+    if (updateData.dateOfBirth !== undefined) {
+      try {
+        firebaseUpdateData.dob = admin.firestore.Timestamp.fromDate(new Date(updateData.dateOfBirth));
+      } catch (error) {
+        return {
+          success: false,
+          error: 'Invalid date format for date of birth'
+        };
+      }
+    }
+    
+    // Handle physical measurements (convert to metric for storage)
+    const currentWeightUnit = currentUserData.unitPreferences?.weight || 'kg';
+    const currentHeightUnit = currentUserData.unitPreferences?.height || 'cm';
+    
+    if (updateData.height !== undefined) {
+      let heightInCm = updateData.height;
+      if (updateData.heightUnit === 'ft' || currentHeightUnit === 'ft') {
+        // Assume height is in format like "5.8" representing 5'8"
+        const feet = Math.floor(heightInCm);
+        const inches = (heightInCm - feet) * 12;
+        heightInCm = (feet * 12 + inches) * 2.54;
+      }
+      firebaseUpdateData.height = Math.round(heightInCm * 10) / 10;
+    }
+    
+    if (updateData.currentWeight !== undefined) {
+      let weightInKg = updateData.currentWeight;
+      if (updateData.weightUnit === 'lbs' || currentWeightUnit === 'lbs') {
+        weightInKg = weightInKg / 2.20462;
+      }
+      firebaseUpdateData.weightCurrent = Math.round(weightInKg * 10) / 10;
+    }
+    
+    if (updateData.goalWeight !== undefined) {
+      let weightInKg = updateData.goalWeight;
+      if (updateData.weightUnit === 'lbs' || currentWeightUnit === 'lbs') {
+        weightInKg = weightInKg / 2.20462;
+      }
+      firebaseUpdateData.weightGoal = Math.round(weightInKg * 10) / 10;
+    }
+    
+    // Handle nutrition targets
+    if (updateData.targetNutrition !== undefined) {
+      firebaseUpdateData.targetNutrition = {
+        cal: updateData.targetNutrition.calories || updateData.targetNutrition.cal,
+        protein: updateData.targetNutrition.protein,
+        carbs: updateData.targetNutrition.carbs,
+        fat: updateData.targetNutrition.fat
+      };
+    }
+    
+    // Handle unit preferences
+    if (updateData.weightUnit !== undefined || updateData.heightUnit !== undefined) {
+      firebaseUpdateData.unitPreferences = {
+        weight: updateData.weightUnit || currentUserData.unitPreferences?.weight || 'kg',
+        height: updateData.heightUnit || currentUserData.unitPreferences?.height || 'cm'
+      };
+    }
+    
+    // Add timestamp
+    firebaseUpdateData.updatedAt = admin.firestore.FieldValue.serverTimestamp();
+    
+    if (Object.keys(firebaseUpdateData).length === 1) { // Only timestamp
+      return {
+        success: false,
+        error: 'No valid update data provided'
+      };
+    }
+    
+    await userRef.update(firebaseUpdateData);
+    
+    // Build a descriptive message about what was updated
+    const updatedFields = [];
+    if (updateData.firstName !== undefined) updatedFields.push('first name');
+    if (updateData.lastName !== undefined) updatedFields.push('last name');
+    if (updateData.gender !== undefined) updatedFields.push('gender');
+    if (updateData.dateOfBirth !== undefined) updatedFields.push('date of birth');
+    if (updateData.height !== undefined) updatedFields.push('height');
+    if (updateData.currentWeight !== undefined) updatedFields.push('current weight');
+    if (updateData.goalWeight !== undefined) updatedFields.push('goal weight');
+    if (updateData.weightUnit !== undefined || updateData.heightUnit !== undefined) updatedFields.push('unit preferences');
+    if (updateData.targetNutrition !== undefined) updatedFields.push('nutrition targets');
+    
+    const updateMessage = updatedFields.length > 0 
+      ? `Successfully updated your ${updatedFields.join(', ')}.`
+      : 'Profile updated successfully.';
+    
+    // Get updated profile for response
+    const updatedProfile = await getUserProfile(uid);
+    
+    return {
+      success: true,
+      message: updateMessage,
+      updatedProfile: updatedProfile.profile
+    };
+  } catch (error) {
+    console.error('[Agent] Error updating user profile:', error);
+    throw error;
+  }
+}
+
 module.exports = {
   getAllFoods,
   searchFoodInDatabase,
@@ -428,5 +704,7 @@ module.exports = {
   getCurrentAndGoalWeight,
   updateCurrentWeight,
   analyzeImageAndMatchFood,
+  getUserProfile,
+  updateUserProfile,
   getLocalDateString
 };

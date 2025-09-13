@@ -1,7 +1,7 @@
-import { useDietContext } from "@/context/DietContext";
 import React, { useEffect } from "react";
-import { TouchableOpacity, View } from "react-native";
+import { View, TouchableOpacity } from "react-native";
 import { Text } from "./CustomText";
+import { useDietContext } from "@/context/DietContext";
 
 function getMonthName(year: number, month: number) {
   return new Date(year, month, 1).toLocaleString("en-US", { month: "long" });
@@ -51,27 +51,23 @@ export default function DietCalendar() {
   const weekDays = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 
   return (
-    <View className="bg-accent dark:bg-accent-dark rounded-2xl mx-4 mt-2 mb-6 p-3 shadow-lg">
+    <View className="bg-orange-500 dark:bg-orange-700 rounded-2xl mx-6 mt-2 mb-6 p-3 shadow-lg">
       {/* Month navigation */}
       <View className="flex-row items-center justify-between mb-2">
         <TouchableOpacity
           onPress={() => setDietDate(new Date(year, month - 1, 1))}
         >
-          <Text className="text-default dark:text-default-dark text-lg">
-            {"<"}
-          </Text>
+          <Text className="text-white dark:text-black text-lg">{"<"}</Text>
         </TouchableOpacity>
 
-        <Text className="text-default dark:text-default-dark text-lg font-semibold flex-1 text-center mx-2 truncate my-1">
+        <Text className="text-white dark:text-black text-lg font-semibold flex-1 text-center mx-2 truncate my-1">
           {getMonthName(year, month)} {year}
         </Text>
 
         <TouchableOpacity
           onPress={() => setDietDate(new Date(year, month + 1, 1))}
         >
-          <Text className="text-default dark:text-default-dark text-lg">
-            {">"}
-          </Text>
+          <Text className="text-white dark:text-black text-lg">{">"}</Text>
         </TouchableOpacity>
       </View>
 
@@ -80,7 +76,7 @@ export default function DietCalendar() {
         {weekDays.map((d) => (
           <Text
             key={d}
-            className="w-[14.2857%] text-center text-default dark:text-default-dark text-xs font-bold"
+            className="w-[14.2857%] text-center text-white dark:text-black text-xs font-bold"
           >
             {d}
           </Text>
@@ -128,10 +124,10 @@ export default function DietCalendar() {
                   }}
                 >
                   <Text
-                    className={`$${
+                    className={`${
                       isToday || isSelected
-                        ? "text-accent dark:text-accent-dark font-bold"
-                        : "text-default dark:text-default-dark"
+                        ? "text-orange-500 dark:text-orange-700 font-bold"
+                        : "text-white dark:text-black"
                     } text-sm font-semibold`}
                   >
                     {d}

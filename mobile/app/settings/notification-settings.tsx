@@ -1,29 +1,36 @@
-import React, { useState, useRef } from "react";
-import {
-  View,
-  ScrollView,
-  TouchableOpacity,
-  SafeAreaView,
-  Animated,
-  Easing,
-} from "react-native";
-import { Text } from "../../components/CustomText";
-import { useRouter } from "expo-router";
-import { useNotificationContext } from "@/context/NotificationContext";
-import { icons } from "@/constants/icons";
 import TimePickerModal from "@/components/TimePickerModal";
+import GoalAchievementsSection from "@/components/notification-settings/GoalAchievementsSection";
 import MealRemindersSection from "@/components/notification-settings/MealRemindersSection";
 import WeeklyProgressSection from "@/components/notification-settings/WeeklyProgressSection";
-import GoalAchievementsSection from "@/components/notification-settings/GoalAchievementsSection";
-import { MealReminders, WeeklyProgress, GoalAchievements, TimePreference } from "@/models/notification-preferences-model";
-import { days, dayLabels } from "@/constants/days";
+import { dayLabels, days } from "@/constants/days";
+import { icons } from "@/constants/icons";
+import { useNotificationContext } from "@/context/NotificationContext";
+import {
+  GoalAchievements,
+  MealReminders,
+  TimePreference,
+  WeeklyProgress,
+} from "@/models/notification-preferences-model";
+import { useIsDark } from "@/theme/useIsDark";
+import { useRouter } from "expo-router";
+import React, { useRef, useState } from "react";
+import {
+  Animated,
+  Easing,
+  SafeAreaView,
+  ScrollView,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { Text } from "../../components/CustomText";
 
-const formatTime = (time: TimePreference): string => 
+const formatTime = (time: TimePreference): string =>
   `${time.hour.toString().padStart(2, "0")}:${time.minute.toString().padStart(2, "0")}`;
 
 const NotificationSettings: React.FC = () => {
   const router = useRouter();
   const { preferences, updatePreferences } = useNotificationContext();
+  const isDark = useIsDark();
 
   // Add fallback values to prevent accessing undefined properties
   const mealReminders: MealReminders = preferences?.mealReminders || {
@@ -63,11 +70,11 @@ const NotificationSettings: React.FC = () => {
   const toggleSection = (section: string) => {
     // Check if the section's main toggle is enabled before allowing expansion
     let isToggleEnabled = false;
-    if (section === 'meals') {
+    if (section === "meals") {
       isToggleEnabled = mealReminders.enabled;
-    } else if (section === 'weekly') {
+    } else if (section === "weekly") {
       isToggleEnabled = weeklyProgress.enabled;
-    } else if (section === 'goals') {
+    } else if (section === "goals") {
       isToggleEnabled = goalAchievements.enabled;
     }
 
@@ -78,17 +85,20 @@ const NotificationSettings: React.FC = () => {
 
     const isExpanding = expandedSection !== section;
     const previousSection = expandedSection;
-    
+
     setExpandedSection(isExpanding ? section : null);
 
     // If there was a previously expanded section and we're opening a new one, close the previous one
     if (previousSection && previousSection !== section && isExpanding) {
-      Animated.timing(rotationValues[previousSection as keyof typeof rotationValues], {
-        toValue: 0,
-        duration: 300,
-        easing: Easing.bezier(0.4, 0, 0.2, 1),
-        useNativeDriver: true,
-      }).start();
+      Animated.timing(
+        rotationValues[previousSection as keyof typeof rotationValues],
+        {
+          toValue: 0,
+          duration: 300,
+          easing: Easing.bezier(0.4, 0, 0.2, 1),
+          useNativeDriver: true,
+        }
+      ).start();
     }
 
     // Animate the current section's arrow
@@ -141,29 +151,33 @@ const NotificationSettings: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#f5f5f5" }}>
+    <SafeAreaView className="flex-1 bg-gray-100 dark:bg-black">
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-3">
+      <View className="flex-row items-center justify-between px-6 py-3">
         <TouchableOpacity
-          className="bg-black w-10 h-10 rounded-full justify-center items-center"
+          className="bg-black dark:bg-white w-10 h-10 rounded-full justify-center items-center"
           onPress={() => router.back()}
         >
           <View style={{ transform: [{ rotate: "0deg" }] }}>
-            <icons.arrow width={20} height={20} color="#FFFFFF" />
+            {isDark ? (
+              <icons.arrowDark width={20} height={20} color="#FFFFFF" />
+            ) : (
+              <icons.arrow width={20} height={20} color="#FFFFFF" />
+            )}
           </View>
         </TouchableOpacity>
-        <Text className="text-xl font-bold text-black">
+        <Text className="text-xl font-bold text-black dark:text-white">
           Notification Settings
         </Text>
         <View className="w-10 h-10" />
       </View>
 
-      <ScrollView style={{ flex: 1, padding: 16 }}>
+      <ScrollView style={{ flex: 1, padding: 24 }}>
         <MealRemindersSection
           mealReminders={mealReminders}
           rotationValue={rotationValues.meals}
           expandedSection={expandedSection}
-          onPress={() => toggleSection('meals')}
+          onPress={() => toggleSection("meals")}
           updatePreferences={updatePreferences}
           openTimePicker={openTimePicker}
           formatTime={formatTime}
@@ -175,7 +189,7 @@ const NotificationSettings: React.FC = () => {
           weeklyProgress={weeklyProgress}
           rotationValue={rotationValues.weekly}
           expandedSection={expandedSection}
-          onPress={() => toggleSection('weekly')}
+          onPress={() => toggleSection("weekly")}
           updatePreferences={updatePreferences}
           openTimePicker={openTimePicker}
           formatTime={formatTime}
@@ -187,7 +201,7 @@ const NotificationSettings: React.FC = () => {
           goalAchievements={goalAchievements}
           rotationValue={rotationValues.goals}
           expandedSection={expandedSection}
-          onPress={() => toggleSection('goals')}
+          onPress={() => toggleSection("goals")}
           updatePreferences={updatePreferences}
           openTimePicker={openTimePicker}
           formatTime={formatTime}

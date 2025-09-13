@@ -71,11 +71,11 @@ export default function FoodSection({
   return (
     <View className="mb-6">
       {title && (
-        <Text className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4 px-4">
+        <Text className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4">
           {title}
         </Text>
       )}
-      <View className="px-4">{foodCards}</View>
+      <View>{foodCards}</View>
     </View>
   );
 }
