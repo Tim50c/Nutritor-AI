@@ -323,17 +323,20 @@ router.post("/", authMiddleware, upload.single("image"), async (req, res) => {
     console.error("Error name:", err.name);
     console.error("Error message:", err.message);
     console.error("Error stack:", err.stack);
+    console.error("Error details:", JSON.stringify(err, null, 2));
     
     // More specific error responses
     let errorMessage = "An error occurred on the server.";
-    if (err.message?.includes("API key")) {
+    if (err.message?.includes("API key") || err.message?.includes("PERMISSION_DENIED")) {
       errorMessage = "AI service authentication failed. Please check server configuration.";
-    } else if (err.message?.includes("model")) {
+    } else if (err.message?.includes("model") || err.message?.includes("Invalid model")) {
       errorMessage = "AI model initialization failed. Please check the model name.";
-    } else if (err.message?.includes("function")) {
+    } else if (err.message?.includes("function") || err.message?.includes("JSON payload")) {
       errorMessage = "AI function calling failed. Please check the tools configuration.";
     } else if (err.message?.includes("auth")) {
       errorMessage = "User authentication failed.";
+    } else if (err.message?.includes("Firebase") || err.message?.includes("undefined")) {
+      errorMessage = "Database connection failed. Please check Firebase configuration.";
     }
     
     res.status(500).json({ 

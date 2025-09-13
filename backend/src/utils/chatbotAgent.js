@@ -2,11 +2,15 @@ const { db, admin } = require('../config/firebase');
 const Food = require('../models/foodModel');
 const Diet = require('../models/dietModel');
 
-// Helper function for timezone-safe date formatting
+// Helper function for timezone-safe date formatting (UTC+7)
 const getLocalDateString = (date = new Date()) => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
+  // Convert to UTC+7 (Asia/Bangkok timezone)
+  const utcTime = date.getTime() + (date.getTimezoneOffset() * 60000);
+  const utcPlus7Time = new Date(utcTime + (7 * 3600000));
+  
+  const year = utcPlus7Time.getFullYear();
+  const month = String(utcPlus7Time.getMonth() + 1).padStart(2, '0');
+  const day = String(utcPlus7Time.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
 
