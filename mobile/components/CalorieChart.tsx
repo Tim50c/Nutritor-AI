@@ -41,7 +41,7 @@ function processDataForChart(data: CalDatum[], mode: TabOption) {
     // For daily mode, we expect 7 days of data with proper dates
     data.forEach((item) => {
       const date = new Date(item.date);
-      const dayLabel = format(date, "EEE").toUpperCase(); // MON, TUE, WED, etc.
+      const dayLabel = format(date, "EEE"); // Mon, Tue, Wed, etc. (first letter capitalized only)
       labels.push(dayLabel);
       values.push(item.value);
     });
@@ -191,7 +191,7 @@ const CalorieChart: React.FC<CalorieChartProps> = ({
           <View
             style={{
               position: "absolute",
-              top: -15,
+              top: -8,
               left: -(50 - barWidth) / 2,
               width: 50,
               alignItems: "center",
@@ -200,7 +200,7 @@ const CalorieChart: React.FC<CalorieChartProps> = ({
           >
             <View style={styles.tooltipContainer}>
               <Text style={styles.tooltipText}>{value.toLocaleString()}</Text>
-              {/* Triangle pointer/spike - without top line */}
+              {/* Triangle pointer/spike pointing down */}
               <View style={styles.trianglePointer} />
             </View>
           </View>
@@ -226,96 +226,113 @@ const CalorieChart: React.FC<CalorieChartProps> = ({
     const totalColumns = chartData.length;
 
     if (totalColumns === 0) {
-      return { barWidth: 20, spacing: 10, chartWidth: containerWidth - 40 };
+      return { barWidth: 20, spacing: 10, chartWidth: containerWidth - 48 };
     }
 
-    // Start with container width minus minimal padding
-    let availableWidth = containerWidth - 40; // Start with 40px padding
-    let barWidth, spacing, chartWidth;
+    // Use the full container width minus padding and reduced chart container padding
+    const actualPaddingValue = windowWidth < 375 ? 16 : 24; // Match the container padding
+    const chartContainerPadding = actualPaddingValue * 2; // Both sides
+    const chartInternalPadding = 4; // Reduced from 8 to 4 (2px on each side from paddingHorizontal: 2)
+    const availableWidth =
+      containerWidth - chartContainerPadding - chartInternalPadding;
 
-    // Try different padding levels until we find the perfect fit
-    for (let padding = 40; padding <= 100; padding += 10) {
-      availableWidth = containerWidth - padding;
+    console.log(`🔧 Container sizing:`, {
+      windowWidth,
+      containerWidth,
+      chartContainerPadding,
+      availableWidth,
+      totalColumns,
+    });
 
-      if (totalColumns === 7) {
-        // For daily view, aim for good-looking proportions
-        const idealBarWidth = 28;
-        const idealSpacing = 12;
-        const idealTotalWidth =
-          (idealBarWidth + idealSpacing) * totalColumns - idealSpacing;
+    // Calculate optimal bar width and spacing based on available width - more conservative approach
+    let barWidth: number;
+    let spacing: number;
+    let chartWidth: number;
 
-        if (idealTotalWidth <= availableWidth) {
-          // Perfect! Use ideal sizes
-          barWidth = idealBarWidth;
-          spacing = idealSpacing;
-          chartWidth = idealTotalWidth + 10; // Small buffer
+    // Use more conservative ratios that work across all device sizes
+    const baseBarRatio =
+      windowWidth < 350 ? 0.55 : windowWidth < 400 ? 0.6 : 0.65;
 
-          console.log(`🔧 Daily Chart (ideal fit):`, {
-            containerWidth,
-            padding,
-            availableWidth,
-            barWidth,
-            spacing,
-            chartWidth,
-            idealTotalWidth,
-          });
-          break;
-        } else {
-          // Calculate proportional sizes that fit
-          const scale = availableWidth / idealTotalWidth;
-          barWidth = Math.max(idealBarWidth * scale, 18); // Minimum 18px bars
-          spacing = Math.max(idealSpacing * scale, 6); // Minimum 6px spacing
-          chartWidth = availableWidth - 5; // Leave small buffer
-        }
-      } else {
-        // For weekly/monthly views
-        const spacePerColumn = availableWidth / totalColumns;
-        barWidth = Math.max(spacePerColumn * 0.7, 20);
-        spacing = Math.max(spacePerColumn * 0.3, 8);
-        chartWidth = availableWidth - 5;
+    if (totalColumns === 7) {
+      // Daily view: Conservative sizing for 7 bars
+      const targetBarToSpacingRatio = baseBarRatio;
+      const totalSpaces = totalColumns - 1;
+
+      // Calculate total width needed
+      const totalUnits =
+        totalColumns +
+        (totalSpaces * (1 - targetBarToSpacingRatio)) / targetBarToSpacingRatio;
+      const unitWidth = availableWidth / totalUnits;
+
+      barWidth = unitWidth * targetBarToSpacingRatio;
+      spacing = unitWidth * (1 - targetBarToSpacingRatio);
+
+      // Scale only if we exceed the available width
+      const totalUsedWidth = barWidth * totalColumns + spacing * totalSpaces;
+      if (totalUsedWidth > availableWidth) {
+        // Scale to fit exactly within available width
+        const scale = availableWidth / totalUsedWidth;
+        barWidth = barWidth * scale;
+        spacing = spacing * scale;
       }
 
-      // Check if this configuration looks good
-      const totalUsedWidth = (barWidth + spacing) * totalColumns - spacing;
-      if (totalUsedWidth <= availableWidth && barWidth >= 18) {
-        console.log(`🔧 Chart perfect fit found:`, {
-          containerWidth,
-          padding,
-          availableWidth,
-          totalColumns,
-          barWidth,
-          spacing,
-          chartWidth,
-          totalUsedWidth,
-          utilizationPercent:
-            ((totalUsedWidth / availableWidth) * 100).toFixed(1) + "%",
-        });
-        break;
+      chartWidth = availableWidth; // Use full available width
+    } else {
+      // Weekly/Monthly view: Even more conservative for variable columns
+      const targetBarToSpacingRatio =
+        baseBarRatio + (totalColumns <= 4 ? 0.05 : 0);
+      const totalSpaces = totalColumns - 1;
+
+      const totalUnits =
+        totalColumns +
+        (totalSpaces * (1 - targetBarToSpacingRatio)) / targetBarToSpacingRatio;
+      const unitWidth = availableWidth / totalUnits;
+
+      barWidth = unitWidth * targetBarToSpacingRatio;
+      spacing = unitWidth * (1 - targetBarToSpacingRatio);
+
+      // Scale only if we exceed the available width
+      const totalUsedWidth = barWidth * totalColumns + spacing * totalSpaces;
+      if (totalUsedWidth > availableWidth) {
+        // Scale to fit exactly within available width
+        const scale = availableWidth / totalUsedWidth;
+        barWidth = barWidth * scale;
+        spacing = spacing * scale;
       }
+
+      chartWidth = availableWidth; // Use full available width
     }
 
-    // Fallback if no good fit found
-    if (!barWidth) {
-      availableWidth = containerWidth - 60;
-      const spacePerColumn = availableWidth / totalColumns;
-      barWidth = Math.max(spacePerColumn * 0.65, 15);
-      spacing = Math.max(spacePerColumn * 0.35, 4);
-      chartWidth = availableWidth;
+    // Ensure minimum sizes and maximum utilization
+    const finalTotalWidth =
+      barWidth * totalColumns + spacing * (totalColumns - 1);
+    const utilization = (finalTotalWidth / availableWidth) * 100;
 
-      console.log(`🔧 Chart fallback sizing:`, {
-        containerWidth,
-        availableWidth,
-        barWidth,
-        spacing,
-        chartWidth,
-      });
-    }
+    console.log(`🔧 Final chart sizing:`, {
+      totalColumns,
+      barWidth: Math.round(barWidth * 10) / 10,
+      spacing: Math.round(spacing * 10) / 10,
+      chartWidth: Math.round(chartWidth),
+      finalTotalWidth: Math.round(finalTotalWidth),
+      utilization: Math.round(utilization) + "%",
+      availableWidth,
+    });
 
-    return { barWidth, spacing, chartWidth };
-  }, [chartData.length, containerWidth]);
+    return {
+      barWidth: Math.round(barWidth),
+      spacing: Math.round(spacing),
+      chartWidth: Math.round(chartWidth),
+    };
+  }, [chartData.length, containerWidth, windowWidth]);
+
+  // Responsive padding for the container
+  const containerPadding = windowWidth < 375 ? "p-4" : "p-6";
+  const paddingValue = windowWidth < 375 ? 16 : 24; // px-4 = 16px, px-6 = 24px
 
   return (
-    <View className="bg-white dark:bg-black rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
+    <View
+      className={`bg-white dark:bg-black rounded-xl border border-gray-200 dark:border-gray-700 ${containerPadding} shadow-sm`}
+    >
       <Text className="text-lg font-semibold text-center text-gray-900 dark:text-gray-100">
         Calorie Trends
       </Text>
@@ -335,9 +352,9 @@ const CalorieChart: React.FC<CalorieChartProps> = ({
             style={{
               width: "100%",
               alignItems: "center",
-              overflow: "visible",
-              paddingHorizontal: 2,
-              paddingTop: 15,
+              overflow: "hidden", // Changed from "visible" to "hidden" to contain chart
+              paddingTop: 10,
+              paddingHorizontal: 2, // Reduced from 4 to 2 to make chart wider
             }}
           >
             <BarChart
@@ -358,7 +375,7 @@ const CalorieChart: React.FC<CalorieChartProps> = ({
               }}
               xAxisLabelTextStyle={{
                 color: isDark ? "#D1D5DB" : "#6B7280",
-                fontSize: 11,
+                fontSize: 10,
                 fontWeight: "500",
               }}
               noOfSections={4}
@@ -367,7 +384,7 @@ const CalorieChart: React.FC<CalorieChartProps> = ({
               animationDuration={800}
               disableScroll={true}
               backgroundColor={isDark ? "#000000" : "#FFFFFF"}
-              initialSpacing={8}
+              initialSpacing={4}
               endSpacing={0}
               showGradient={false}
               activeOpacity={0.8}
@@ -428,28 +445,24 @@ const styles = StyleSheet.create({
   },
   tooltipContainer: {
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 8, // Increased spacing between triangle and bar
   },
   tooltipText: {
-    backgroundColor: "#fcd8cfff", // Light orange background to match the bars
     color: "#ff5a16", // Dark orange text
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 4,
     fontSize: 10,
     fontWeight: "600",
-    overflow: "visible",
+    textAlign: "center",
   },
   trianglePointer: {
     width: 0,
     height: 0,
-    borderLeftWidth: 8,
-    borderRightWidth: 8,
-    borderTopWidth: 8, // Changed from borderBottomWidth
+    borderLeftWidth: 4,
+    borderRightWidth: 4,
+    borderTopWidth: 4,
     borderLeftColor: "transparent",
     borderRightColor: "transparent",
-    borderTopColor: "#fcd8cfff", // Match the tooltip background color
-    marginTop: -1,
+    borderTopColor: "#ff5a16", // Match the text color
+    marginTop: 1, // Reduced spacing between calorie number and triangle
   },
 });
 

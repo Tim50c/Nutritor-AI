@@ -14,8 +14,10 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-// Initialize and export Auth and Firestore
+// Initialize Auth (Firebase v9+ uses AsyncStorage by default in React Native)
 export const auth = getAuth(app);
+
+// Initialize and export Firestore
 export const db = getFirestore(app);
 
 export default app;

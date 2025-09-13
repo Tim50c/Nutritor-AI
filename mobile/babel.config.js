@@ -5,5 +5,9 @@ module.exports = function (api) {
       ["babel-preset-expo", { jsxImportSource: "nativewind" }],
       "nativewind/babel",
     ],
+    plugins: [
+      // Use the new worklets plugin
+      "react-native-worklets/plugin",
+    ],
   };
 };
