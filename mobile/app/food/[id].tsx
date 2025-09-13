@@ -170,10 +170,14 @@ const FoodDetails = () => {
     if (dataToUse && typeof dataToUse === "string") {
       try {
         const parsedFood: FoodData = JSON.parse(dataToUse);
+        console.log("🍎 Parsed food object:", parsedFood);
         console.log("🍎 Processed food:", {
           name: parsedFood.name,
+          description: parsedFood.description,
           hasImage: !!parsedFood.imageUrl,
           imageUrl: parsedFood.imageUrl,
+          source: parsedFood.source,
+          nutrition: parsedFood.nutrition,
         });
 
         const finalFood = {
@@ -189,6 +193,8 @@ const FoodDetails = () => {
           barcode: parsedFood.barcode,
         };
 
+        console.log("✅ Final food object:", finalFood);
+
         return finalFood;
       } catch (error) {
         console.error("Error parsing food data:", error);
@@ -198,6 +204,15 @@ const FoodDetails = () => {
     // Fallback to mock data if no API data available
     return FOODS.find((item) => item.id === id);
   }, [id, foodData, updatedFoodData]);
+
+  // Add logging for debugging description issue
+  React.useEffect(() => {
+    console.log("📝 Food object in component:", food);
+    if (food) {
+      console.log("📝 Description value:", food.description);
+      console.log("📝 Food source:", 'source' in food ? food.source : 'N/A');
+    }
+  }, [food]);
 
   // Initialize current image
   React.useEffect(() => {
@@ -717,7 +732,7 @@ const FoodDetails = () => {
               </View>
             )}
             <Text className="text-gray-600 dark:text-gray-400 leading-relaxed">
-              {food.description}
+              {food?.description || "No description available"}
             </Text>
             {/* Show source information for API-recognized foods */}
             {"source" in food && food.source && (

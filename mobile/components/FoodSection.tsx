@@ -11,6 +11,7 @@ interface FoodItem {
   protein: number;
   fat: number;
   carbs: number;
+  description?: string; // Add description field
   addedAt?: string; // For diet foods - timestamp when added
   dietIndex?: number; // For diet foods - index in the diet array
 }

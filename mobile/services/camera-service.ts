@@ -99,6 +99,7 @@ class CameraService {
 
       const result = JSON.parse(responseText);
       console.log("🖼️ Image URL from backend:", result.data?.imageUrl);
+      console.log("🖼️ Description from backend:", result.data?.description);
 
       return {
         success: result.success || response.ok,

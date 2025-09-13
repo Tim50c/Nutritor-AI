@@ -14,6 +14,7 @@ interface FoodItem {
   protein: number;
   fat: number;
   carbs: number;
+  description?: string; // Add description field
   addedAt?: string; // For diet foods - timestamp when added
   dietIndex?: number; // For diet foods - index in the diet array
 }
@@ -41,14 +42,14 @@ const FoodSuggestionCard = memo(function FoodSuggestionCard({
     const foodData = {
       id: food.id,
       name: food.name,
-      description: `${food.name} - Nutritional Information`,
+      description: food.description || `${food.name} - Nutritional Information`, // Use existing description if available
       nutrition: {
         cal: food.calories,
         protein: food.protein,
         carbs: food.carbs,
         fat: food.fat,
       },
-      source: "suggestions",
+      source: source,
       imageUrl: food.image?.uri || food.image || null, // Handle both uri format and direct string
     };
 
